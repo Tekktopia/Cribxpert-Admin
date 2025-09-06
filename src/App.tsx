@@ -1,10 +1,13 @@
-function App() {
+import { Provider } from "react-redux";
+import { store } from "./store";
+import { DashboardPage } from "./pages/Dashboard";
 
+function App() {
   return (
-    <div>
-      Tekktopia
-    </div>
-  )
+    <Provider store={store}>
+      <DashboardPage />
+    </Provider>
+  );
 }
 
-export default App
+export default App;
