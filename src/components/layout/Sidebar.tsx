@@ -91,7 +91,7 @@ export function Sidebar({ className, isOpen = false, onClose }: SidebarProps) {
   return (
     <div
       className={cn(
-        "w-64 h-screen bg-gray-50 border-r border-gray-200 flex flex-col transition-transform duration-300 ease-in-out overflow-hidden",
+        "w-64 h-screen lg:h-auto lg:min-h-screen bg-white border-r border-gray-200 flex flex-col transition-transform duration-300 ease-in-out overflow-hidden",
         "lg:translate-x-0",
         isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         className
@@ -139,7 +139,7 @@ export function Sidebar({ className, isOpen = false, onClose }: SidebarProps) {
       </nav>
 
       {/* Bottom Section - Fixed */}
-      <div className='flex-shrink-0 px-4 pb-4 space-y-2 border-t border-gray-200 pt-4'>
+      <div className='flex-shrink-0 px-4 pb-4 space-y-2 pt-4'>
         {/* Text Menu */}
         <button className='flex items-center justify-between w-full px-4 py-3 text-sm font-medium text-gray-700 rounded-lg hover:bg-white transition-colors'>
           <div className='flex items-center'>

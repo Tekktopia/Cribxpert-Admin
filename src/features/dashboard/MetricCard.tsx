@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 import { Card, CardContent } from "../../components/ui/card";
 import { cn } from "../../utils/cn";
 
@@ -19,35 +20,33 @@ export function MetricCard({
   iconBgColor,
   changeText,
 }: MetricCardProps) {
-  const isPositive = change >= 0;
+  // Create the background color by using the 50 shade variant
+  const bgColorClass = iconBgColor.replace("bg-", "bg-") + "/10"; // Using opacity instead of -50 variant
+  const textColorClass = iconBgColor.replace("bg-", "text-");
 
   return (
-    <Card className='relative overflow-hidden hover:shadow-md transition-shadow'>
+    <Card className='border border-gray-100 shadow-sm'>
       <CardContent className='p-6'>
         <div className='flex items-start justify-between'>
-          <div className='space-y-2'>
-            <p className='text-sm font-medium text-gray-600'>{title}</p>
-            <p className='text-3xl font-bold text-gray-900'>{value}</p>
-            <div className='flex items-center space-x-2'>
-              <span
-                className={cn(
-                  "text-xs font-medium flex items-center",
-                  isPositive ? "text-green-600" : "text-red-600"
-                )}
-              >
-                {isPositive ? "↗" : "↘"} {Math.abs(change)}%
+          <div className='flex-1'>
+            <p className='text-xs text-gray-500 mb-2'>{title}</p>
+            <p className='text-xl font-bold text-gray-900 mb-4'>{value}</p>
+            <div className='flex items-center'>
+              <TrendingUp className='w-3.5 h-3.5 text-green-500 mr-1' />
+              <span className='text-sm font-medium text-green-500'>
+                {Math.abs(change)}%
               </span>
-              <span className='text-xs text-gray-500'>{changeText}</span>
+              <span className='text-xs text-gray-400 ml-1.5'>{changeText}</span>
             </div>
           </div>
 
           <div
             className={cn(
-              "w-12 h-12 rounded-lg flex items-center justify-center shadow-sm",
-              iconBgColor
+              "w-12 h-12 rounded-full flex items-center justify-center",
+              bgColorClass
             )}
           >
-            <Icon className='w-6 h-6 text-white' />
+            <Icon className={cn("w-6 h-6", textColorClass)} />
           </div>
         </div>
       </CardContent>
