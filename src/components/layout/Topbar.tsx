@@ -1,23 +1,45 @@
-import { Search, Bell } from "lucide-react";
+import { Search, Bell, Menu } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Button } from "../ui/button";
 
-export function Topbar() {
+interface TopbarProps {
+  onMenuClick?: () => void;
+}
+
+export function Topbar({ onMenuClick }: TopbarProps) {
   return (
-    <header className='bg-white border-b border-gray-200 px-6 py-4'>
+    <header className='bg-white border-b border-gray-200 px-4 py-4 sm:px-6'>
       <div className='flex items-center justify-between'>
-        {/* Search Bar */}
-        <div className='relative'>
-          <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400' />
-          <input
-            type='text'
-            placeholder='Search...'
-            className='px-8 py-2 w-80 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent text-sm bg-[#F2F2F2]'
-          />
+        {/* Left Section - Mobile menu + Search */}
+        <div className='flex items-center space-x-4'>
+          {/* Mobile menu button */}
+          <Button
+            variant='ghost'
+            size='icon'
+            className='lg:hidden'
+            onClick={onMenuClick}
+          >
+            <Menu className='w-5 h-5' />
+          </Button>
+
+          {/* Search Bar */}
+          <div className='relative hidden sm:block'>
+            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400' />
+            <input
+              type='text'
+              placeholder='Search...'
+              className='px-8 py-2 w-60 sm:w-80 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent text-sm bg-[#F2F2F2]'
+            />
+          </div>
         </div>
 
         {/* Right Section */}
-        <div className='flex items-center space-x-4'>
+        <div className='flex items-center space-x-2 sm:space-x-4'>
+          {/* Mobile search button */}
+          <Button variant='ghost' size='icon' className='sm:hidden'>
+            <Search className='w-5 h-5' />
+          </Button>
+
           {/* Notifications */}
           <Button variant='ghost' size='icon' className='relative'>
             <Bell className='w-5 h-5' />
@@ -25,14 +47,14 @@ export function Topbar() {
           </Button>
 
           {/* User Avatar */}
-          <div className='flex items-center space-x-3'>
+          <div className='flex items-center space-x-2 sm:space-x-3'>
             <Avatar className='w-8 h-8'>
               <AvatarImage src='/api/placeholder/32/32' alt='Jasmine D.' />
               <AvatarFallback>JD</AvatarFallback>
             </Avatar>
-            <div className='text-right'>
-              <p className='text-sm font-medium text-gray-900'>Jasmine D.</p>
-              <p className='text-xs text-gray-500'>Super Admin</p>
+            <div className='hidden sm:block text-sm'>
+              <div className='font-medium text-gray-900'>Jasmine D.</div>
+              <div className='text-gray-500'>Super Admin</div>
             </div>
           </div>
         </div>
