@@ -4,7 +4,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
-import { LineChart } from "./charts/LineChart";
+import { LineChart } from "../../components/charts/LineChart";
 
 interface MetricItem {
   label: string;

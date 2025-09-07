@@ -6,77 +6,91 @@ import {
 } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 
-interface MessageInsight {
-  sent: number;
-  unread: number;
-  flaggedConversations: number;
+interface FlaggedConversation {
+  id: string;
+  participants: string;
+  message: string;
+  reason: string;
+  timestamp: string;
+  priority: "High" | "Medium" | "Low";
 }
 
 interface MessageOversightProps {
-  insights: MessageInsight;
+  messages: {
+    todayCount: number;
+    unreadReports: number;
+    flaggedConversations: FlaggedConversation[];
+  };
 }
 
-export function MessageOversight({ insights }: MessageOversightProps) {
+export function MessageOversight({ messages }: MessageOversightProps) {
   return (
-    <Card>
-      <CardHeader className='flex flex-row items-center justify-between'>
-        <CardTitle className='text-lg'>Message Oversight</CardTitle>
-        <a href='#' className='text-sm text-primary-600 hover:text-primary-700'>
-          View all
-        </a>
+    <Card className='p-4'>
+      <CardHeader className='pb-4 p-0'>
+        <div className='flex justify-between items-center'>
+          <CardTitle className='text-base font-semibold pb-4'>
+            Message Oversight
+          </CardTitle>
+          <a href='#' className='text-sm text-green-600 pb-4 font-medium'>
+            View all
+          </a>
+        </div>
       </CardHeader>
-      <CardContent>
-        <div className='grid grid-cols-2 gap-6'>
-          {/* Sent Messages */}
-          <div className='text-center'>
-            <div className='text-3xl font-bold text-blue-600 mb-2'>
-              {insights.sent}
+      <CardContent className='p-0'>
+        <div className='grid grid-cols-2 gap-4 mb-6'>
+          {/* Messages Today */}
+          <div className='bg-blue-50 rounded-xl p-4 text-center'>
+            <div className='text-blue-600 text-base font-semibold'>
+              {messages.todayCount}
             </div>
-            <div className='text-sm text-gray-600'>Sent</div>
-            <div className='text-xs text-green-600'>+5% vs last month</div>
+            <div className='text-gray-600 text-[10px]'>Messages Today</div>
           </div>
 
-          {/* Unread Messages */}
-          <div className='text-center'>
-            <div className='text-3xl font-bold text-red-600 mb-2'>
-              {insights.unread}
+          {/* Unread Reports */}
+          <div className='bg-red-50 rounded-xl p-4 text-center'>
+            <div className='text-red-500 text-base font-semibold'>
+              {messages.unreadReports}
             </div>
-            <div className='text-sm text-gray-600'>Unread</div>
-            <div className='text-xs text-red-600'>High Priority</div>
+            <div className='text-gray-600 text-[10px]'>Unread Reports</div>
           </div>
         </div>
 
-        <div className='mt-6 space-y-3'>
-          <div className='flex items-center justify-between p-3 bg-blue-50 rounded-lg'>
-            <div>
-              <p className='font-medium text-blue-900'>Flagged Conversations</p>
-              <p className='text-sm text-blue-700'>
-                Review flagged chats for policy violations
-              </p>
-            </div>
-            <Badge variant='warning'>{insights.flaggedConversations}</Badge>
-          </div>
-
-          <div className='flex items-center justify-between p-3 bg-red-50 rounded-lg'>
-            <div>
-              <p className='font-medium text-red-900'>High Cens Filtered</p>
-              <p className='text-sm text-red-700'>
-                Content has been automatically filtered
-              </p>
-            </div>
-            <Badge variant='destructive'>0</Badge>
-          </div>
-
-          <div className='flex items-center justify-between p-3 bg-yellow-50 rounded-lg'>
-            <div>
-              <p className='font-medium text-yellow-900'>
-                Mark User's Prohibited
-              </p>
-              <p className='text-sm text-yellow-700'>
-                Take action on users with policy violations
-              </p>
-            </div>
-            <Badge variant='warning'>1</Badge>
+        <div className='mt-4'>
+          <h3 className='font-medium text-sm text-gray-900 mb-2'>
+            Flagged Conversations
+          </h3>
+          <div className='space-y-2'>
+            {messages.flaggedConversations.map((conversation) => (
+              <Card key={conversation.id} className='text-[10px] p-4 py-2'>
+                <div className='flex justify-between items-center'>
+                  <span className='font-medium text-gray-900 text-sm'>
+                    {conversation.participants}
+                  </span>
+                  <Badge
+                    className={`${
+                      conversation.priority === "High"
+                        ? "bg-red-50 text-red-600"
+                        : conversation.priority === "Medium"
+                        ? "bg-amber-50 text-amber-600"
+                        : "bg-green-50 text-green-600"
+                    } border-0 hover:bg-opacity-100 px-4 py-1 rounded-md font-normal`}
+                  >
+                    {conversation.priority}
+                  </Badge>
+                </div>
+                <p className='text-gray-600 text-sm'>
+                  "{conversation.message}"
+                </p>
+                <div className='flex justify-between items-center'>
+                  <span className='text-xs text-gray-500'>
+                    {conversation.reason}
+                  </span>
+                  <span className='text-xs text-gray-500'>
+                    {conversation.timestamp}
+                  </span>
+                </div>
+              </Card>
+            ))}
           </div>
         </div>
       </CardContent>

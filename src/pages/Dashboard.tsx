@@ -5,6 +5,9 @@ import { MetricCard } from "../features/dashboard/MetricCard";
 import { UserManagement } from "../features/dashboard/UserManagement";
 import { ListingSummary } from "../features/dashboard/ListingSummary";
 import { BookingFinancialMetrics } from "../features/dashboard/BookingFinancialMetrics";
+import { KYCCompliance } from "../features/dashboard/KYCCompliance";
+import { MessageOversight } from "../features/dashboard/MessageOversight";
+import { RecentActivity } from "../features/dashboard/RecentActivity";
 
 // Sample data for the dashboard
 const dashboardData = {
@@ -87,6 +90,86 @@ const dashboardData = {
       },
     ],
   },
+
+  // KYC compliance data
+  kycCompliance: [
+    {
+      id: "1",
+      name: "Sarah Johnson",
+      email: "sarah.j@example.com",
+      avatar: "/avatars/sarah.png",
+      status: "pending" as const,
+      timestamp: "2mins ago",
+    },
+    {
+      id: "2",
+      name: "Michael Ojo",
+      email: "michael.o@example.com",
+      avatar: "/avatars/michael.png",
+      status: "flagged" as const,
+      timestamp: "2hrs ago",
+    },
+    {
+      id: "3",
+      name: "Cynthia Okoro",
+      email: "cynthia.o@example.com",
+      avatar: "/avatars/cynthia.png",
+      status: "pending" as const,
+      timestamp: "2hrs ago",
+    },
+  ],
+
+  // Message oversight data
+  messageOversight: {
+    todayCount: 500,
+    unreadReports: 500,
+    flaggedConversations: [
+      {
+        id: "1",
+        participants: "Alex Thompson → Lisa Ojo",
+        message: "Can we meet outside the platform for...",
+        reason: "Off-platform communication",
+        timestamp: "2hrs ago",
+        priority: "High" as const,
+      },
+      {
+        id: "2",
+        participants: "Mark Dare → Emma David",
+        message: "I can offer you a better deal if...",
+        reason: "Price manipulation",
+        timestamp: "2hrs ago",
+        priority: "Medium" as const,
+      },
+    ],
+  },
+
+  // Recent activity data
+  recentActivity: [
+    {
+      id: "1",
+      type: "user_verification" as const,
+      title: "User Verification Approved",
+      description: "John Deyemi",
+      timestamp: "2mins ago",
+      status: "completed" as const,
+    },
+    {
+      id: "2",
+      type: "listing_flagged" as const,
+      title: "Listing Flagged For Review",
+      description: "Property #1234",
+      timestamp: "3mins ago",
+      status: "pending" as const,
+    },
+    {
+      id: "3",
+      type: "payout_processed" as const,
+      title: "Payout Processed",
+      description: "Sarah Wilson - $450",
+      timestamp: "4mins ago",
+      status: "completed" as const,
+    },
+  ],
 };
 
 export function DashboardPage() {
@@ -199,6 +282,21 @@ export function DashboardPage() {
             {/* Booking & Financial Metrics */}
             <div className='lg:col-span-4'>
               <BookingFinancialMetrics data={dashboardData.bookingMetrics} />
+            </div>
+
+            {/* KYC Compliance */}
+            <div className='lg:col-span-4'>
+              <KYCCompliance users={dashboardData.kycCompliance} />
+            </div>
+
+            {/* Message Oversight */}
+            <div className='lg:col-span-4'>
+              <MessageOversight messages={dashboardData.messageOversight} />
+            </div>
+
+            {/* Recent Activity */}
+            <div className='lg:col-span-4'>
+              <RecentActivity activities={dashboardData.recentActivity} />
             </div>
           </div>
         ) : (

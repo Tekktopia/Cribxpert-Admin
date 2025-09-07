@@ -4,7 +4,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
-import { BarChart } from "./charts/BarChart";
+import { BarChart } from "../../components/charts/BarChart";
 
 interface ListingData {
   label: string;

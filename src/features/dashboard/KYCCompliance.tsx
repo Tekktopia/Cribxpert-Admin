@@ -16,8 +16,9 @@ interface User {
   name: string;
   email: string;
   avatar?: string;
-  status: "verified" | "pending" | "blocked";
-  role: string;
+  status: "verified" | "pending" | "blocked" | "flagged";
+  role?: string;
+  timestamp?: string;
 }
 
 interface KYCComplianceProps {
@@ -28,45 +29,49 @@ export function KYCCompliance({ users }: KYCComplianceProps) {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "verified":
-        return <Badge variant='success'>Verified</Badge>;
+        return (
+          <Badge className='bg-teal-50 text-teal-600 hover:bg-teal-50 border-0'>
+            Verified
+          </Badge>
+        );
       case "pending":
-        return <Badge variant='pending'>Pending</Badge>;
+        return (
+          <Badge className='bg-amber-50 text-amber-600 hover:bg-amber-50 border-0'>
+            Pending
+          </Badge>
+        );
+      case "flagged":
+        return (
+          <Badge className='bg-red-50 text-red-600 hover:bg-red-50 border-0'>
+            Flagged
+          </Badge>
+        );
       case "blocked":
-        return <Badge variant='destructive'>Blocked</Badge>;
+        return (
+          <Badge className='bg-red-50 text-red-600 hover:bg-red-50 border-0'>
+            Blocked
+          </Badge>
+        );
       default:
         return <Badge variant='secondary'>{status}</Badge>;
     }
   };
 
-  const getStatusAction = (status: string) => {
-    switch (status) {
-      case "verified":
-        return "View profile";
-      case "pending":
-        return "Review KYC";
-      case "blocked":
-        return "Reason";
-      default:
-        return "View";
-    }
-  };
-
   return (
-    <Card>
-      <CardHeader className='flex flex-row items-center justify-between'>
-        <CardTitle className='text-lg'>KYC & Compliance</CardTitle>
-        <a href='#' className='text-sm text-primary-600 hover:text-primary-700'>
-          View all
-        </a>
+    <Card className='p-4'>
+      <CardHeader className='p-0 '>
+        <CardTitle className='text-base pb-4 font-semibold'>
+          KYC & Compliance
+        </CardTitle>
       </CardHeader>
-      <CardContent className='space-y-4'>
+      <CardContent className='space-y-4 pt-2 p-0'>
         {users.map((user) => (
           <div
             key={user.id}
-            className='flex items-center justify-between p-3 rounded-lg hover:bg-gray-50'
+            className='flex items-center justify-between rounded-lg border border-gray-100 p-4'
           >
             <div className='flex items-center space-x-3'>
-              <Avatar className='w-10 h-10'>
+              <Avatar className='w-10 h-10 border-0'>
                 <AvatarImage src={user.avatar} alt={user.name} />
                 <AvatarFallback>
                   {user.name
@@ -77,14 +82,14 @@ export function KYCCompliance({ users }: KYCComplianceProps) {
               </Avatar>
               <div>
                 <p className='font-medium text-gray-900'>{user.name}</p>
-                <p className='text-sm text-gray-500'>{user.role}</p>
+                <p className='text-sm text-gray-500'>ID Verification</p>
               </div>
             </div>
-            <div className='flex items-center space-x-3'>
+            <div className='flex flex-col items-end'>
               {getStatusBadge(user.status)}
-              <button className='text-sm text-teal-600 hover:text-teal-700'>
-                {getStatusAction(user.status)}
-              </button>
+              <span className='text-xs text-gray-500 mt-1'>
+                {user.timestamp}
+              </span>
             </div>
           </div>
         ))}

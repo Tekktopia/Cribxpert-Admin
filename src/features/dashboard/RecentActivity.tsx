@@ -5,7 +5,6 @@ import {
   CardTitle,
 } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
-import { Button } from "../../components/ui/button";
 
 interface ActivityItem {
   id: string;
@@ -24,69 +23,59 @@ export function RecentActivity({ activities }: RecentActivityProps) {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "completed":
-        return <Badge variant='success'>Completed</Badge>;
+        return (
+          <Badge className='bg-green-50 text-green-600 border-0 hover:bg-green-50'>
+            Success
+          </Badge>
+        );
       case "pending":
-        return <Badge variant='pending'>Pending</Badge>;
+        return (
+          <Badge className='bg-amber-50 text-amber-600 border-0 hover:bg-amber-50'>
+            Warning
+          </Badge>
+        );
       case "failed":
-        return <Badge variant='destructive'>Failed</Badge>;
+        return (
+          <Badge className='bg-red-50 text-red-600 border-0 hover:bg-red-50'>
+            Failed
+          </Badge>
+        );
       default:
         return <Badge variant='secondary'>{status}</Badge>;
     }
   };
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case "user_verification":
-        return "bg-blue-100 text-blue-800";
-      case "listing_flagged":
-        return "bg-yellow-100 text-yellow-800";
-      case "payout_processed":
-        return "bg-green-100 text-green-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
   return (
-    <Card>
-      <CardHeader className='flex flex-row items-center justify-between'>
-        <CardTitle className='text-lg'>Recent Activity</CardTitle>
-        <a href='#' className='text-sm text-primary-600 hover:text-primary-700'>
-          View all
-        </a>
+    <Card className='p-4'>
+      <CardHeader className='p-0 pb-4'>
+        <div className='flex justify-between items-center'>
+          <CardTitle className='text-xl font-semibold'>
+            Recent Activity
+          </CardTitle>
+          <a href='#' className='text-sm text-green-600 font-medium'>
+            View all
+          </a>
+        </div>
       </CardHeader>
-      <CardContent className='space-y-4'>
-        {activities.map((activity) => (
-          <div
-            key={activity.id}
-            className='flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50'
-          >
-            <div
-              className={`w-2 h-2 rounded-full mt-2 ${
-                getTypeColor(activity.type)
-                  .replace("text-", "bg-")
-                  .split(" ")[0]
-              }`}
-            />
-            <div className='flex-1 min-w-0'>
-              <div className='flex items-center justify-between'>
-                <p className='font-medium text-gray-900 truncate'>
+      <CardContent className='p-0'>
+        <div className='space-y-4'>
+          {activities.map((activity) => (
+            <Card
+              key={activity.id}
+              className='border border-gray-100 rounded-3xl py-2 px-3'
+            >
+              <div className='flex justify-between items-center mb-2'>
+                <h3 className='font-medium text-gray-900 text-sm'>
                   {activity.title}
-                </p>
+                </h3>
                 {getStatusBadge(activity.status)}
               </div>
-              <p className='text-sm text-gray-500 mt-1'>
+              <p className='text-gray-600 text-sm mb-2'>
                 {activity.description}
               </p>
-              <p className='text-xs text-gray-400 mt-1'>{activity.timestamp}</p>
-            </div>
-          </div>
-        ))}
-
-        <div className='pt-4 border-t'>
-          <Button variant='ghost' className='w-full'>
-            View All Activities
-          </Button>
+              <p className='text-xs text-gray-500'>{activity.timestamp}</p>
+            </Card>
+          ))}
         </div>
       </CardContent>
     </Card>

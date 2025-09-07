@@ -4,7 +4,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
-import { DonutChart } from "./charts/DonutChart";
+import { DonutChart } from "../../components/charts/DonutChart";
 
 interface UserData {
   label: string;
