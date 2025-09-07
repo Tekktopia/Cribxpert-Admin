@@ -28,9 +28,9 @@ export function MainLayout({ children }: MainLayoutProps) {
       />
 
       {/* Main content */}
-      <div className='flex-1 flex flex-col min-w-0 lg:ml-0'>
+      <div className='flex-1 flex flex-col min-w-0 lg:ml-0 h-screen'>
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
-        <main className='flex-1 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8'>
+        <main className='flex-1 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 overflow-y-auto'>
           {children}
         </main>
       </div>
