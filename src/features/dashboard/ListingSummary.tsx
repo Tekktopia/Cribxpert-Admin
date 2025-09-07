@@ -18,15 +18,15 @@ interface ListingSummaryProps {
 
 export function ListingSummary({ listingData }: ListingSummaryProps) {
   return (
-    <Card className='h-full'>
-      <CardHeader className='pb-2'>
+    <Card className='h-full p-4 flex flex-col justify-between'>
+      <CardHeader className='p-0 pb-4'>
         <CardTitle className='text-base font-medium'>Listing Summary</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className='h-48 mb-6'>
+      <CardContent className='p-0 h-full'>
+        <div className='h-48'>
           <BarChart data={listingData} />
         </div>
-        <div className='space-y-4 mt-2'>
+        <div className='space-y-3 mt-4'>
           {listingData.map((item, index) => (
             <div key={index} className='flex items-center justify-between'>
               <div className='flex items-center'>

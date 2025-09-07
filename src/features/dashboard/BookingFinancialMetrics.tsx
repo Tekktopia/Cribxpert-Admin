@@ -34,72 +34,67 @@ interface BookingFinancialMetricsProps {
 export function BookingFinancialMetrics({
   data,
 }: BookingFinancialMetricsProps) {
-  const getStatusColorClass = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "text-green-500";
-      case "pending":
-        return "text-amber-500";
-      case "dispute":
-        return "text-red-500";
-      default:
-        return "text-gray-500";
-    }
-  };
-
   return (
-    <Card>
-      <CardHeader className='pb-2'>
+    <Card className='h-full p-4'>
+      <CardHeader className='p-0 pb-4'>
         <CardTitle className='text-base font-medium'>
           Booking & Financial Metrics
         </CardTitle>
       </CardHeader>
-      <CardContent className='space-y-6'>
+      <CardContent className='space-y-4 p-0'>
         {/* Daily Bookings and Avg Booking Value */}
-        <div className='grid grid-cols-2 gap-4'>
-          <div>
-            <p className='text-sm text-gray-500'>Daily Bookings</p>
+        <div className='space-y-2'>
+          <Card className='rounded-lg px-4 py-2'>
+            <p className='text-xs text-[#525866] mb-1'>Daily Bookings</p>
             <div className='flex items-center justify-between'>
-              <p className='text-2xl font-bold'>{data.dailyBookings.value}</p>
-              <span className='text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded'>
+              <p className='text-base font-bold'>{data.dailyBookings.value}</p>
+              <span className='text-xs font-medium text-[#525866] px-2 py-1 rounded-full'>
                 {data.dailyBookings.percentChange}%
               </span>
             </div>
-          </div>
-          <div>
-            <p className='text-sm text-gray-500'>Avg. Booking Value</p>
+          </Card>
+          <Card className='rounded-lg px-4 py-2'>
+            <p className='text-sm text-[#525866] mb-1'>Avg. Booking Value</p>
             <div className='flex items-center justify-between'>
-              <p className='text-2xl font-bold'>{data.avgBookingValue.value}</p>
-              <span className='text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded'>
+              <p className='text-base font-bold'>
+                {data.avgBookingValue.value}
+              </p>
+              <span className='text-xs font-medium text-[#525866] px-2 py-1 rounded-full'>
                 {data.avgBookingValue.percentChange}%
               </span>
             </div>
-          </div>
+          </Card>
         </div>
 
         {/* Weekly Bookings Chart */}
-        <div>
-          <p className='text-sm text-gray-500 mb-2'>Bookings</p>
-          <div className='h-28'>
+        <div className='mt-4'>
+          <p className='text-base font-medium text-gray-800 mb-3'>Bookings</p>
+          <div className='h-8 mb-2'>
+            {" "}
+            {/* Adjusted height to match Figma */}
             <LineChart data={data.bookingsByDay} />
           </div>
-          <div className='flex justify-between mt-1'>
+          <div className='flex justify-between mt-2'>
             {data.bookingsByDay.map((day, index) => (
-              <div key={index} className='text-xs text-gray-500'>
-                {day.day.substring(0, 3)}
+              <div key={index} className='text-[8px] text-[#6b7280]'>
+                {day.day}
               </div>
             ))}
           </div>
         </div>
 
         {/* Payouts Section */}
-        <div className='space-y-2'>
+        <div className='space-y-4 mt-4'>
           {data.payouts.map((payout, index) => (
             <div key={index} className='flex justify-between items-center'>
               <span className='text-sm text-gray-700'>{payout.label}</span>
               <span
-                className={`text-sm font-medium ${
-                  payout.colorClass || getStatusColorClass(payout.status)
+                className={`text-sm font-semibold ${
+                  payout.status === "completed"
+                    ? "text-green-500"
+                    : payout.status === "pending"
+                    ? "text-amber-500"
+                    : "text-red-500"
                 }`}
               >
                 {payout.value}

@@ -18,16 +18,16 @@ interface UserManagementProps {
 
 export function UserManagement({ userData }: UserManagementProps) {
   return (
-    <Card className="p-4">
-      <CardHeader className='p-0'>
-        <CardTitle className='text-base font-medium'>User Management</CardTitle>
+    <Card className="p-4 h-full flex flex-col justify-between">
+      <CardHeader className='p-0 pb-4'>
+        <CardTitle className='text-base font-semibold'>User Management</CardTitle>
       </CardHeader>
       <CardContent className="p-0 flex h-full flex-col justify-between">
-        <div className='flex flex-col items-center'>
-          <div className='w-48 h-48 my-3'>
+        <div className='space-y-6'>
+          <div className='w-48 h-48 mx-auto my-3'>
             <DonutChart data={userData} />
           </div>
-          <div className='w-full space-y-2'>
+          <div className='w-full space-y-6'>
             {userData.map((item, index) => (
               <div key={index} className='flex items-center justify-between'>
                 <div className='flex items-center'>

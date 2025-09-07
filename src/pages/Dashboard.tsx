@@ -42,10 +42,10 @@ const dashboardData = {
 
   // Listing summary data
   listingSummary: [
-    { label: "Active", value: 80, color: "#006A71" }, // Teal-800 (custom)
-    { label: "Inactive", value: 60, color: "#0074D9" }, // Blue (custom)
-    { label: "Pending", value: 40, color: "#F9A825" }, // Amber-custom
-    { label: "Flagged", value: 10, color: "#FF4136" }, // Red (custom)
+    { label: "Active", value: 80, color: "#006266" }, // Exact Teal from Figma
+    { label: "Inactive", value: 60, color: "#0072CE" }, // Exact Blue from Figma
+    { label: "Pending", value: 40, color: "#FFC107" }, // Exact Amber from Figma
+    { label: "Flagged", value: 10, color: "#FF3E41" }, // Exact Red from Figma
   ],
 
   // Booking and financial metrics
@@ -74,19 +74,16 @@ const dashboardData = {
         label: "Completed Payouts",
         value: "$2,500",
         status: "completed" as const,
-        colorClass: "text-green-500",
       },
       {
         label: "Pending Payouts",
         value: "$600",
         status: "pending" as const,
-        colorClass: "text-amber-500",
       },
       {
         label: "Escrow Disputes",
         value: "6",
         status: "dispute" as const,
-        colorClass: "text-red-500",
       },
     ],
   },
@@ -188,7 +185,7 @@ export function DashboardPage() {
         {/* Empty State */}
 
         {isPopulated ? (
-          <div className='grid grid-cols-1 lg:grid-cols-12 gap-6'>
+          <div className='grid grid-cols-1 lg:grid-cols-12 gap-4'>
             {/* User Management */}
             <div className='lg:col-span-4'>
               <UserManagement userData={dashboardData.userManagement} />

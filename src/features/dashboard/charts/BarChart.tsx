@@ -28,16 +28,15 @@ export function BarChart({ data }: BarChartProps) {
 
     // Chart dimensions
     const chartHeight = canvas.height - 40; // Leave space for labels and values
-    const barSpacing = 25; // Space between bars
-    const totalBarsWidth = canvas.width - barSpacing * (data.length - 1);
-    const barWidth = Math.min(totalBarsWidth / data.length, 50); // Bar width with max width
+    const barSpacing = 20; // Space between bars - adjusted to match Figma
+    const barWidth = 60; // Fixed bar width to match Figma design
 
     // Draw y-axis labels/grid lines
     const yLabels = [0, 20, 40, 60, 80]; // Fixed labels to match design
 
     ctx.strokeStyle = "#f3f4f6"; // Very light gray
     ctx.fillStyle = "#9ca3af"; // Text color
-    ctx.font = "11px sans-serif";
+    ctx.font = "12px sans-serif";
     ctx.textAlign = "left";
 
     yLabels.forEach((value) => {
@@ -50,7 +49,7 @@ export function BarChart({ data }: BarChartProps) {
     // Draw bars
     data.forEach((item, index) => {
       const barHeight = (item.value / maxValue) * chartHeight;
-      const x = 40 + (barWidth + barSpacing) * index;
+      const x = 30 + (barWidth + barSpacing) * index; // Adjusted to match Figma spacing
       const y = canvas.height - barHeight - 20; // Leave space at bottom
 
       // Draw bar
@@ -63,7 +62,7 @@ export function BarChart({ data }: BarChartProps) {
     <canvas
       ref={canvasRef}
       width={400}
-      height={180}
+      height={170}
       className='w-full h-full'
     ></canvas>
   );

@@ -27,7 +27,7 @@ export function MetricCard({
   const textColorClass = iconBgColor.replace("bg-", "text-");
 
   return (
-    <Card className='border border-gray-100 shadow-sm transition-shadow duration-200'>
+    <Card className='border border-[#eeeeee]'>
       <CardContent className='p-4'>
         <div className='flex items-start justify-between'>
           <div className='flex-1'>
