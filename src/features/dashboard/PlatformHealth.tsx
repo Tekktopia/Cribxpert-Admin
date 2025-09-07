@@ -5,67 +5,72 @@ import {
   CardTitle,
 } from "../../components/ui/card";
 
-interface HealthMetric {
+interface PlatformMetric {
   label: string;
   value: string;
-  change: number;
-  status: "good" | "warning" | "critical";
+  color: string;
+}
+
+interface PlatformEvent {
+  id: string;
+  title: string;
+  description: string;
+  timestamp: string;
 }
 
 interface PlatformHealthProps {
-  metrics: HealthMetric[];
+  metrics: PlatformMetric[];
+  events: PlatformEvent[];
 }
 
-export function PlatformHealth({ metrics }: PlatformHealthProps) {
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "good":
-        return "text-green-600";
-      case "warning":
-        return "text-yellow-600";
-      case "critical":
-        return "text-red-600";
-      default:
-        return "text-gray-600";
-    }
-  };
-
+export function PlatformHealth({ metrics, events }: PlatformHealthProps) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className='text-lg'>Platform Health & Logs</CardTitle>
+    <Card className='p-4 h-full'>
+      <CardHeader className='pb-4 p-0'>
+        <CardTitle className='text-base font-semibold'>
+          Platform Health & Logs
+        </CardTitle>
       </CardHeader>
-      <CardContent className='space-y-4'>
-        {metrics.map((metric, index) => (
-          <div
-            key={index}
-            className='flex items-center justify-between p-3 rounded-lg border'
-          >
-            <div>
-              <p className='font-medium text-gray-900'>{metric.label}</p>
-              <p className='text-sm text-gray-500'>
-                {metric.change > 0 ? "+" : ""}
-                {metric.change}% this session
-              </p>
-            </div>
-            <div className='text-right'>
-              <p
-                className={`text-lg font-bold ${getStatusColor(metric.status)}`}
+      <CardContent className='p-0 mt-4'>
+        {/* Metrics */}
+        <div className='grid grid-cols-3 gap-4 mb-6'>
+          {metrics.map((metric, index) => (
+            <div
+              key={index}
+              className='text-center py-2 px-4 rounded-xl'
+              style={{ backgroundColor: `${metric.color}20` }}
+            >
+              <div
+                className='text-base font-semibold mb-1'
+                style={{ color: metric.color }}
               >
                 {metric.value}
-              </p>
+              </div>
+              <div className='text-gray-600 text-[10px]'>{metric.label}</div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
 
-        <div className='grid grid-cols-2 gap-4 pt-4 border-t'>
-          <div className='text-center p-3 bg-green-50 rounded-lg'>
-            <p className='text-2xl font-bold text-green-600'>99.9%</p>
-            <p className='text-sm text-green-700'>Uptime</p>
-          </div>
-          <div className='text-center p-3 bg-blue-50 rounded-lg'>
-            <p className='text-2xl font-bold text-blue-600'>1.2s</p>
-            <p className='text-sm text-blue-700'>Avg Response</p>
+        {/* Flagged Conversations */}
+        <div>
+          <h3 className='font-medium text-sm text-gray-900 mb-4'>
+            Flagged Conversations
+          </h3>
+          <div className='space-y-3'>
+            {events.map((event) => (
+              <div
+                key={event.id}
+                className='flex justify-between items-center p-4 border border-gray-100 rounded-2xl'
+              >
+                <div>
+                  <h4 className='font-medium text-gray-900 text-sm mb-1'>
+                    {event.title}
+                  </h4>
+                  <p className='text-gray-600 text-sm'>{event.description}</p>
+                </div>
+                <span className='text-xs text-gray-500'>{event.timestamp}</span>
+              </div>
+            ))}
           </div>
         </div>
       </CardContent>

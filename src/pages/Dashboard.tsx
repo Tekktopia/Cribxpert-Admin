@@ -8,6 +8,8 @@ import { BookingFinancialMetrics } from "../features/dashboard/BookingFinancialM
 import { KYCCompliance } from "../features/dashboard/KYCCompliance";
 import { MessageOversight } from "../features/dashboard/MessageOversight";
 import { RecentActivity } from "../features/dashboard/RecentActivity";
+import { NotificationCenter } from "../features/dashboard/NotificationCenter";
+import { PlatformHealth } from "../features/dashboard/PlatformHealth";
 
 // Sample data for the dashboard
 const dashboardData = {
@@ -170,6 +172,79 @@ const dashboardData = {
       status: "completed" as const,
     },
   ],
+
+  // Notification center data
+  notifications: [
+    {
+      id: "1",
+      type: "system_alert" as const,
+      title: "System Alerts",
+      description: "Multiple failed login attempts from IP 192.168.1.100",
+      timestamp: "5mins ago",
+      priority: "High" as const,
+      status: "unread" as const,
+    },
+    {
+      id: "2",
+      type: "suspicious_activity" as const,
+      title: "Suspicious Activity Detected",
+      description:
+        "Booking date 23-24-320-780 has an activity dispute requiring attention",
+      timestamp: "7mins ago",
+      priority: "High" as const,
+      status: "unread" as const,
+    },
+    {
+      id: "3",
+      type: "maintenance" as const,
+      title: "System Maintenance Scheduled",
+      description: "Scheduled maintenance window from 2:00 AM - 4:00 AM EST",
+      timestamp: "1hr ago",
+      priority: "Medium" as const,
+      status: "unread" as const,
+    },
+  ],
+
+  // Platform health data
+  platformHealth: {
+    metrics: [
+      {
+        label: "Uptime",
+        value: "99.9%",
+        color: "#10b981", // green
+      },
+      {
+        label: "Avg. Response",
+        value: "1.2s",
+        color: "#3b82f6", // blue
+      },
+      {
+        label: "Daily Request",
+        value: "154",
+        color: "#6366f1", // indigo
+      },
+    ],
+    events: [
+      {
+        id: "1",
+        title: "User Account Blocked",
+        description: "by Sarah Johnson • user@example.co",
+        timestamp: "1:30am",
+      },
+      {
+        id: "2",
+        title: "Listing Approved",
+        description: "by Mike Kenny • Downtown Apartment",
+        timestamp: "1:30am",
+      },
+      {
+        id: "3",
+        title: "Payment Released",
+        description: "by Sarah Johnson • Booking #BR-2025-001",
+        timestamp: "1:30am",
+      },
+    ],
+  },
 };
 
 export function DashboardPage() {
@@ -297,6 +372,19 @@ export function DashboardPage() {
             {/* Recent Activity */}
             <div className='lg:col-span-4'>
               <RecentActivity activities={dashboardData.recentActivity} />
+            </div>
+
+            {/* Notification Center - Left Side */}
+            <div className='lg:col-span-6'>
+              <NotificationCenter notifications={dashboardData.notifications} />
+            </div>
+
+            {/* Platform Health & Logs - Right Side */}
+            <div className='lg:col-span-6'>
+              <PlatformHealth
+                metrics={dashboardData.platformHealth.metrics}
+                events={dashboardData.platformHealth.events}
+              />
             </div>
           </div>
         ) : (
