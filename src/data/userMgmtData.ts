@@ -14,6 +14,11 @@ export interface User {
   totalBookings?: number;
   totalEarnings?: number;
   kycStatus: "completed" | "pending" | "rejected";
+  // Additional fields for the drawer
+  gender?: string;
+  dateJoined?: string;
+  location?: string;
+  activeBookings?: number;
 }
 
 export interface UserMetric {
