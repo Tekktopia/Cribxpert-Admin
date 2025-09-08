@@ -1,16 +1,13 @@
+import PageTitle from "../../components/layout/PageTitle";
 import { Button } from "../../components/ui/button";
 
 export function DashboardHeader() {
   return (
     <div className='flex items-start justify-between'>
-      <div>
-        <h1 className='text-2xl font-semibold text-gray-900'>
-          Dashboard Overview
-        </h1>
-        <p className='text-sm text-gray-500 mt-1'>
-          Monitor your platform performance and manage operations
-        </p>
-      </div>
+      <PageTitle
+        title='Dashboard'
+        subtitle='Overview of key metrics and activities'
+      />
       <div className='flex items-center space-x-4'>
         <div className='relative'>
           <select className='appearance-none bg-white border border-gray-200 rounded-md px-4 py-2 pr-8 text-sm text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent cursor-pointer'>
