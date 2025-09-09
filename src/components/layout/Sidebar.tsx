@@ -14,7 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
-import { cn } from "../../utils/cn";
+import { cn } from "../../utils/cn"; 
 
 interface SidebarProps {
   className?: string;
@@ -83,11 +83,11 @@ const navigationItems = [
     icon: UserCog,
     href: "/admin-roles",
   },
-  {
-    label: "Text Menu",
-    icon: UserCog,
-    href: "#",
-  },
+  // {
+  //   label: "Text Menu",
+  //   icon: UserCog,
+  //   href: "#",
+  // },
   {
     label: "Logout",
     icon: LogOut,
