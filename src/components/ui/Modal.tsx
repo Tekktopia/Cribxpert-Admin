@@ -44,7 +44,7 @@ export function Modal({
 
   const getButtonClasses = (variant: ModalAction["variant"] = "secondary") => {
     const baseClasses =
-      "px-6 py-3 text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 min-w-[120px]";
+      "px-6 py-3 text-sm hover:cursor-pointer font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 min-w-[120px]";
 
     switch (variant) {
       case "primary":

@@ -1,6 +1,6 @@
 import { MainLayout } from "../components/layout/MainLayout";
 import { UserMgmtGrid } from "../features/usermgmt/UserMgmtGrid";
-import { UserMgmtEmptyState } from "../features/usermgmt/UserMgmtEmptyState";
+import { EmptyState } from "@/components/layout/EmptyState";
 import { userMgmtData } from "../data/userMgmtData";
 import PageTitle from "../components/layout/PageTitle";
 
@@ -21,7 +21,11 @@ export default function UsersMgmt() {
         {isPopulated ? (
           <UserMgmtGrid data={userMgmtData} />
         ) : (
-          <UserMgmtEmptyState />
+          <EmptyState
+            iconUrl='/svg/users.svg'
+            title='No users yet'
+            subtitle='When users register as guests or hosts, they will appear here for management.'
+          />
         )}
       </div>
     </MainLayout>

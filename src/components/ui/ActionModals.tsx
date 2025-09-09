@@ -168,7 +168,7 @@ interface ConfirmationModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
-  message: string;
+  message?: string;
   confirmLabel?: string;
   cancelLabel?: string;
   onConfirm: () => void;
@@ -180,7 +180,7 @@ export function ConfirmationModal({
   isOpen,
   onClose,
   title,
-  message,
+  message = " ",
   confirmLabel = "Confirm",
   cancelLabel = "Cancel",
   onConfirm,
@@ -205,7 +205,7 @@ export function ConfirmationModal({
       isOpen={isOpen}
       onClose={onClose}
       title={title}
-      description={message}
+      description={message }
       actions={actions}
       size='sm'
       icon={icon}

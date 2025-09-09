@@ -2,7 +2,7 @@ import { MainLayout } from "../components/layout/MainLayout";
 import { DashboardHeader } from "../features/dashboard/DashboardHeader";
 import { DashboardMetrics } from "../features/dashboard/DashboardMetrics";
 import { DashboardGrid } from "../features/dashboard/DashboardGrid";
-import { DashboardEmptyState } from "../features/dashboard/DashboardEmptyState";
+import { EmptyState } from "@/components/layout/EmptyState";
 import { dashboardData } from "../data/dashboardData";
 
 export function DashboardPage() {
@@ -22,7 +22,11 @@ export function DashboardPage() {
         {isPopulated ? (
           <DashboardGrid data={dashboardData} />
         ) : (
-          <DashboardEmptyState />
+          <EmptyState
+            iconUrl='/svg/dashboard.svg'
+            title='Welcome to your dashboard'
+            subtitle="Once you have data, you'll see analytics, recent activity, and key metrics here."
+          />
         )}
       </div>
     </MainLayout>
