@@ -29,15 +29,15 @@ export function InfoSection({
     switch (variant) {
       case "gray":
         return {
-          container: "bg-gray-50 rounded-lg",
+          container: "bg-[#E6EFF1]",
           header: "text-sm font-medium text-gray-900 mb-4 px-4 pt-4",
-          content: "space-y-3 px-4 pb-4",
+          content: "space-y-1 px-4 pb-2",
         };
       case "bordered":
         return {
           container: "border border-[#EBEBEB] rounded-b-lg",
           header: "text-lg font-semibold py-3 px-4 bg-[#E6EFF1] mb-2",
-          content: "space-y-2 px-6 pb-6",
+          content: "space-y-1 px-6 pb-2",
         };
       default:
         return {

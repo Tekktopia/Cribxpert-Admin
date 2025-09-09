@@ -1,10 +1,16 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { DataTable, type TableColumn } from "@/components/layout/DataTable";
-import { MoreHorizontal } from "lucide-react";
+import { MoreVertical } from "lucide-react";
 import {
   mockBookingHistoryData,
   type BookingHistoryRecord,
 } from "@/data/bookingHistoryData";
+import { BookingDetailsModal } from "./BookingDetailsModal";
+import {
+  transformToBookingDetails,
+  type BookingDetails,
+} from "@/utils/bookingUtils";
 
 interface BookingHistoryTabProps {
   userId: string;
@@ -12,6 +18,11 @@ interface BookingHistoryTabProps {
 
 export function BookingHistoryTab({ userId }: BookingHistoryTabProps) {
   console.log(userId);
+  const [selectedBooking, setSelectedBooking] = useState<BookingDetails | null>(
+    null
+  );
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   // In a real app, you'd filter by userId or fetch user-specific booking data
   const bookingData = mockBookingHistoryData;
 
@@ -99,9 +110,13 @@ export function BookingHistoryTab({ userId }: BookingHistoryTabProps) {
   const renderRowAction = (item: BookingHistoryRecord) => (
     <button
       className='text-gray-400 hover:text-gray-600 p-1'
-      onClick={() => console.log("Action for booking:", item.ticketId)}
+      onClick={() => {
+        const detailedBooking = transformToBookingDetails(item);
+        setSelectedBooking(detailedBooking);
+        setIsModalOpen(true);
+      }}
     >
-      <MoreHorizontal className='w-4 h-4' />
+      <MoreVertical className='w-4 h-4' />
     </button>
   );
 
@@ -125,6 +140,13 @@ export function BookingHistoryTab({ userId }: BookingHistoryTabProps) {
         maxHeight='500px'
         className='border-0 rounded-none'
         tableClassName=''
+      />
+
+      {/* Booking Details Modal */}
+      <BookingDetailsModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        booking={selectedBooking}
       />
     </div>
   );
