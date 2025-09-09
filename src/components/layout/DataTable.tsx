@@ -94,7 +94,7 @@ export function DataTable<T>({
       className={`bg-white rounded-lg border border-gray-200 overflow-hidden flex flex-col ${className}`}
     >
       {/* Table container with fixed height and scrolling */}
-      <div className='overflow-auto' style={{ maxHeight }}>
+      <div className='overflow-auto scrollbar-thin' style={{ maxHeight }}>
         <table
           className={`min-w-full divide-y divide-gray-200 ${tableClassName}`}
         >

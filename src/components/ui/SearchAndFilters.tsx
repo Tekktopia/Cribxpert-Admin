@@ -1,4 +1,4 @@
-import { ChevronDown, Search, X } from "lucide-react";
+import {Search, X } from "lucide-react";
 import { Button } from "./button";
 import { Badge } from "./badge";
 
@@ -110,7 +110,6 @@ export function SearchAndFilters({
                   >
                     <option value='all'>
                       {filter.label}
-                      <ChevronDown className=' text-black h-4 w-4 ml-4' />
                     </option>
                     {filter.options.map((option) => (
                       <option key={option.value} value={option.value}>
