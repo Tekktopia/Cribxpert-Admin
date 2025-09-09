@@ -1,20 +1,7 @@
-import {
-  LayoutDashboard,
-  Users,
-  SlidersHorizontal,
-  CalendarCheck,
-  Shield,
-  MessageSquare,
-  BarChart3,
-  DollarSign,
-  Bell,
-  Settings,
-  UserCog,
-  LogOut,
-  X,
-} from "lucide-react";
+import { X } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
-import { cn } from "../../utils/cn"; 
+import { cn } from "../../utils/cn";
+import { SvgIcon } from "@/components/ui/SvgIcon";
 
 interface SidebarProps {
   className?: string;
@@ -25,72 +12,72 @@ interface SidebarProps {
 const navigationItems = [
   {
     label: "Dashboard",
-    icon: LayoutDashboard,
+    iconSrc: "/sidebar/dashboard-square-remove.svg",
     href: "/dashboard",
   },
   {
     label: "Users",
-    icon: Users,
+    iconSrc: "/sidebar/user-multiple-02.svg",
     href: "/users",
   },
   {
     label: "Listings",
-    icon: SlidersHorizontal,
+    iconSrc: "/sidebar/list-setting.svg",
     href: "/listings",
   },
   {
     label: "Bookings",
-    icon: CalendarCheck,
+    iconSrc: "/sidebar/calendar-edit.svg",
     href: "/bookings",
   },
   {
     label: "KYC",
-    icon: Shield,
+    iconSrc: "/sidebar/card-tick.svg",
     href: "/kyc",
   },
   {
     label: "Messaging",
-    icon: MessageSquare,
+    iconSrc: "/sidebar/mail-01.svg",
     href: "/messaging",
   },
   {
     label: "Booking Metrics",
-    icon: BarChart3,
+    iconSrc: "/sidebar/pixel_analytics.svg",
     href: "/booking-metrics",
   },
   {
     label: "Analytics",
-    icon: BarChart3,
+    iconSrc: "/sidebar/material-symbols_analytics-outline.svg",
     href: "/analytics",
   },
   {
     label: "Financials",
-    icon: DollarSign,
+    iconSrc: "/sidebar/fluent-mdl2_financial.svg",
     href: "/financials",
   },
   {
     label: "Notification",
-    icon: Bell,
+    iconSrc: "/sidebar/notification-block-03.svg",
     href: "/notifications",
   },
   {
     label: "Settings",
-    icon: Settings,
+    iconSrc: "/sidebar/setting-2.svg",
     href: "/settings",
   },
   {
     label: "Admin Roles",
-    icon: UserCog,
+    iconSrc: "/sidebar/carbon_user-role.svg",
     href: "/admin-roles",
   },
   // {
   //   label: "Text Menu",
-  //   icon: UserCog,
+  //   iconSrc: "/sidebar/carbon_user-role.svg",
   //   href: "#",
   // },
   {
     label: "Logout",
-    icon: LogOut,
+    iconSrc: "/sidebar/logout-01.svg", // Using the exit SVG from the main svg folder
     href: "/log-out",
   },
 ];
@@ -136,7 +123,6 @@ export function Sidebar({ className, isOpen = false, onClose }: SidebarProps) {
       {/* Navigation - Scrollable */}
       <nav className='flex-1 px-4 py-1 space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 '>
         {navigationItems.map((item) => {
-          const Icon = item.icon;
           // Use path matching for better sub-page detection
           const isActive =
             item.href === "#" || item.href === "/log-out"
@@ -149,13 +135,20 @@ export function Sidebar({ className, isOpen = false, onClose }: SidebarProps) {
               to={item.href}
               onClick={onClose} // Close mobile sidebar when navigating
               className={cn(
-                "flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors",
+                "flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors",
                 isActive
                   ? "bg-primary-600 text-white shadow-sm"
                   : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
               )}
             >
-              <Icon className='w-5 h-5 mr-3' />
+              <SvgIcon
+                src={item.iconSrc}
+                width={20}
+                height={20}
+                className='mr-3'
+                color={isActive ? "#ffffff" : "#6b7280"}
+                alt={`${item.label} icon`}
+              />
               {item.label}
             </Link>
           );

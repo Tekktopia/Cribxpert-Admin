@@ -1,16 +1,19 @@
-import { MainLayout } from '@/components/layout/MainLayout'
-import PageTitle from '@/components/layout/PageTitle'
+import { PageWrapper } from "@/components/layout/PageWrapper";
 
 export default function BookingMgmt() {
   return (
-    <MainLayout>
-      <div className='space-y-6'>
-        {/* Page Header */}
-        <PageTitle
-          title='Bookings Management'
-          subtitle='Track all bookings, monitor statuses, and manage payment related actions'
-        />
-      </div>
-    </MainLayout>
-  )
+    <PageWrapper
+      title='Bookings Management'
+      subtitle='Track all bookings, monitor statuses, and manage payment related actions'
+      isPopulated={false}
+      emptyState={{
+        iconUrl: "/svg/bookings.svg",
+        title: "No bookings yet",
+        subtitle:
+          "All property bookings made by guests will show here once they start rolling in.",
+      }}
+    >
+      {/* Future booking management content will go here */}
+    </PageWrapper>
+  );
 }

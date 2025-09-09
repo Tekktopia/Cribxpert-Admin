@@ -1,8 +1,7 @@
-import { MainLayout } from "../components/layout/MainLayout";
 import { DashboardHeader } from "../features/dashboard/DashboardHeader";
 import { DashboardMetrics } from "../features/dashboard/DashboardMetrics";
 import { DashboardGrid } from "../features/dashboard/DashboardGrid";
-import { EmptyState } from "@/components/layout/EmptyState";
+import { PageWrapper } from "@/components/layout/PageWrapper";
 import { dashboardData } from "../data/dashboardData";
 
 export function DashboardPage() {
@@ -10,25 +9,28 @@ export function DashboardPage() {
   const isPopulated = true;
 
   return (
-    <MainLayout>
-      <div className='space-y-6'>
-        {/* Page Header */}
-        <DashboardHeader />
+    <PageWrapper
+      title='Dashboard Overview'
+      subtitle='Overview of platform activity and key metrics'
+      isPopulated={isPopulated}
+      showDefaultHeader={false} // We use DashboardHeader instead
+      headerComponent={
+        <>
+          <DashboardHeader />
+          <DashboardMetrics metrics={dashboardData.metrics} />
+        </>
+      }
+      emptyState={{
+        iconUrl: "/svg/dashboard.svg",
+        title: "Your dashboard is quiet… for now.",
+        subtitle:
+          "Once users start signing up, listings are added, and bookings roll in, you'll see your key platform metrics here — all in one place.",
+      }}
+    >
+      {/* Metrics Cards */}
 
-        {/* Metrics Cards */}
-        <DashboardMetrics metrics={dashboardData.metrics} />
-
-        {/* Main Content */}
-        {isPopulated ? (
-          <DashboardGrid data={dashboardData} />
-        ) : (
-          <EmptyState
-            iconUrl='/svg/dashboard.svg'
-            title='Welcome to your dashboard'
-            subtitle="Once you have data, you'll see analytics, recent activity, and key metrics here."
-          />
-        )}
-      </div>
-    </MainLayout>
+      {/* Main Content */}
+      <DashboardGrid data={dashboardData} />
+    </PageWrapper>
   );
 }

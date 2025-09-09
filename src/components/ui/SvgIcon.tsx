@@ -7,6 +7,7 @@ interface SvgIconProps {
   height?: number;
   alt?: string;
   fallback?: React.ReactNode; // Fallback content if SVG fails to load
+  color?: string; // Optional color override for SVG fills/strokes
 }
 
 export function SvgIcon({
@@ -16,6 +17,7 @@ export function SvgIcon({
   height = 24,
   alt = "Icon",
   fallback = null,
+  color,
 }: SvgIconProps) {
   const [svgContent, setSvgContent] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
@@ -96,6 +98,25 @@ export function SvgIcon({
     // Add className if provided
     if (className) {
       svgElement.setAttribute("class", className);
+    }
+
+    // Apply color to fill and stroke if provided
+    if (color) {
+      // Apply color to all path, circle, rect, etc. elements
+      const fillElements = svgElement.querySelectorAll(
+        '[fill]:not([fill="none"])'
+      );
+      fillElements.forEach((el) => el.setAttribute("fill", color));
+
+      const strokeElements = svgElement.querySelectorAll(
+        '[stroke]:not([stroke="none"])'
+      );
+      strokeElements.forEach((el) => el.setAttribute("stroke", color));
+
+      // If no fill/stroke attributes, add fill to the SVG itself
+      if (fillElements.length === 0 && strokeElements.length === 0) {
+        svgElement.setAttribute("fill", color);
+      }
     }
 
     // Serialize back to string

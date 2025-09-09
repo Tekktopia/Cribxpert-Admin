@@ -1,22 +1,19 @@
-import { MainLayout } from "@/components/layout/MainLayout";
-import PageTitle from "@/components/layout/PageTitle";
-import { EmptyState } from "@/components/layout/EmptyState";
+import { PageWrapper } from "@/components/layout/PageWrapper";
 
 export default function FinancialMgmt() {
   return (
-    <MainLayout>
-      <div className='space-y-6'>
-        {/* Page Header */}
-        <PageTitle
-          title='Financials'
-          subtitle='Manage escrow balances, track payouts, and review financial transactions'
-        />
-        <EmptyState
-          iconUrl='/svg/financials.svg'
-          title='Financial data will appear here'
-          subtitle='Manage escrow balances, track payouts, and review financial transactions once data is available.'
-        />
-      </div>
-    </MainLayout>
+    <PageWrapper
+      title='Financials'
+      subtitle='Manage escrow balances, track payouts, and review financial transactions'
+      isPopulated={false}
+      emptyState={{
+        iconUrl: "/svg/financials.svg",
+        title: "No transactions yet",
+        subtitle:
+          "Payments, commissions, and payouts will show here once bookings start happening",
+      }}
+    >
+      {/* Future financial management content will go here */}
+    </PageWrapper>
   );
 }
