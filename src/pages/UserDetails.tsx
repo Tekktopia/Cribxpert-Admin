@@ -6,6 +6,8 @@ import { UserProfileHeader } from "@/features/userdetails/UserProfileHeader";
 import { UserStatsCards } from "@/features/userdetails/UserStatsCards";
 import { PersonalInformationSection } from "@/features/userdetails/PersonalInformationSection";
 import { UserNavigationTabs } from "@/features/userdetails/UserNavigationTabs";
+import { ActivityTab } from "@/features/userdetails/ActivityTab";
+import { BookingHistoryTab } from "@/features/userdetails/BookingHistoryTab";
 import { BlockUserModal } from "@/components/ui/ActionModals";
 import { userMgmtData } from "@/data/userMgmtData";
 import { useNotification } from "@/hooks/useNotification";
@@ -161,23 +163,9 @@ export default function UserDetails() {
           </>
         )}
 
-        {activeTab === "activity" && (
-          <div className='bg-white rounded-lg border border-gray-200 p-6'>
-            <h3 className='text-lg font-medium text-gray-900 mb-4'>Activity</h3>
-            <p className='text-gray-600'>
-              Activity information will be displayed here.
-            </p>
-          </div>
-        )}
+        {activeTab === "activity" && <ActivityTab userId={user.id} />}
 
-        {activeTab === "history" && (
-          <div className='bg-white rounded-lg border border-gray-200 p-6'>
-            <h3 className='text-lg font-medium text-gray-900 mb-4'>History</h3>
-            <p className='text-gray-600'>
-              History information will be displayed here.
-            </p>
-          </div>
-        )}
+        {activeTab === "history" && <BookingHistoryTab userId={user.id} />}
       </div>
 
       {/* Block User Modal */}

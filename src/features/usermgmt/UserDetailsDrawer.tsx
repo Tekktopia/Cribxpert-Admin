@@ -76,7 +76,7 @@ export function UserDetailsDrawer({
 
       {/* Drawer */}
       <div
-        className={`fixed top-0 right-0 overflow-y-auto p-4 h-full w-[40%] bg-white rounded-lg transform transition-transform duration-300 ease-in-out z-50 ${
+        className={`fixed top-0 right-0 overflow-y-auto p-4 h-full w-full lg:w-[40%] bg-white rounded-lg transform transition-transform duration-300 ease-in-out z-50 ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
