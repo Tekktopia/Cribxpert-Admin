@@ -1,4 +1,5 @@
 import { Search, Bell, Menu } from "lucide-react";
+import { memo, useCallback } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Button } from "../ui/button";
 
@@ -6,7 +7,11 @@ interface TopbarProps {
   onMenuClick?: () => void;
 }
 
-export function Topbar({ onMenuClick }: TopbarProps) {
+export const Topbar = memo(function Topbar({ onMenuClick }: TopbarProps) {
+  // Memoize the menu click handler
+  const handleMenuClick = useCallback(() => {
+    onMenuClick?.();
+  }, [onMenuClick]);
   return (
     <header className='bg-white border-b border-gray-200 px-4 py-4 sm:px-6'>
       <div className='flex items-center justify-between'>
@@ -17,7 +22,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
             variant='ghost'
             size='icon'
             className='lg:hidden'
-            onClick={onMenuClick}
+            onClick={handleMenuClick}
           >
             <Menu className='w-5 h-5' />
           </Button>
@@ -61,4 +66,4 @@ export function Topbar({ onMenuClick }: TopbarProps) {
       </div>
     </header>
   );
-}
+});

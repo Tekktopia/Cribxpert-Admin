@@ -1,4 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo, useMemo } from "react";
+
+// Global cache for SVG content to prevent re-fetching
+const svgCache = new Map<string, string>();
 
 interface SvgIconProps {
   src: string; // Path to SVG file in public folder (e.g., "/icons/exit.svg")
@@ -10,7 +13,7 @@ interface SvgIconProps {
   color?: string; // Optional color override for SVG fills/strokes
 }
 
-export function SvgIcon({
+export const SvgIcon = memo(function SvgIcon({
   src,
   className = "",
   width = 24,
@@ -19,11 +22,67 @@ export function SvgIcon({
   fallback = null,
   color,
 }: SvgIconProps) {
-  const [svgContent, setSvgContent] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(true);
+  const [svgContent, setSvgContent] = useState<string>(() => {
+    // Check cache first
+    return svgCache.get(src) || "";
+  });
+  const [isLoading, setIsLoading] = useState(() => !svgCache.has(src));
   const [hasError, setHasError] = useState(false);
 
+  // Memoize the processed SVG to avoid re-parsing on every render
+  const processedSvg = useMemo(() => {
+    if (!svgContent) return null;
+
+    // Parse and modify the SVG content
+    const parser = new DOMParser();
+    const svgDoc = parser.parseFromString(svgContent, "image/svg+xml");
+    const svgElement = svgDoc.querySelector("svg");
+
+    if (svgElement) {
+      // Set width and height
+      svgElement.setAttribute("width", width.toString());
+      svgElement.setAttribute("height", height.toString());
+
+      // Add className if provided
+      if (className) {
+        svgElement.setAttribute("class", className);
+      }
+
+      // Apply color to fill and stroke if provided
+      if (color) {
+        // Apply color to all path, circle, rect, etc. elements
+        const fillElements = svgElement.querySelectorAll(
+          '[fill]:not([fill="none"])'
+        );
+        fillElements.forEach((el) => el.setAttribute("fill", color));
+
+        const strokeElements = svgElement.querySelectorAll(
+          '[stroke]:not([stroke="none"])'
+        );
+        strokeElements.forEach((el) => el.setAttribute("stroke", color));
+
+        // If no fill/stroke attributes, add fill to the SVG itself
+        if (fillElements.length === 0 && strokeElements.length === 0) {
+          svgElement.setAttribute("fill", color);
+        }
+      }
+
+      // Serialize back to string
+      const serializer = new XMLSerializer();
+      return serializer.serializeToString(svgElement);
+    }
+
+    return svgContent;
+  }, [svgContent, width, height, className, color]);
+
   useEffect(() => {
+    // If already cached, don't reload
+    if (svgCache.has(src)) {
+      setSvgContent(svgCache.get(src)!);
+      setIsLoading(false);
+      return;
+    }
+
     const loadSvg = async () => {
       try {
         setIsLoading(true);
@@ -37,7 +96,9 @@ export function SvgIcon({
         }
 
         const svgText = await response.text();
-        console.log("SVG loaded successfully:", src);
+
+        // Cache the SVG content
+        svgCache.set(src, svgText);
         setSvgContent(svgText);
       } catch (error) {
         console.error("Error loading SVG:", error);
@@ -85,47 +146,10 @@ export function SvgIcon({
     );
   }
 
-  // Parse and modify the SVG content
-  const parser = new DOMParser();
-  const svgDoc = parser.parseFromString(svgContent, "image/svg+xml");
-  const svgElement = svgDoc.querySelector("svg");
-
-  if (svgElement) {
-    // Set width and height
-    svgElement.setAttribute("width", width.toString());
-    svgElement.setAttribute("height", height.toString());
-
-    // Add className if provided
-    if (className) {
-      svgElement.setAttribute("class", className);
-    }
-
-    // Apply color to fill and stroke if provided
-    if (color) {
-      // Apply color to all path, circle, rect, etc. elements
-      const fillElements = svgElement.querySelectorAll(
-        '[fill]:not([fill="none"])'
-      );
-      fillElements.forEach((el) => el.setAttribute("fill", color));
-
-      const strokeElements = svgElement.querySelectorAll(
-        '[stroke]:not([stroke="none"])'
-      );
-      strokeElements.forEach((el) => el.setAttribute("stroke", color));
-
-      // If no fill/stroke attributes, add fill to the SVG itself
-      if (fillElements.length === 0 && strokeElements.length === 0) {
-        svgElement.setAttribute("fill", color);
-      }
-    }
-
-    // Serialize back to string
-    const serializer = new XMLSerializer();
-    const modifiedSvg = serializer.serializeToString(svgElement);
-
+  if (processedSvg) {
     return (
       <div
-        dangerouslySetInnerHTML={{ __html: modifiedSvg }}
+        dangerouslySetInnerHTML={{ __html: processedSvg }}
         style={{
           width: `${width}px`,
           height: `${height}px`,
@@ -150,7 +174,7 @@ export function SvgIcon({
       aria-label={alt}
     />
   );
-}
+});
 
 // Preset icon sizes for convenience
 export const IconSizes = {
@@ -168,7 +192,10 @@ interface QuickSvgIconProps extends Omit<SvgIconProps, "width" | "height"> {
   size?: keyof typeof IconSizes;
 }
 
-export function QuickSvgIcon({ size = "md", ...props }: QuickSvgIconProps) {
+export const QuickSvgIcon = memo(function QuickSvgIcon({
+  size = "md",
+  ...props
+}: QuickSvgIconProps) {
   const { width, height } = IconSizes[size];
   return <SvgIcon {...props} width={width} height={height} />;
-}
+});

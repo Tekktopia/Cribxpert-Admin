@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import { memo, useMemo, useCallback } from "react";
 import { cn } from "../../utils/cn";
 import { SvgIcon } from "@/components/ui/SvgIcon";
 
@@ -9,6 +10,7 @@ interface SidebarProps {
   onClose?: () => void;
 }
 
+// Move navigation items outside component to prevent recreation on every render
 const navigationItems = [
   {
     label: "Dashboard",
@@ -70,20 +72,59 @@ const navigationItems = [
     iconSrc: "/sidebar/carbon_user-role.svg",
     href: "/admin-roles",
   },
-  // {
-  //   label: "Text Menu",
-  //   iconSrc: "/sidebar/carbon_user-role.svg",
-  //   href: "#",
-  // },
   {
     label: "Logout",
     iconSrc: "/sidebar/logout-01.svg", // Using the exit SVG from the main svg folder
     href: "/log-out",
   },
-];
+] as const;
 
-export function Sidebar({ className, isOpen = false, onClose }: SidebarProps) {
+export const Sidebar = memo(function Sidebar({
+  className,
+  isOpen = false,
+  onClose,
+}: SidebarProps) {
   const location = useLocation();
+
+  // Memoize the close handler to prevent unnecessary re-renders of child components
+  const handleClose = useCallback(() => {
+    onClose?.();
+  }, [onClose]);
+
+  // Memoize navigation items rendering
+  const navigationLinks = useMemo(() => {
+    return navigationItems.map((item) => {
+      // Use path matching for better sub-page detection
+      const isActive =
+        item.href === "/log-out"
+          ? location.pathname === item.href
+          : location.pathname.startsWith(item.href);
+
+      return (
+        <Link
+          key={item.href}
+          to={item.href}
+          onClick={handleClose} // Close mobile sidebar when navigating
+          className={cn(
+            "flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors",
+            isActive
+              ? "bg-primary-600 text-white shadow-sm"
+              : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+          )}
+        >
+          <SvgIcon
+            src={item.iconSrc}
+            width={20}
+            height={20}
+            className='mr-3'
+            color={isActive ? "#ffffff" : "#6b7280"}
+            alt={`${item.label} icon`}
+          />
+          {item.label}
+        </Link>
+      );
+    });
+  }, [location.pathname, handleClose]);
 
   return (
     <div
@@ -122,38 +163,8 @@ export function Sidebar({ className, isOpen = false, onClose }: SidebarProps) {
       <div className='scrollbar-track-transparent hover:scrollbar-thumb-gray-400'></div>
       {/* Navigation - Scrollable */}
       <nav className='flex-1 px-4 py-1 space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 '>
-        {navigationItems.map((item) => {
-          // Use path matching for better sub-page detection
-          const isActive =
-            item.href === "#" || item.href === "/log-out"
-              ? location.pathname === item.href
-              : location.pathname.startsWith(item.href);
-
-          return (
-            <Link
-              key={item.href}
-              to={item.href}
-              onClick={onClose} // Close mobile sidebar when navigating
-              className={cn(
-                "flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors",
-                isActive
-                  ? "bg-primary-600 text-white shadow-sm"
-                  : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-              )}
-            >
-              <SvgIcon
-                src={item.iconSrc}
-                width={20}
-                height={20}
-                className='mr-3'
-                color={isActive ? "#ffffff" : "#6b7280"}
-                alt={`${item.label} icon`}
-              />
-              {item.label}
-            </Link>
-          );
-        })}
+        {navigationLinks}
       </nav>
     </div>
   );
-}
+});
