@@ -132,12 +132,16 @@ export function Sidebar({ className, isOpen = false, onClose }: SidebarProps) {
         </div>
       </div>
 
-      <div className="scrollbar-track-transparent hover:scrollbar-thumb-gray-400"></div>
+      <div className='scrollbar-track-transparent hover:scrollbar-thumb-gray-400'></div>
       {/* Navigation - Scrollable */}
       <nav className='flex-1 px-4 py-1 space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 '>
         {navigationItems.map((item) => {
           const Icon = item.icon;
-          const isActive = location.pathname === item.href;
+          // Use path matching for better sub-page detection
+          const isActive =
+            item.href === "#" || item.href === "/log-out"
+              ? location.pathname === item.href
+              : location.pathname.startsWith(item.href);
 
           return (
             <Link

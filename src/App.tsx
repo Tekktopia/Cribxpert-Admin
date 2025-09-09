@@ -4,6 +4,7 @@ import { store } from "./store";
 import { DashboardPage } from "./pages/Dashboard";
 import UsersMgmt from "./pages/UsersMgmt";
 import { NotificationProvider } from "./contexts/NotificationContext";
+import UserDetails from "./pages/UserDetails";
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
             <Route path='/' element={<Navigate to='/dashboard' replace />} />
             <Route path='/dashboard' element={<DashboardPage />} />
             <Route path='/users' element={<UsersMgmt />} />
+            <Route path='/users/:id' element={<UserDetails />} />
           </Routes>
         </BrowserRouter>
       </NotificationProvider>

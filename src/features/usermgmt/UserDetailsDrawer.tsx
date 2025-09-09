@@ -1,4 +1,5 @@
-import { X } from "lucide-react";
+import { X, ExternalLink } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { type User } from "@/data/userMgmtData";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -14,6 +15,8 @@ export function UserDetailsDrawer({
   isOpen,
   onClose,
 }: UserDetailsDrawerProps) {
+  const navigate = useNavigate();
+
   if (!user) return null;
 
   const getStatusBadge = (status: User["status"]) => {
@@ -54,6 +57,11 @@ export function UserDetailsDrawer({
         {role}
       </Badge>
     );
+  };
+
+  const handleViewMore = () => {
+    navigate(`/users/${user.id}`);
+    onClose(); // Close drawer when navigating
   };
 
   return (
@@ -102,7 +110,7 @@ export function UserDetailsDrawer({
         </div>
 
         {/* Content */}
-        <div className='p-6 pt-12 space-y-6 overflow-y-auto h-full pb-20'>
+        <div className='p-6 pt-12 space-y-6 overflow-y-auto h-full'>
           {/* User Name and Status */}
           <div className='text-center'>
             <h2 className='text-xl font-semibold text-gray-900 mb-2'>
@@ -206,6 +214,17 @@ export function UserDetailsDrawer({
                 </span>
               </div>
             </div>
+          </div>
+
+          {/* View More Button */}
+          <div className='px-4 pb-6'>
+            <button
+              onClick={handleViewMore}
+              className='w-full bg-primary-600 hover:bg-primary-700 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2'
+            >
+              <span>View More</span>
+              <ExternalLink className='w-4 h-4' />
+            </button>
           </div>
         </div>
       </div>
