@@ -1,4 +1,5 @@
 import { useState, useEffect, memo, useMemo } from "react";
+import DOMPurify from "isomorphic-dompurify";
 
 // Global cache for SVG content to prevent re-fetching
 const svgCache = new Map<string, string>();
@@ -67,9 +68,50 @@ export const SvgIcon = memo(function SvgIcon({
         }
       }
 
-      // Serialize back to string
+      // Serialize back to string and sanitize again for safety
       const serializer = new XMLSerializer();
-      return serializer.serializeToString(svgElement);
+      const serializedSvg = serializer.serializeToString(svgElement);
+
+      // Final sanitization after processing
+      return DOMPurify.sanitize(serializedSvg, {
+        USE_PROFILES: { svg: true, svgFilters: true },
+        ALLOWED_TAGS: [
+          "svg",
+          "path",
+          "g",
+          "circle",
+          "rect",
+          "line",
+          "polygon",
+          "polyline",
+          "ellipse",
+          "defs",
+          "use",
+          "clipPath",
+          "mask",
+        ],
+        ALLOWED_ATTR: [
+          "d",
+          "fill",
+          "stroke",
+          "stroke-width",
+          "viewBox",
+          "width",
+          "height",
+          "x",
+          "y",
+          "cx",
+          "cy",
+          "r",
+          "rx",
+          "ry",
+          "transform",
+          "class",
+          "id",
+          "clip-path",
+          "mask",
+        ],
+      });
     }
 
     return svgContent;
@@ -97,9 +139,50 @@ export const SvgIcon = memo(function SvgIcon({
 
         const svgText = await response.text();
 
-        // Cache the SVG content
-        svgCache.set(src, svgText);
-        setSvgContent(svgText);
+        // Sanitize SVG content to prevent XSS attacks
+        const sanitizedSvg = DOMPurify.sanitize(svgText, {
+          USE_PROFILES: { svg: true, svgFilters: true },
+          ALLOWED_TAGS: [
+            "svg",
+            "path",
+            "g",
+            "circle",
+            "rect",
+            "line",
+            "polygon",
+            "polyline",
+            "ellipse",
+            "defs",
+            "use",
+            "clipPath",
+            "mask",
+          ],
+          ALLOWED_ATTR: [
+            "d",
+            "fill",
+            "stroke",
+            "stroke-width",
+            "viewBox",
+            "width",
+            "height",
+            "x",
+            "y",
+            "cx",
+            "cy",
+            "r",
+            "rx",
+            "ry",
+            "transform",
+            "class",
+            "id",
+            "clip-path",
+            "mask",
+          ],
+        });
+
+        // Cache the sanitized SVG content
+        svgCache.set(src, sanitizedSvg);
+        setSvgContent(sanitizedSvg);
       } catch (error) {
         console.error("Error loading SVG:", error);
         setHasError(true);
@@ -186,16 +269,3 @@ export const IconSizes = {
   "2xl": { width: 48, height: 48 },
   "3xl": { width: 64, height: 64 },
 } as const;
-
-// Convenience wrapper for common icon sizes
-interface QuickSvgIconProps extends Omit<SvgIconProps, "width" | "height"> {
-  size?: keyof typeof IconSizes;
-}
-
-export const QuickSvgIcon = memo(function QuickSvgIcon({
-  size = "md",
-  ...props
-}: QuickSvgIconProps) {
-  const { width, height } = IconSizes[size];
-  return <SvgIcon {...props} width={width} height={height} />;
-});

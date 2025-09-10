@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { ConfirmationModal } from "@/components/ui/ActionModals";
 import { SvgIcon } from "@/components/ui/SvgIcon";
+import SecureTokenStorage from "@/utils/secureStorage";
 
 export default function LogOut() {
   const [showModal, setShowModal] = useState(true);
@@ -18,10 +19,8 @@ export default function LogOut() {
   const handleLogout = () => {
     setShowModal(false);
 
-    // Clear any authentication tokens/data
-    localStorage.removeItem("auth_token");
-    localStorage.removeItem("user_data");
-    sessionStorage.clear();
+    // Use secure token storage to clear all authentication data
+    SecureTokenStorage.clearToken();
 
     // Show a brief confirmation and redirect to login
     setTimeout(() => {
@@ -52,7 +51,12 @@ export default function LogOut() {
           onConfirm={handleLogout}
           variant='destructive'
           icon={
-            <SvgIcon src='/svg/exit.svg' width={128} height={128} className='' />
+            <SvgIcon
+              src='/svg/exit.svg'
+              width={128}
+              height={128}
+              className=''
+            />
           }
         />
       </div>
