@@ -7,6 +7,7 @@ import { dashboardApi } from "./api/dashboard";
 import { authSlice } from "./slices/authSlice";
 import { securitySlice } from "./slices/securitySlice";
 import { uiSlice } from "./slices/uiSlice";
+import { listingSlice } from "./slices/listingSlice";
 
 export const store = configureStore({
   reducer: {
@@ -17,6 +18,7 @@ export const store = configureStore({
     auth: authSlice.reducer,
     security: securitySlice.reducer,
     ui: uiSlice.reducer,
+    listing: listingSlice.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

@@ -13,6 +13,7 @@ export { useAppDispatch, useAppSelector } from "./hooks";
 export { authSlice } from "./slices/authSlice";
 export { securitySlice } from "./slices/securitySlice";
 export { uiSlice } from "./slices/uiSlice";
+export { listingSlice } from "./slices/listingSlice";
 
 // Export security-integrated hooks
 export {

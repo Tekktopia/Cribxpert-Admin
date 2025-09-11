@@ -4,7 +4,7 @@ import { X } from "lucide-react";
 export interface ModalAction {
   label: string;
   onClick: () => void;
-  variant?: "primary" | "secondary" | "destructive";
+  variant?: "primary" | "secondary" | "destructive" | "warning";
   disabled?: boolean;
 }
 
@@ -35,11 +35,19 @@ export function Modal({
 }: ModalProps) {
   if (!isOpen) return null;
 
-  const sizeClasses = {
-    sm: "max-w-sm",
-    md: "max-w-lg",
-    lg: "max-w-xl",
-    xl: "max-w-2xl",
+  const getSizeClass = (size: string) => {
+    switch (size) {
+      case "sm":
+        return "max-w-sm";
+      case "md":
+        return "max-w-lg";
+      case "lg":
+        return "max-w-xl";
+      case "xl":
+        return "max-w-2xl";
+      default:
+        return "max-w-lg";
+    }
   };
 
   const getButtonClasses = (variant: ModalAction["variant"] = "secondary") => {
@@ -51,6 +59,8 @@ export function Modal({
         return `${baseClasses} bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-600 shadow-sm`;
       case "destructive":
         return `${baseClasses} bg-red-100 text-red-600 hover:bg-red-200 focus:ring-red-500 border border-red-200`;
+      case "warning":
+        return `${baseClasses} bg-amber-100 text-amber-600 hover:bg-amber-200 focus:ring-amber-500 border border-amber-200`;
       case "secondary":
       default:
         return `${baseClasses} bg-gray-100 text-gray-700 hover:bg-gray-200 focus:ring-gray-500 border border-gray-200`;
@@ -74,7 +84,9 @@ export function Modal({
       {/* Modal */}
       <div className='flex min-h-full items-center justify-center p-4'>
         <div
-          className={`relative transform overflow-hidden rounded-2xl bg-white text-center shadow-2xl transition-all ${sizeClasses[size]} w-full`}
+          className={`relative transform overflow-hidden rounded-2xl bg-white text-center shadow-2xl transition-all ${getSizeClass(
+            size
+          )} w-full`}
         >
           {/* Close Button */}
           {showCloseButton && (
