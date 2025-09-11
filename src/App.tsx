@@ -17,7 +17,14 @@ import FinancialMgmt from "./pages/FinancialMgmt";
 import AdminRolesMgmt from "./pages/AdminRolesMgmt";
 import LogOut from "./pages/LogOut";
 
+import { initializeSecurity } from "./security";
+import { useEffect } from "react";
+
 function App() {
+  useEffect(() => {
+    initializeSecurity(); // Turn on all security systems
+  }, []);
+
   return (
     <Provider store={store}>
       <NotificationProvider>
@@ -27,10 +34,10 @@ function App() {
             <Route path='/dashboard' element={<DashboardPage />} />
             <Route path='/users' element={<UsersMgmt />} />
             <Route path='/users/:id' element={<UserDetails />} />
-            <Route path='/listings' element={<ListingMgmt/>} />
-            <Route path='/bookings' element={<BookingMgmt/>} />
-            <Route path='/kyc' element={<KYCVerification/>} />
-            <Route path='/messaging' element={<MessagingMgmt/>} />
+            <Route path='/listings' element={<ListingMgmt />} />
+            <Route path='/bookings' element={<BookingMgmt />} />
+            <Route path='/kyc' element={<KYCVerification />} />
+            <Route path='/messaging' element={<MessagingMgmt />} />
             <Route path='/booking-metrics' element={<BookingMetrics />} />
             <Route path='/analytics' element={<Analytics />} />
             <Route path='/financials' element={<FinancialMgmt />} />
