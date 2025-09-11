@@ -1,16 +1,34 @@
-import { configureStore } from "@reduxjs/toolkit";
-import { setupListeners } from "@reduxjs/toolkit/query";
-import { dashboardApi } from "./api/dashboard";
+/**
+ * Main store export - uses enhanced store configuration
+ * This is the main entry point for the Redux store
+ */
 
-export const store = configureStore({
-  reducer: {
-    [dashboardApi.reducerPath]: dashboardApi.reducer,
-  },
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(dashboardApi.middleware),
-});
+// Export everything from the enhanced store
+export { store, type RootState, type AppDispatch } from "./enhancedStore";
 
-setupListeners(store.dispatch);
+// Export typed hooks for components
+export { useAppDispatch, useAppSelector } from "./hooks";
 
-export type RootState = ReturnType<typeof store.getState>;
-export type AppDispatch = typeof store.dispatch;
+// Export action creators for easy access
+export { authSlice } from "./slices/authSlice";
+export { securitySlice } from "./slices/securitySlice";
+export { uiSlice } from "./slices/uiSlice";
+
+// Export security-integrated hooks
+export {
+  useSecureAuth,
+  useSecureApi,
+  useSecurityStatus,
+  useSecureFormSubmission,
+} from "./securityHooks";
+
+// Export API endpoints
+export {
+  useGetDashboardMetricsQuery,
+  useGetUsersQuery,
+  useGetListingsQuery,
+  useGetBookingsQuery,
+  useGetRecentActivitiesQuery,
+  useGetNotificationsQuery,
+  useUpdateUserStatusMutation,
+} from "./api/dashboard";
