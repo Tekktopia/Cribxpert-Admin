@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 export interface InfoField {
-  label: string;
+  label: string | ReactNode;
   value: string | ReactNode;
   type?: "text" | "badge" | "custom";
 }
@@ -61,7 +61,7 @@ export function InfoSection({
             className={`flex items-center gap-4 py-2 ${fieldClassName}`}
           >
             <span className='text-sm text-gray-600 min-w-0 flex-shrink-0'>
-              {field.label}:
+              {field.label}{typeof field.label === "string" ? ":" : ""}
             </span>
             <div className='flex items-center space-x-2 min-w-0 flex-1'>
               {typeof field.value === "string" ? (

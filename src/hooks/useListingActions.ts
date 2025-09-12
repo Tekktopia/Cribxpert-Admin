@@ -55,23 +55,30 @@ export function useListingActions() {
     [dispatch]
   );
 
-  const handleApprove = useCallback(() => {
-    if (selectedListing) {
-      dispatch(approveListing(selectedListing.id));
-      dispatch(closeModal("approve"));
-      const message = `"${selectedListing.title}" has been approved successfully!`;
-      dispatch(setSuccessMessage(message));
-      dispatch(openModal("success"));
-      showNotification({
-        type: "success",
-        title: "Listing Approved",
-        message: `${selectedListing.title} is now live and available for bookings.`,
-      });
-    }
-  }, [dispatch, selectedListing, showNotification]);
+  const handleApprove = useCallback(
+    (notes?: string) => {
+      if (selectedListing) {
+        dispatch(approveListing(selectedListing.id));
+        dispatch(closeModal("approve"));
+        const message = `"${selectedListing.title}" has been approved successfully!`;
+        dispatch(setSuccessMessage(message));
+        dispatch(openModal("success"));
+        showNotification({
+          type: "success",
+          title: "Listing Approved",
+          message: `${selectedListing.title} is now live and available for bookings.`,
+        });
+        // Log notes if provided
+        if (notes) {
+          console.log("Approval notes:", notes);
+        }
+      }
+    },
+    [dispatch, selectedListing, showNotification]
+  );
 
   const handleReject = useCallback(
-    (reason: string) => {
+    (reason: string, additionalNotes?: string) => {
       if (selectedListing) {
         dispatch(rejectListing(selectedListing.id));
         dispatch(closeModal("reject"));
@@ -83,13 +90,17 @@ export function useListingActions() {
           title: "Listing Rejected",
           message: `${selectedListing.title} has been rejected. Reason: ${reason}`,
         });
+        // Log additional notes if provided
+        if (additionalNotes) {
+          console.log("Rejection notes:", additionalNotes);
+        }
       }
     },
     [dispatch, selectedListing, showNotification]
   );
 
   const handleFlag = useCallback(
-    (reason: string) => {
+    (reason: string, additionalNotes?: string) => {
       if (selectedListing) {
         dispatch(flagListing(selectedListing.id));
         dispatch(closeModal("flag"));
@@ -101,13 +112,17 @@ export function useListingActions() {
           title: "Listing Flagged",
           message: `${selectedListing.title} has been flagged. Reason: ${reason}`,
         });
+        // Log additional notes if provided
+        if (additionalNotes) {
+          console.log("Flag notes:", additionalNotes);
+        }
       }
     },
     [dispatch, selectedListing, showNotification]
   );
 
   const handleSuspend = useCallback(
-    (reason: string) => {
+    (notes?: string) => {
       if (selectedListing) {
         dispatch(suspendListing(selectedListing.id));
         dispatch(closeModal("suspend"));
@@ -117,8 +132,12 @@ export function useListingActions() {
         showNotification({
           type: "warning",
           title: "Listing Suspended",
-          message: `${selectedListing.title} has been suspended. Reason: ${reason}`,
+          message: `${selectedListing.title} has been suspended temporarily.`,
         });
+        // Log notes if provided
+        if (notes) {
+          console.log("Suspension notes:", notes);
+        }
       }
     },
     [dispatch, selectedListing, showNotification]

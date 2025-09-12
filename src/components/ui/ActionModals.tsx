@@ -205,10 +205,210 @@ export function ConfirmationModal({
       isOpen={isOpen}
       onClose={onClose}
       title={title}
-      description={message }
+      description={message}
       actions={actions}
       size='sm'
       icon={icon}
     />
+  );
+}
+
+// Generic Reason Modal with Radio Options (for Reject/Flag Listing)
+interface ReasonOption {
+  value: string;
+  label: string;
+}
+
+interface ReasonModalWithOptionsProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  description: string;
+  reasonLabel: string;
+  options: ReasonOption[];
+  onConfirm: (reason: string, additionalNotes?: string) => void;
+  confirmLabel: string;
+  variant?: "primary" | "destructive" | "warning";
+  showAdditionalNotes?: boolean;
+  additionalNotesLabel?: string;
+  additionalNotesPlaceholder?: string;
+}
+
+export function ReasonModalWithOptions({
+  isOpen,
+  onClose,
+  title,
+  description,
+  reasonLabel,
+  options,
+  onConfirm,
+  confirmLabel,
+  variant = "primary",
+  showAdditionalNotes = true,
+  additionalNotesLabel = "Additional Notes (Optional)",
+  additionalNotesPlaceholder = "Enter your note...",
+}: ReasonModalWithOptionsProps) {
+  const [selectedReason, setSelectedReason] = useState("");
+  const [additionalNotes, setAdditionalNotes] = useState("");
+
+  const handleConfirm = () => {
+    if (selectedReason) {
+      onConfirm(selectedReason, additionalNotes);
+      setSelectedReason("");
+      setAdditionalNotes("");
+    }
+  };
+
+  const actions = [
+    {
+      label: "Cancel",
+      onClick: onClose,
+      variant: "secondary" as const,
+    },
+    {
+      label: confirmLabel,
+      onClick: handleConfirm,
+      variant: variant,
+      disabled: !selectedReason,
+    },
+  ];
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={title}
+      description={description}
+      actions={actions}
+      size='md'
+    >
+      <div className='space-y-6'>
+        <div>
+          <label className='block text-sm font-medium text-gray-700 mb-3 text-left'>
+            {reasonLabel} <span className='text-red-500'>*</span>
+          </label>
+          <div className='space-y-3'>
+            {options.map((option) => (
+              <label key={option.value} className='flex items-center'>
+                <input
+                  type='radio'
+                  name='reason'
+                  value={option.value}
+                  checked={selectedReason === option.value}
+                  onChange={(e) => setSelectedReason(e.target.value)}
+                  className='h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300'
+                />
+                <span className='ml-3 text-sm text-gray-700'>
+                  {option.label}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {showAdditionalNotes && (
+          <div>
+            <label className='block text-sm font-medium text-gray-700 mb-3 text-left'>
+              {additionalNotesLabel}
+            </label>
+            <textarea
+              value={additionalNotes}
+              onChange={(e) => setAdditionalNotes(e.target.value)}
+              placeholder={additionalNotesPlaceholder}
+              rows={3}
+              className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-primary-600 text-sm placeholder-gray-400 resize-none'
+            />
+          </div>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+// Generic Text Input Modal (for simple text input like notes)
+interface TextInputModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  description: string;
+  inputLabel: string;
+  inputPlaceholder: string;
+  onConfirm: (text: string) => void;
+  confirmLabel: string;
+  variant?: "primary" | "destructive" | "warning";
+  useTextarea?: boolean;
+  required?: boolean;
+}
+
+export function TextInputModal({
+  isOpen,
+  onClose,
+  title,
+  description,
+  inputLabel,
+  inputPlaceholder,
+  onConfirm,
+  confirmLabel,
+  variant = "primary",
+  useTextarea = false,
+  required = false,
+}: TextInputModalProps) {
+  const [inputValue, setInputValue] = useState("");
+
+  const handleConfirm = () => {
+    if (!required || inputValue.trim()) {
+      onConfirm(inputValue);
+      setInputValue("");
+    }
+  };
+
+  const actions = [
+    {
+      label: "Cancel",
+      onClick: onClose,
+      variant: "secondary" as const,
+    },
+    {
+      label: confirmLabel,
+      onClick: handleConfirm,
+      variant: variant,
+      disabled: required && !inputValue.trim(),
+    },
+  ];
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={title}
+      description={description}
+      actions={actions}
+      size='md'
+    >
+      <div className='space-y-6'>
+        <div>
+          <label className='block text-sm font-medium text-gray-700 mb-3 text-left'>
+            {inputLabel}
+            {required && <span className='text-red-500'>*</span>}
+          </label>
+          {useTextarea ? (
+            <textarea
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder={inputPlaceholder}
+              rows={4}
+              className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-primary-600 text-sm placeholder-gray-400 resize-none'
+            />
+          ) : (
+            <input
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder={inputPlaceholder}
+              className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-primary-600 text-sm placeholder-gray-400'
+            />
+          )}
+        </div>
+      </div>
+    </Modal>
   );
 }
