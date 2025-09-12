@@ -1,6 +1,10 @@
 import { type Booking } from "@/data/bookingMgmtData";
 import { Badge } from "@/components/ui/badge";
-import { Modal } from "@/components/ui/Modal";
+import {
+  DetailsModal,
+  DetailsSection,
+  DetailsField,
+} from "@/features/bookingmgmt/DetailsModal";
 
 interface BookingDetailsModalProps {
   booking: Booking | null;
@@ -51,102 +55,39 @@ export function BookingDetailsModal({
   };
 
   return (
-    <Modal
+    <DetailsModal
       isOpen={isOpen}
       onClose={onClose}
       title='Booking Details'
       size='lg'
-      showCloseButton={true}
-      closeOnOverlayClick={true}
     >
-      <div className='space-y-6 text-left'>
-        {/* Guest Information */}
-        <div className='space-y-4'>
-          <h4 className='text-base font-medium text-gray-900 flex items-center gap-2'>
-            Guest Information
-          </h4>
+      {/* Guest Information */}
+      <DetailsSection title='Guest Information'>
+        <DetailsField label='Guest Name' value={booking.guestName} />
+        <DetailsField
+          label='Contact Details'
+          value={`${booking.guestName
+            .toLowerCase()
+            .replace(" ", "")}@Gmail.Com`}
+        />
+      </DetailsSection>
 
-          <div className='space-y-3'>
-            <div className='flex justify-between items-center'>
-              <span className='text-sm text-gray-600'>Guest Name:</span>
-              <span className='text-sm font-semibold text-gray-900'>
-                {booking.guestName}
-              </span>
-            </div>
+      {/* Host Information */}
+      <DetailsSection title='Host Information'>
+        <DetailsField label='Host Name' value={booking.hostName} />
+        <DetailsField
+          label='Contact Details'
+          value={`${booking.hostName.toLowerCase().replace(" ", "")}@Gmail.Com`}
+        />
+      </DetailsSection>
 
-            <div className='flex justify-between items-center'>
-              <span className='text-sm text-gray-600'>Contact Details:</span>
-              <span className='text-sm font-medium text-gray-900'>
-                {booking.guestName.toLowerCase().replace(" ", "")}@Gmail.Com
-              </span>
-            </div>
-          </div>
-
-          <hr className='border-gray-200' />
-        </div>
-
-        {/* Host Information */}
-        <div className='space-y-4'>
-          <h4 className='text-base font-medium text-gray-900 flex items-center gap-2'>
-            Host Information
-          </h4>
-
-          <div className='space-y-3'>
-            <div className='flex justify-between items-center'>
-              <span className='text-sm text-gray-600'>Host Name:</span>
-              <span className='text-sm font-semibold text-gray-900'>
-                {booking.hostName}
-              </span>
-            </div>
-
-            <div className='flex justify-between items-center'>
-              <span className='text-sm text-gray-600'>Contact Details:</span>
-              <span className='text-sm font-medium text-gray-900'>
-                {booking.hostName.toLowerCase().replace(" ", "")}@Gmail.Com
-              </span>
-            </div>
-          </div>
-
-          <hr className='border-gray-200' />
-        </div>
-
-        {/* Booking Information */}
-        <div className='space-y-4'>
-          <h4 className='text-base font-medium text-gray-900 flex items-center gap-2'>
-            Booking Information
-          </h4>
-
-          <div className='space-y-3'>
-            <div className='flex justify-between items-center'>
-              <span className='text-sm text-gray-600'>Date:</span>
-              <span className='text-sm font-medium text-gray-900'>
-                {booking.dates}
-              </span>
-            </div>
-
-            <div className='flex justify-between items-center'>
-              <span className='text-sm text-gray-600'>Property Name:</span>
-              <span className='text-sm font-semibold text-gray-900'>
-                {booking.propertyName}
-              </span>
-            </div>
-
-            <div className='flex justify-between items-center'>
-              <span className='text-sm text-gray-600'>Status:</span>
-              <div className='flex justify-end'>
-                {getStatusBadge(booking.status)}
-              </div>
-            </div>
-
-            <div className='flex justify-between items-center'>
-              <span className='text-sm text-gray-600'>Payment Status:</span>
-              <span className='text-sm font-semibold text-gray-900'>
-                {booking.paymentStatus}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Modal>
+      {/* Booking Information */}
+      <DetailsSection title='Booking Information'>
+        <DetailsField label='Date' value={booking.dates} />
+        <DetailsField label='Property Name' value={booking.propertyName} />
+        <DetailsField label='Status' value={getStatusBadge(booking.status)} />
+        <DetailsField label='Payment Status' value={booking.paymentStatus} />
+      </DetailsSection>
+    </DetailsModal>
   );
 }

@@ -7,19 +7,19 @@ interface DropdownMenuItem {
   variant?: "default" | "destructive";
 }
 
-interface DropdownMenuProps {
+interface ActionMenuProps {
   items: DropdownMenuItem[];
   onSelect: (action: string) => void;
   trigger: React.ReactNode;
   className?: string;
 }
 
-export function DropdownMenu({
+export function ActionMenu({
   items,
   onSelect,
   trigger,
   className = "",
-}: DropdownMenuProps) {
+}: ActionMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -80,3 +80,6 @@ export function DropdownMenu({
     </div>
   );
 }
+
+// Export types for reuse
+export type { DropdownMenuItem, ActionMenuProps };

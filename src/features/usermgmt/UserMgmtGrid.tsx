@@ -1,18 +1,12 @@
-import { useState, useMemo } from "react";
-import { Upload } from "lucide-react";
-import type { UserMgmtData } from "@/data/userMgmtData";
-import {
-  SearchAndFilters,
-  type FilterConfig,
-  type ActionButton,
-} from "@/components/ui/SearchAndFilters";
+import type { UserMgmtData, User } from "@/data/userMgmtData";
 import { UserTable } from "./UserTable";
-import {
-  BlockUserModal,
-  SendNotificationModal,
-  ConfirmationModal,
-} from "@/components/ui/ActionModals";
+import { ManagementGrid } from "@/components/layout/ManagementGrid";
 import { useNotification } from "@/hooks/useNotification";
+import {
+  commonActions,
+  commonFilters,
+  commonSearchConfigs,
+} from "@/utils/managementActions";
 
 interface UserMgmtGridProps {
   data: UserMgmtData;
@@ -20,161 +14,59 @@ interface UserMgmtGridProps {
 
 export function UserMgmtGrid({ data }: UserMgmtGridProps) {
   const { showNotification } = useNotification();
-  const [searchValue, setSearchValue] = useState("");
-  const [roleFilter, setRoleFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
 
-  // Modal states
-  const [selectedUser, setSelectedUser] = useState<{
-    id: string;
-    name: string;
-  } | null>(null);
-  const [showBlockModal, setShowBlockModal] = useState(false);
-  const [showNotificationModal, setShowNotificationModal] = useState(false);
-  const [showResetModal, setShowResetModal] = useState(false);
+  // Define filter configurations using common patterns
+  const filters = [
+    commonFilters.role([
+      { value: "Host", label: "Host" },
+      { value: "Guest", label: "Guest" },
+    ]),
+    commonFilters.status([
+      { value: "Verified", label: "Verified" },
+      { value: "Pending", label: "Pending" },
+      { value: "Blocked", label: "Blocked" },
+    ]),
+  ];
 
-  // Filter users based on search and filters
-  const filteredUsers = useMemo(() => {
-    return data.users.filter((user) => {
-      const matchesSearch =
-        user.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchValue.toLowerCase()) ||
-        user.ticketId.toLowerCase().includes(searchValue.toLowerCase());
-
-      const matchesRole = roleFilter === "all" || user.role === roleFilter;
-
-      const matchesStatus =
-        statusFilter === "all" || user.status === statusFilter;
-
-      return matchesSearch && matchesRole && matchesStatus;
+  // Action handlers
+  const handleBlockUser = (
+    // entityId: string,
+    entityName: string,
+    // reason?: string
+  ) => {
+    showNotification({
+      type: "success",
+      title: "User Blocked Successfully",
+      message: `${entityName} has been blocked and will no longer have access to their account.`,
+      duration: 5000,
     });
-  }, [data.users, searchValue, roleFilter, statusFilter]);
-
-  const handleUserAction = (userId: string, action: string) => {
-    const user = data.users.find((u) => u.id === userId);
-    if (!user) return;
-
-    setSelectedUser({ id: userId, name: user.name });
-
-    switch (action) {
-      case "block":
-        setShowBlockModal(true);
-        break;
-      case "send-notification":
-        setShowNotificationModal(true);
-        break;
-      case "reset-session":
-        setShowResetModal(true);
-        break;
-      default:
-        console.log("User action:", userId, action);
-    }
   };
 
-  const handleBlockUser = async (reason: string) => {
-    try {
-      // Here you would make an API call to block the user
-      console.log("Blocking user:", selectedUser?.name, "Reason:", reason);
-
-      setShowBlockModal(false);
-
-      // Simulate API call
-      // await blockUserAPI(selectedUser?.id, reason);
-
-      // Show success notification
-      showNotification({
-        type: "success",
-        title: "User Blocked Successfully",
-        message: `${selectedUser?.name} has been blocked and will no longer have access to their account.`,
-        duration: 5000,
-      });
-
-      setSelectedUser(null);
-    } catch (error) {
-      console.error("Error blocking user:", error);
-      // Show error notification
-      showNotification({
-        type: "error",
-        title: "Failed to Block User",
-        message: "There was an error blocking the user. Please try again.",
-        duration: 5000,
-      });
-    }
+  const handleSendNotification = (
+    // entityId: string,
+    entityName: string,
+    // message?: string
+  ) => {
+    showNotification({
+      type: "success",
+      title: "Notification Sent",
+      message: `Your notification has been sent to ${entityName}.`,
+      duration: 4000,
+    });
   };
 
-  const handleSendNotification = async (message: string) => {
-    try {
-      // Here you would make an API call to send notification
-      console.log(
-        "Sending notification to:",
-        selectedUser?.name,
-        "Message:",
-        message
-      );
-
-      setShowNotificationModal(false);
-
-      // Simulate API call
-      // await sendNotificationAPI(selectedUser?.id, message);
-
-      // Show success notification
-      showNotification({
-        type: "success",
-        title: "Notification Sent",
-        message: `Your notification has been sent to ${selectedUser?.name}.`,
-        duration: 4000,
-      });
-
-      setSelectedUser(null);
-    } catch (error) {
-      console.error("Error sending notification:", error);
-      // Show error notification
-      showNotification({
-        type: "error",
-        title: "Failed to Send Notification",
-        message:
-          "There was an error sending the notification. Please try again.",
-        duration: 5000,
-      });
-    }
-  };
-
-  const handleResetSession = async () => {
-    try {
-      // Here you would make an API call to reset user session
-      console.log("Resetting session for:", selectedUser?.name);
-
-      setShowResetModal(false);
-
-      // Simulate API call
-      // await resetUserSessionAPI(selectedUser?.id);
-
-      // Show success notification
-      showNotification({
-        type: "success",
-        title: "Session Reset Successfully",
-        message: `${selectedUser?.name}'s session has been reset and they have been logged out.`,
-        duration: 4000,
-      });
-
-      setSelectedUser(null);
-    } catch (error) {
-      console.error("Error resetting session:", error);
-      // Show error notification
-      showNotification({
-        type: "error",
-        title: "Failed to Reset Session",
-        message:
-          "There was an error resetting the user's session. Please try again.",
-        duration: 5000,
-      });
-    }
+  const handleResetSession = (
+    // entityId: string,
+    entityName: string) => {
+    showNotification({
+      type: "success",
+      title: "Session Reset Successfully",
+      message: `${entityName}'s session has been reset and they have been logged out.`,
+      duration: 4000,
+    });
   };
 
   const handleExport = () => {
-    console.log("Export users");
-
-    // Show export notification
     showNotification({
       type: "info",
       title: "Export Started",
@@ -182,96 +74,38 @@ export function UserMgmtGrid({ data }: UserMgmtGridProps) {
         "Your user data export is being prepared. You'll receive a download link shortly.",
       duration: 3000,
     });
-
-    // Here you would handle the actual export functionality
   };
 
-  const handleClearFilters = () => {
-    setRoleFilter("all");
-    setStatusFilter("all");
-    setSearchValue("");
-  };
-
-  // Define filter configurations
-  const filters: FilterConfig[] = [
-    {
-      key: "role",
-      label: "All Roles",
-      value: roleFilter,
-      onChange: setRoleFilter,
-      options: [
-        { value: "Host", label: "Host" },
-        { value: "Guest", label: "Guest" },
-      ],
-    },
-    {
-      key: "status",
-      label: "All Status",
-      value: statusFilter,
-      onChange: setStatusFilter,
-      options: [
-        { value: "Verified", label: "Verified" },
-        { value: "Pending", label: "Pending" },
-        { value: "Blocked", label: "Blocked" },
-      ],
-    },
+  // Define actions using common action patterns
+  const actions = [
+    commonActions.view((entityId) => {
+      console.log("View user:", entityId);
+    }),
+    commonActions.block(handleBlockUser),
+    commonActions.sendNotification(handleSendNotification),
+    commonActions.resetSession(handleResetSession),
   ];
 
-  // Define action buttons
-  const actionButtons: ActionButton[] = [
-    {
-      label: "Export",
-      icon: <Upload className='w-4 h-4 ml-2' />,
-      onClick: handleExport,
-      variant: "primary",
-    },
-  ];
+  // Table render function
+  const renderTable = (
+    filteredData: User[],
+    onAction: (entityId: string, action: string) => void
+  ) => <UserTable users={filteredData} onUserAction={onAction} />;
+
+  // Entity name extractor for users
+  const getEntityName = (user: User) => user.name;
 
   return (
-    <div className='space-y-6'>
-      {/* Search and Filters */}
-      <SearchAndFilters
-        searchValue={searchValue}
-        onSearchChange={setSearchValue}
-        searchPlaceholder='Search users by name, email, or ticket ID...'
-        filters={filters}
-        actionButtons={actionButtons}
-        resultsInfo={{
-          total: data.users.length,
-          filtered: filteredUsers.length,
-          entityName: "users",
-        }}
-        showActiveFilters={true}
-        onClearFilters={handleClearFilters}
-      />
-
-      {/* Users Table */}
-      <UserTable users={filteredUsers} onUserAction={handleUserAction} />
-
-      {/* Modals */}
-      <BlockUserModal
-        isOpen={showBlockModal}
-        onClose={() => setShowBlockModal(false)}
-        userName={selectedUser?.name || ""}
-        onConfirm={handleBlockUser}
-      />
-
-      <SendNotificationModal
-        isOpen={showNotificationModal}
-        onClose={() => setShowNotificationModal(false)}
-        userName={selectedUser?.name || ""}
-        onSend={handleSendNotification}
-      />
-
-      <ConfirmationModal
-        isOpen={showResetModal}
-        onClose={() => setShowResetModal(false)}
-        title='Reset Session'
-        message={`Are you sure you want to reset ${selectedUser?.name}'s session? They will be logged out of all devices.`}
-        confirmLabel='Reset Session'
-        onConfirm={handleResetSession}
-        variant='destructive'
-      />
-    </div>
+    <ManagementGrid
+      data={data.users}
+      entityName='users'
+      searchPlaceholder='Search users by name, email, or ticket ID...'
+      searchConfig={commonSearchConfigs.user}
+      filters={filters}
+      actions={actions}
+      renderTable={renderTable}
+      onExport={handleExport}
+      getEntityName={getEntityName}
+    />
   );
 }
