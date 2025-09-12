@@ -1,0 +1,244 @@
+import { useState } from "react";
+import { type Booking } from "@/data/bookingMgmtData";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { DropdownMenu } from "@/features/bookingmgmt/ActionMenu";
+import { BookingDetailsModal } from "@/features/bookingmgmt/BookingDetailsModal";
+import { DataTable, type TableColumn } from "@/components/layout/DataTable";
+import { Eye, Ban, Bell, CheckCircle, XCircle } from "lucide-react";
+
+interface BookingTableProps {
+  bookings: Booking[];
+  onBookingAction?: (bookingId: string, action: string) => void;
+}
+
+export function BookingTable({ bookings, onBookingAction }: BookingTableProps) {
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleBookingAction = (bookingId: string, action: string) => {
+    if (action === "view") {
+      const booking = bookings.find((b) => b.id === bookingId);
+      if (booking) {
+        setSelectedBooking(booking);
+        setIsModalOpen(true);
+      }
+    } else {
+      // Handle other actions
+      onBookingAction?.(bookingId, action);
+    }
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedBooking(null);
+  };
+
+  const getStatusBadge = (status: Booking["status"]) => {
+    switch (status) {
+      case "Confirmed":
+        return (
+          <Badge variant='success' className='text-xs'>
+            Confirmed
+          </Badge>
+        );
+      case "Pending":
+        return (
+          <Badge variant='warning' className='text-xs'>
+            Pending
+          </Badge>
+        );
+      case "Cancelled":
+        return (
+          <Badge variant='destructive' className='text-xs'>
+            Cancelled
+          </Badge>
+        );
+      case "On Hold":
+        return (
+          <Badge variant='secondary' className='text-xs'>
+            On Hold
+          </Badge>
+        );
+      default:
+        return (
+          <Badge variant='secondary' className='text-xs'>
+            {status}
+          </Badge>
+        );
+    }
+  };
+
+  const getPaymentBadge = (paymentStatus: Booking["paymentStatus"]) => {
+    switch (paymentStatus) {
+      case "Paid":
+        return (
+          <Badge variant='success' className='text-xs'>
+            Paid
+          </Badge>
+        );
+      case "On Hold":
+        return (
+          <Badge variant='warning' className='text-xs'>
+            On Hold
+          </Badge>
+        );
+      case "Refunded":
+        return (
+          <Badge variant='secondary' className='text-xs'>
+            Refunded
+          </Badge>
+        );
+      default:
+        return (
+          <Badge variant='secondary' className='text-xs'>
+            {paymentStatus}
+          </Badge>
+        );
+    }
+  };
+
+  const columns: TableColumn<Booking>[] = [
+    {
+      key: "guestName",
+      header: "Guest Name",
+      width: "w-48",
+      render: (booking) => (
+        <div className='flex items-center'>
+          <Avatar className='h-8 w-8 mr-3'>
+            <AvatarImage src={booking.avatar} alt={booking.guestName} />
+            <AvatarFallback>
+              {booking.guestName
+                .split(" ")
+                .map((n) => n[0])
+                .join("")}
+            </AvatarFallback>
+          </Avatar>
+          <div className='text-sm font-medium text-gray-900'>
+            {booking.guestName}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "hostName",
+      header: "Host Name",
+      width: "w-40",
+      render: (booking) => (
+        <span className='text-sm text-gray-900'>{booking.hostName}</span>
+      ),
+    },
+    {
+      key: "propertyName",
+      header: "Property Name",
+      width: "w-48",
+      render: (booking) => (
+        <span className='text-sm text-gray-900'>{booking.propertyName}</span>
+      ),
+    },
+    {
+      key: "dates",
+      header: "Dates",
+      width: "w-32",
+      render: (booking) => (
+        <span className='text-sm text-gray-500'>{booking.dates}</span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      width: "w-28",
+      render: (booking) => getStatusBadge(booking.status),
+    },
+    {
+      key: "paymentStatus",
+      header: "Payment Status",
+      width: "w-32",
+      render: (booking) => getPaymentBadge(booking.paymentStatus),
+    },
+  ];
+
+  const renderRowAction = (booking: Booking) => {
+    const menuItems = [
+      {
+        label: "View",
+        action: "view",
+        icon: <Eye className='w-4 h-4' />,
+      },
+      {
+        label: "Confirm Booking",
+        action: "confirm",
+        icon: <CheckCircle className='w-4 h-4' />,
+      },
+      {
+        label: "Cancel Booking",
+        action: "cancel",
+        icon: <XCircle className='w-4 h-4' />,
+        variant: "destructive" as const,
+      },
+      {
+        label: "Hold Booking",
+        action: "hold",
+        icon: <Ban className='w-4 h-4' />,
+      },
+      {
+        label: "Send Notification",
+        action: "send-notification",
+        icon: <Bell className='w-4 h-4' />,
+      },
+    ];
+
+    return (
+      <DropdownMenu
+        items={menuItems}
+        onSelect={(action) => handleBookingAction(booking.id, action)}
+        trigger={
+          <Button
+            variant='ghost'
+            size='sm'
+            className='h-8 w-8 p-0 hover:bg-gray-100'
+          >
+            <svg
+              className='h-4 w-4'
+              fill='none'
+              stroke='currentColor'
+              viewBox='0 0 24 24'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z'
+              />
+            </svg>
+          </Button>
+        }
+      />
+    );
+  };
+
+  return (
+    <>
+      <DataTable
+        data={bookings}
+        columns={columns}
+        keyExtractor={(booking) => booking.id}
+        renderRowAction={renderRowAction}
+        onRowAction={(booking, action) =>
+          handleBookingAction(booking.id, action)
+        }
+        showCheckboxes={true}
+        showPagination={true}
+        maxHeight='500px'
+        initialItemsPerPage={10}
+      />
+
+      <BookingDetailsModal
+        booking={selectedBooking}
+        isOpen={isModalOpen}
+        onClose={closeModal}
+      />
+    </>
+  );
+}
