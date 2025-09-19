@@ -5,6 +5,7 @@ import {
   CardTitle,
 } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
+import { getStatusLabel, getStatusVariant } from "@/utils/statusBadges";
 
 interface ActivityItem {
   id: string;
@@ -20,30 +21,11 @@ interface RecentActivityProps {
 }
 
 export function RecentActivity({ activities }: RecentActivityProps) {
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "completed":
-        return (
-          <Badge className='bg-green-50 text-green-600 border-0 hover:bg-green-50'>
-            Success
-          </Badge>
-        );
-      case "pending":
-        return (
-          <Badge className='bg-amber-50 text-amber-600 border-0 hover:bg-amber-50'>
-            Warning
-          </Badge>
-        );
-      case "failed":
-        return (
-          <Badge className='bg-red-50 text-red-600 border-0 hover:bg-red-50'>
-            Failed
-          </Badge>
-        );
-      default:
-        return <Badge variant='secondary'>{status}</Badge>;
-    }
-  };
+  const getStatusBadge = (status: ActivityItem["status"]) => (
+    <Badge variant={getStatusVariant(status, "activity")}>
+      {getStatusLabel(status, "activity")}
+    </Badge>
+  );
 
   return (
     <Card className='p-4'>

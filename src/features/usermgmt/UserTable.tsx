@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { type User } from "@/data/userMgmtData";
 import { Badge } from "@/components/ui/badge";
+import { getStatusVariant } from "@/utils/statusBadges";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ActionMenu } from "@/components/ui/ActionMenu";
 import { ActionMenuTrigger } from "@/components/ui/ActionMenuTrigger";
@@ -34,34 +35,11 @@ export function UserTable({ users, onUserAction }: UserTableProps) {
     setIsDrawerOpen(false);
     setSelectedUser(null);
   };
-  const getStatusBadge = (status: User["status"]) => {
-    switch (status) {
-      case "Verified":
-        return (
-          <Badge variant='success' className='text-xs'>
-            Verified
-          </Badge>
-        );
-      case "Pending":
-        return (
-          <Badge variant='warning' className='text-xs'>
-            Pending
-          </Badge>
-        );
-      case "Blocked":
-        return (
-          <Badge variant='destructive' className='text-xs'>
-            Blocked
-          </Badge>
-        );
-      default:
-        return (
-          <Badge variant='secondary' className='text-xs'>
-            {status}
-          </Badge>
-        );
-    }
-  };
+  const getStatusBadge = (status: User["status"]) => (
+    <Badge variant={getStatusVariant(status, "user")} className='text-xs'>
+      {status}
+    </Badge>
+  );
 
   const getRoleBadge = (role: User["role"]) => {
     return (

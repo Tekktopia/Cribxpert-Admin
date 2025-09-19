@@ -1,5 +1,6 @@
 import { type Booking } from "@/data/bookingMgmtData";
 import { Badge } from "@/components/ui/badge";
+import { getStatusVariant } from "@/utils/statusBadges";
 import {
   DetailsModal,
   DetailsSection,
@@ -19,40 +20,11 @@ export function BookingDetailsModal({
 }: BookingDetailsModalProps) {
   if (!booking) return null;
 
-  const getStatusBadge = (status: Booking["status"]) => {
-    switch (status) {
-      case "Confirmed":
-        return (
-          <Badge variant='success' className='text-xs'>
-            Confirmed
-          </Badge>
-        );
-      case "Pending":
-        return (
-          <Badge variant='warning' className='text-xs'>
-            Pending
-          </Badge>
-        );
-      case "Cancelled":
-        return (
-          <Badge variant='destructive' className='text-xs'>
-            Cancelled
-          </Badge>
-        );
-      case "On Hold":
-        return (
-          <Badge variant='secondary' className='text-xs'>
-            On Hold
-          </Badge>
-        );
-      default:
-        return (
-          <Badge variant='secondary' className='text-xs'>
-            {status}
-          </Badge>
-        );
-    }
-  };
+  const getStatusBadge = (status: Booking["status"]) => (
+    <Badge variant={getStatusVariant(status, "booking")} className='text-xs'>
+      {status}
+    </Badge>
+  );
 
   return (
     <DetailsModal

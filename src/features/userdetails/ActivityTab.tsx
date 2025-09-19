@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { getStatusVariant } from "@/utils/statusBadges";
 import { DataTable, type TableColumn } from "@/components/layout/DataTable";
 import { ComplaintDetailsDrawer } from "@/features/userdetails/ComplaintDetailsDrawer";
 import { mockActivityData, type ActivityRecord } from "@/data/activityData";
@@ -17,20 +18,8 @@ export function ActivityTab({ userId }: ActivityTabProps) {
   // In a real app, you'd filter by userId or fetch user-specific data
   const activityData = mockActivityData;
 
-  const getStatusBadgeVariant = (status: ActivityRecord["status"]) => {
-    switch (status) {
-      case "Resolved":
-        return "success";
-      case "Under Investigation":
-        return "warning";
-      case "Pending":
-        return "pending";
-      case "Closed":
-        return "secondary";
-      default:
-        return "secondary";
-    }
-  };
+  const getStatusBadgeVariant = (status: ActivityRecord["status"]) =>
+    getStatusVariant(status, "complaint");
 
   const columns: TableColumn<ActivityRecord>[] = [
     {

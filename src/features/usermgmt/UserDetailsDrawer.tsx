@@ -2,6 +2,7 @@ import { X, ExternalLink } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { type User } from "@/data/userMgmtData";
 import { Badge } from "@/components/ui/badge";
+import { getStatusVariant } from "@/utils/statusBadges";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 interface UserDetailsDrawerProps {
@@ -18,35 +19,6 @@ export function UserDetailsDrawer({
   const navigate = useNavigate();
 
   if (!user) return null;
-
-  const getStatusBadge = (status: User["status"]) => {
-    switch (status) {
-      case "Verified":
-        return (
-          <Badge variant='success' className='text-xs'>
-            Verified
-          </Badge>
-        );
-      case "Pending":
-        return (
-          <Badge variant='warning' className='text-xs'>
-            Pending
-          </Badge>
-        );
-      case "Blocked":
-        return (
-          <Badge variant='destructive' className='text-xs'>
-            Blocked
-          </Badge>
-        );
-      default:
-        return (
-          <Badge variant='secondary' className='text-xs'>
-            {status}
-          </Badge>
-        );
-    }
-  };
 
   const getRoleBadge = (role: User["role"]) => {
     return (
@@ -117,7 +89,12 @@ export function UserDetailsDrawer({
               {user.name}
             </h2>
             <div className='flex justify-center'>
-              {getStatusBadge(user.status)}
+              <Badge
+                variant={getStatusVariant(user.status, "user")}
+                className='text-xs'
+              >
+                {user.status}
+              </Badge>
             </div>
           </div>
 

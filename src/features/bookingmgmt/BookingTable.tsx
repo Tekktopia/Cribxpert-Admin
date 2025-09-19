@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { type Booking } from "@/data/bookingMgmtData";
 import { Badge } from "@/components/ui/badge";
+import { getStatusVariant } from "@/utils/statusBadges";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ActionMenu } from "@/components/ui/ActionMenu";
 import { ActionMenuTrigger } from "@/components/ui/ActionMenuTrigger";
@@ -35,69 +36,20 @@ export function BookingTable({ bookings, onBookingAction }: BookingTableProps) {
     setSelectedBooking(null);
   };
 
-  const getStatusBadge = (status: Booking["status"]) => {
-    switch (status) {
-      case "Confirmed":
-        return (
-          <Badge variant='success' className='text-xs'>
-            Confirmed
-          </Badge>
-        );
-      case "Pending":
-        return (
-          <Badge variant='warning' className='text-xs'>
-            Pending
-          </Badge>
-        );
-      case "Cancelled":
-        return (
-          <Badge variant='destructive' className='text-xs'>
-            Cancelled
-          </Badge>
-        );
-      case "On Hold":
-        return (
-          <Badge variant='secondary' className='text-xs'>
-            On Hold
-          </Badge>
-        );
-      default:
-        return (
-          <Badge variant='secondary' className='text-xs'>
-            {status}
-          </Badge>
-        );
-    }
-  };
+  const getStatusBadge = (status: Booking["status"]) => (
+    <Badge variant={getStatusVariant(status, "booking")} className='text-xs'>
+      {status}
+    </Badge>
+  );
 
-  const getPaymentBadge = (paymentStatus: Booking["paymentStatus"]) => {
-    switch (paymentStatus) {
-      case "Paid":
-        return (
-          <Badge variant='success' className='text-xs'>
-            Paid
-          </Badge>
-        );
-      case "On Hold":
-        return (
-          <Badge variant='warning' className='text-xs'>
-            On Hold
-          </Badge>
-        );
-      case "Refunded":
-        return (
-          <Badge variant='secondary' className='text-xs'>
-            Refunded
-          </Badge>
-        );
-      default:
-        return (
-          <Badge variant='secondary' className='text-xs'>
-            {paymentStatus}
-          </Badge>
-        );
-    }
-  };
+  const getPaymentBadge = (paymentStatus: Booking["paymentStatus"]) => (
+    <Badge
+      variant={getStatusVariant(paymentStatus, "payment")}
+      className='text-xs'
+    >
+      {paymentStatus}
+    </Badge>
+  );
 
   const columns: TableColumn<Booking>[] = [
     {

@@ -1,5 +1,6 @@
 import { CheckCircle, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { getStatusLabel, getStatusVariant } from "@/utils/statusBadges";
 import { InfoSection, type InfoField } from "@/components/layout/InfoSection";
 
 interface PersonalInformationSectionProps {
@@ -17,19 +18,6 @@ interface PersonalInformationSectionProps {
 export function PersonalInformationSection({
   userInfo,
 }: PersonalInformationSectionProps) {
-  const getVerificationBadgeVariant = (status: string) => {
-    switch (status) {
-      case "verified":
-        return "success";
-      case "pending":
-        return "pending";
-      case "rejected":
-        return "destructive";
-      default:
-        return "secondary";
-    }
-  };
-
   const getRoleBadgeVariant = (role: string) => {
     return role === "Host" ? "pending" : "secondary";
   };
@@ -48,12 +36,11 @@ export function PersonalInformationSection({
       value: (
         <div className='flex items-center space-x-2'>
           <Badge
-            variant={getVerificationBadgeVariant(userInfo.verificationStatus)}
+            variant={getStatusVariant(userInfo.verificationStatus, "kyc")}
             className='flex items-center gap-1'
           >
             <CheckCircle className='w-3 h-3' />
-            {userInfo.verificationStatus.charAt(0).toUpperCase() +
-              userInfo.verificationStatus.slice(1)}
+            {getStatusLabel(userInfo.verificationStatus, "kyc")}
           </Badge>
           {userInfo.verificationStatus === "verified" && (
             <button className='text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center'>

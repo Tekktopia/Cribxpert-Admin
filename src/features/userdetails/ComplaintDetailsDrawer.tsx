@@ -1,5 +1,6 @@
 import { X, Upload, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { getStatusVariant } from "@/utils/statusBadges";
 import { InfoSection } from "@/components/layout/InfoSection";
 
 interface ComplaintDetailsDrawerProps {
@@ -81,33 +82,11 @@ export function ComplaintDetailsDrawer({
   console.log(complaintId); // In real app, use this to fetch specific complaint
   const complaint = mockComplaintDetails;
 
-  const getPriorityBadgeVariant = (priority: string) => {
-    switch (priority) {
-      case "High":
-        return "destructive";
-      case "Medium":
-        return "warning";
-      case "Low":
-        return "secondary";
-      default:
-        return "secondary";
-    }
-  };
+  const getPriorityBadgeVariant = (priority: string) =>
+    getStatusVariant(priority, "complaintPriority");
 
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case "Resolved":
-        return "success";
-      case "Under Investigation":
-        return "warning";
-      case "Pending":
-        return "pending";
-      case "Closed":
-        return "secondary";
-      default:
-        return "secondary";
-    }
-  };
+  const getStatusBadgeVariant = (status: string) =>
+    getStatusVariant(status, "complaint");
 
   const handleExport = () => {
     console.log("Exporting complaint details:", complaint.ticketId);
@@ -155,14 +134,16 @@ export function ComplaintDetailsDrawer({
             <div className='space-y-6'>
               {/* Complaint Overview */}
               <InfoSection
-                title="Complaint Overview"
+                title='Complaint Overview'
                 fields={[
                   { label: "Type", value: complaint.type },
                   { label: "Booking ID", value: complaint.bookingId },
                   {
                     label: "Priority",
                     value: (
-                      <Badge variant={getPriorityBadgeVariant(complaint.priority)}>
+                      <Badge
+                        variant={getPriorityBadgeVariant(complaint.priority)}
+                      >
                         {complaint.priority}
                       </Badge>
                     ),
@@ -176,29 +157,34 @@ export function ComplaintDetailsDrawer({
                     ),
                   },
                 ]}
-                variant="bordered"
+                variant='bordered'
               />
 
               {/* Timeline */}
               <InfoSection
-                title="Timeline"
+                title='Timeline'
                 fields={[
                   { label: "Reported", value: complaint.timeline.reported },
                   ...(complaint.timeline.resolved
-                    ? [{ label: "Resolved", value: complaint.timeline.resolved }]
+                    ? [
+                        {
+                          label: "Resolved",
+                          value: complaint.timeline.resolved,
+                        },
+                      ]
                     : []),
                 ]}
-                variant="bordered"
+                variant='bordered'
               />
 
               {/* Parties Involved */}
               <InfoSection
-                title="Parties Involved"
+                title='Parties Involved'
                 fields={[
                   { label: "Reported by", value: complaint.parties.reportedBy },
                   { label: "Host", value: complaint.parties.host },
                 ]}
-                variant="bordered"
+                variant='bordered'
               />
             </div>
 
@@ -246,8 +232,7 @@ export function ComplaintDetailsDrawer({
                       className='aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:bg-gray-200 transition-colors'
                     >
                       {item.type === "image" ? (
-                        <img src={item.thumbnail} className='w-full h-full'/>
-                         
+                        <img src={item.thumbnail} className='w-full h-full' />
                       ) : (
                         <div className='w-full h-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center'>
                           <span className='text-xs text-blue-600'>

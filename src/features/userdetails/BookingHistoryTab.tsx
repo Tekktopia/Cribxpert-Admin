@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { getStatusVariant } from "@/utils/statusBadges";
 import { DataTable, type TableColumn } from "@/components/layout/DataTable";
 import { MoreVertical } from "lucide-react";
 import {
@@ -26,35 +27,11 @@ export function BookingHistoryTab({ userId }: BookingHistoryTabProps) {
   // In a real app, you'd filter by userId or fetch user-specific booking data
   const bookingData = mockBookingHistoryData;
 
-  const getStatusBadgeVariant = (status: BookingHistoryRecord["status"]) => {
-    switch (status) {
-      case "Completed":
-        return "success";
-      case "Cancelled":
-        return "destructive";
-      case "Active":
-        return "pending";
-      case "Pending":
-        return "warning";
-      default:
-        return "secondary";
-    }
-  };
+  const getStatusBadgeVariant = (status: BookingHistoryRecord["status"]) =>
+    getStatusVariant(status, "booking");
 
-  const getPaymentBadgeVariant = (payment: BookingHistoryRecord["payment"]) => {
-    switch (payment) {
-      case "Paid":
-        return "success";
-      case "Refunded":
-        return "destructive";
-      case "Pending":
-        return "warning";
-      case "Failed":
-        return "destructive";
-      default:
-        return "secondary";
-    }
-  };
+  const getPaymentBadgeVariant = (payment: BookingHistoryRecord["payment"]) =>
+    getStatusVariant(payment, "payment");
 
   const columns: TableColumn<BookingHistoryRecord>[] = [
     {

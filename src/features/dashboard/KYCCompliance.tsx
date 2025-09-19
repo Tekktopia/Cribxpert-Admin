@@ -10,6 +10,7 @@ import {
   AvatarImage,
 } from "../../components/ui/avatar";
 import { Badge } from "../../components/ui/badge";
+import { getStatusVariant, getStatusLabel } from "@/utils/statusBadges";
 
 interface User {
   id: string;
@@ -26,36 +27,11 @@ interface KYCComplianceProps {
 }
 
 export function KYCCompliance({ users }: KYCComplianceProps) {
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "verified":
-        return (
-          <Badge className='bg-teal-50 text-teal-600 hover:bg-teal-50 border-0'>
-            Verified
-          </Badge>
-        );
-      case "pending":
-        return (
-          <Badge className='bg-amber-50 text-amber-600 hover:bg-amber-50 border-0'>
-            Pending
-          </Badge>
-        );
-      case "flagged":
-        return (
-          <Badge className='bg-red-50 text-red-600 hover:bg-red-50 border-0'>
-            Flagged
-          </Badge>
-        );
-      case "blocked":
-        return (
-          <Badge className='bg-red-50 text-red-600 hover:bg-red-50 border-0'>
-            Blocked
-          </Badge>
-        );
-      default:
-        return <Badge variant='secondary'>{status}</Badge>;
-    }
-  };
+  const getStatusBadge = (status: string) => (
+    <Badge variant={getStatusVariant(status, "kyc")}>
+      {getStatusLabel(status, "kyc")}
+    </Badge>
+  );
 
   return (
     <Card className='p-4'>

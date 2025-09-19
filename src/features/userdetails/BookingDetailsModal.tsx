@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { getStatusVariant } from "@/utils/statusBadges";
 import { InfoSection } from "@/components/layout/InfoSection";
 import type { BookingDetails } from "@/utils/bookingUtils";
 
@@ -14,36 +15,6 @@ export function BookingDetailsModal({
   booking,
 }: BookingDetailsModalProps) {
   if (!booking) return null;
-
-  const getStatusBadgeVariant = (status: BookingDetails["status"]) => {
-    switch (status) {
-      case "Completed":
-        return "success";
-      case "Cancelled":
-        return "destructive";
-      case "Active":
-        return "pending";
-      case "Pending":
-        return "warning";
-      default:
-        return "secondary";
-    }
-  };
-
-  const getPaymentBadgeVariant = (payment: BookingDetails["payment"]) => {
-    switch (payment) {
-      case "Paid":
-        return "success";
-      case "Refunded":
-        return "destructive";
-      case "Pending":
-        return "warning";
-      case "Failed":
-        return "destructive";
-      default:
-        return "secondary";
-    }
-  };
 
   if (!booking || !isOpen) return null;
 
@@ -141,8 +112,8 @@ export function BookingDetailsModal({
                     value: booking.stayInfo?.nights?.toString() || "2",
                   },
                 ]}
-                contentClassName="grid grid-cols-2 "
-                fieldClassName="flex items-start"
+                contentClassName='grid grid-cols-2 '
+                fieldClassName='flex items-start'
                 variant='bordered'
               />
 
@@ -153,7 +124,9 @@ export function BookingDetailsModal({
                   {
                     label: "Booking",
                     value: (
-                      <Badge variant={getStatusBadgeVariant(booking.status)}>
+                      <Badge
+                        variant={getStatusVariant(booking.status, "booking")}
+                      >
                         {booking.status}
                       </Badge>
                     ),
@@ -161,7 +134,9 @@ export function BookingDetailsModal({
                   {
                     label: "Payment",
                     value: (
-                      <Badge variant={getPaymentBadgeVariant(booking.payment)}>
+                      <Badge
+                        variant={getStatusVariant(booking.payment, "payment")}
+                      >
                         {booking.payment}
                       </Badge>
                     ),
