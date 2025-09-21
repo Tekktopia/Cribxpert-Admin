@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { CheckCircle, AlertCircle, Info, X, AlertTriangle } from "lucide-react";
-import { cn } from "../../utils/cn";
+import { cn } from "@/utils/cn";
 
 export interface NotificationProps {
   id: string;
@@ -19,35 +19,63 @@ interface NotificationToastProps extends NotificationProps {
   isVisible: boolean;
 }
 
-const notificationIcons = {
-  success: CheckCircle,
-  error: AlertCircle,
-  warning: AlertTriangle,
-  info: Info,
-};
+type NotificationType = NotificationProps["type"];
 
-const notificationStyles = {
-  success: {
-    container: "bg-green-50 border-green-200 text-green-900",
-    icon: "text-green-600",
-    closeButton: "text-green-500 hover:text-green-700",
-  },
-  error: {
-    container: "bg-red-50 border-red-200 text-red-900",
-    icon: "text-red-600",
-    closeButton: "text-red-500 hover:text-red-700",
-  },
-  warning: {
-    container: "bg-yellow-50 border-yellow-200 text-yellow-900",
-    icon: "text-yellow-600",
-    closeButton: "text-yellow-500 hover:text-yellow-700",
-  },
-  info: {
-    container: "bg-blue-50 border-blue-200 text-blue-900",
-    icon: "text-blue-600",
-    closeButton: "text-blue-500 hover:text-blue-700",
-  },
-};
+function getIcon(type: NotificationType) {
+  switch (type) {
+    case "success":
+      return CheckCircle;
+    case "error":
+      return AlertCircle;
+    case "warning":
+      return AlertTriangle;
+    case "info":
+    default:
+      return Info;
+  }
+}
+
+function getStyles(type: NotificationType) {
+  switch (type) {
+    case "success":
+      return {
+        container: "bg-white shadow-md",
+        icon: "text-green-500",
+        closeButton: "text-gray-400 hover:text-gray-600",
+        title: "text-gray-900",
+        message: "text-gray-600",
+        action: "text-green-600 hover:text-green-700",
+      } as const;
+    case "error":
+      return {
+        container: "bg-white shadow-md",
+        icon: "text-red-500",
+        closeButton: "text-gray-400 hover:text-gray-600",
+        title: "text-gray-900",
+        message: "text-gray-600",
+        action: "text-red-600 hover:text-red-700",
+      } as const;
+    case "warning":
+      return {
+        container: "bg-white shadow-md",
+        icon: "text-yellow-500",
+        closeButton: "text-gray-400 hover:text-gray-600",
+        title: "text-gray-900",
+        message: "text-gray-600",
+        action: "text-yellow-600 hover:text-yellow-700",
+      } as const;
+    case "info":
+    default:
+      return {
+        container: "bg-white shadow-md",
+        icon: "text-blue-500",
+        closeButton: "text-gray-400 hover:text-gray-600",
+        title: "text-gray-900",
+        message: "text-gray-600",
+        action: "text-blue-600 hover:text-blue-700",
+      } as const;
+  }
+}
 
 export function NotificationToast({
   id,
@@ -61,9 +89,9 @@ export function NotificationToast({
 }: NotificationToastProps) {
   const [isLeaving, setIsLeaving] = useState(false);
 
-  const Icon = notificationIcons[type];
-  const styles = notificationStyles[type];
-    
+  const Icon = getIcon(type);
+  const styles = getStyles(type);
+
   const handleRemove = useCallback(() => {
     setIsLeaving(true);
     setTimeout(() => {
@@ -87,51 +115,62 @@ export function NotificationToast({
   return (
     <div
       className={cn(
-        "relative max-w-sm w-full bg-white border rounded-lg overflow-hidden transform transition-all duration-300 ease-in-out",
+        "relative max-w-sm w-full rounded-lg overflow-hidden transform transition-all duration-300 ease-in-out",
         styles.container,
         isVisible && !isLeaving
           ? "translate-x-0 opacity-100 scale-100"
           : "translate-x-full opacity-0 scale-95"
       )}
+      role='status'
+      aria-live={
+        type === "error" || type === "warning" ? "assertive" : "polite"
+      }
     >
-
       {/* Content */}
-      <div className='p-4'>
+      <div className='p-4 pr-12'>
         <div className='flex items-start'>
           <div className='flex-shrink-0'>
             <Icon className={cn("w-5 h-5", styles.icon)} />
           </div>
 
-          <div className='ml-3 flex-1'>
-            <h4 className='text-sm font-medium'>{title}</h4>
-            {message && <p className='mt-1 text-sm opacity-80'>{message}</p>}
+          <div className='ml-3 flex-1 min-w-0'>
+            <h4 className={cn("text-sm font-semibold leading-5", styles.title)}>
+              {title}
+            </h4>
+            {message && (
+              <p className={cn("mt-1 text-sm leading-5", styles.message)}>
+                {message}
+              </p>
+            )}
 
             {action && (
               <div className='mt-3'>
                 <button
                   onClick={action.onClick}
-                  className='text-sm font-medium underline hover:no-underline focus:outline-none'
+                  className={cn(
+                    "text-sm font-medium underline underline-offset-2 hover:no-underline focus:outline-none focus:ring-2 focus:ring-offset-2 rounded",
+                    styles.action
+                  )}
                 >
                   {action.label}
                 </button>
               </div>
             )}
           </div>
-
-          <div className='ml-4 flex-shrink-0'>
-            <button
-              onClick={handleRemove}
-              className={cn(
-                "inline-flex rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2",
-                styles.closeButton
-              )}
-            >
-              <span className='sr-only'>Close</span>
-              <X className='w-4 h-4' />
-            </button>
-          </div>
         </div>
       </div>
+
+      {/* Close button - positioned absolutely in top right */}
+      <button
+        onClick={handleRemove}
+        className={cn(
+          "absolute top-3 right-3 inline-flex rounded-md p-1 focus:outline-none focus:ring-2 focus:ring-offset-2",
+          styles.closeButton
+        )}
+        aria-label='Close notification'
+      >
+        <X className='w-4 h-4' />
+      </button>
     </div>
   );
 }
