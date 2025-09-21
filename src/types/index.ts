@@ -76,3 +76,40 @@ export interface HealthMetric {
   change: number;
   status: "good" | "warning" | "critical";
 }
+
+// Messaging domain types
+export interface Participant {
+  id: string;
+  name: string;
+  role?: "Guest" | "Host" | "Support";
+  avatar?: string; // path under /public/avatars or fallback initials
+  initials?: string; // if no avatar, show initials in AvatarFallback
+}
+
+export interface Conversation {
+  id: string;
+  participants: Participant[]; // typically 2 for guest/host, but support group/system
+  lastMessageAt: string; // ISO string
+  preview: string; // text preview of last message
+  unreadCount: number;
+  status: "normal" | "flagged" | "archived";
+  contextSubtitle?: string; // e.g., "Makinwa's cottage" for the header subtitle
+}
+
+export interface MessageAttachment {
+  id: string;
+  type: "image" | "file";
+  url: string;
+  name?: string;
+  sizeLabel?: string; // e.g., "15 KB"
+}
+
+export interface Message {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  body: string;
+  createdAt: string; // ISO string
+  isFlagged?: boolean;
+  attachments?: MessageAttachment[];
+}
