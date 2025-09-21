@@ -82,12 +82,11 @@ export function MessagingSidebar({
           </button>
         </div>
       </div>
-      <div className='px-3 pb-3 border-t border-gray-200'>
+      <div className='px-3 pb-3 border-t border-gray-200 h-[calc(100%-120px)] md:h-auto'>
         <VirtualizedConversationList
           conversations={filtered}
           activeId={activeId}
           onSelect={onSelect}
-          height={560}
         />
       </div>
     </div>

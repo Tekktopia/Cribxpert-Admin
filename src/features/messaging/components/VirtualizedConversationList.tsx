@@ -9,7 +9,7 @@ interface VirtualizedConversationListProps {
   onSelect: (id: string) => void;
   itemHeight?: number; // px
   overscan?: number; // rows
-  height?: number; // container height; defaults to 560px
+  height?: number; // if omitted, auto-measure container height
 }
 
 export function VirtualizedConversationList({
@@ -18,16 +18,18 @@ export function VirtualizedConversationList({
   onSelect,
   itemHeight = 72,
   overscan = 6,
-  height = 560,
+  height,
 }: VirtualizedConversationListProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [scrollTop, setScrollTop] = useState(0);
+  const [autoHeight, setAutoHeight] = useState<number>(560);
 
   const totalHeight = conversations.length * itemHeight;
   const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan);
+  const h = height ?? autoHeight;
   const endIndex = Math.min(
     conversations.length - 1,
-    Math.floor((scrollTop + height) / itemHeight) + overscan
+    Math.floor((scrollTop + h) / itemHeight) + overscan
   );
 
   const visible = useMemo(
@@ -41,9 +43,23 @@ export function VirtualizedConversationList({
 
   // Ensure container has fixed height for windowing
   useEffect(() => {
-    if (containerRef.current) {
+    if (!containerRef.current) return;
+    if (height) {
       containerRef.current.style.height = `${height}px`;
+      return;
     }
+    // Auto-measure with ResizeObserver
+    const el = containerRef.current;
+    const ro = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      const newH = Math.floor(entry.contentRect.height);
+      if (newH > 0) setAutoHeight(newH);
+    });
+    ro.observe(el);
+    // Initial measure
+    const rect = el.getBoundingClientRect();
+    if (rect.height > 0) setAutoHeight(Math.floor(rect.height));
+    return () => ro.disconnect();
   }, [height]);
 
   return (
@@ -51,7 +67,7 @@ export function VirtualizedConversationList({
       ref={containerRef}
       onScroll={handleScroll}
       className='relative overflow-y-auto'
-      style={{ height }}
+    //   style={{ height: h }}
       role='list'
       aria-label='Conversations'
     >

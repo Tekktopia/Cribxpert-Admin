@@ -94,12 +94,44 @@ export const messagesByConversation: Record<string, Message[]> = {
       ],
     },
   ],
+  c2: [
+    {
+      id: "m7",
+      conversationId: "c2",
+      senderId: "it",
+      body: "Hi, a server update is scheduled at midnight.",
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "m8",
+      conversationId: "c2",
+      senderId: "it",
+      body: "Expected downtime is 5–10 minutes.",
+      createdAt: new Date().toISOString(),
+    },
+  ],
   c3: [
     {
       id: "m6",
       conversationId: "c3",
       senderId: "u1",
       body: "Hi, is your apartment available...",
+      createdAt: new Date().toISOString(),
+    },
+  ],
+  c4: [
+    {
+      id: "m9",
+      conversationId: "c4",
+      senderId: "hr",
+      body: "Hi, payout for Sarah done?",
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "m10",
+      conversationId: "c4",
+      senderId: "hr",
+      body: "Okay, let me know if she complains",
       createdAt: new Date().toISOString(),
     },
   ],

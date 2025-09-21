@@ -84,7 +84,7 @@ export function SearchAndFilters({
       {/* Main search and filters row */}
       <div className=''>
         <div className='flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between'>
-          <div className='flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between flex-1'>
+          <div className='flex flex-col w-full sm:flex-row gap-4 items-start sm:items-center justify-between flex-1'>
             {/* Search Input */}
             <div className='relative flex-1 w-full lg:max-w-sm'>
               <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
