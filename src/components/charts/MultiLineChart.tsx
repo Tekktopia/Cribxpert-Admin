@@ -36,8 +36,8 @@ export function MultiLineChart({ series, height = 220 }: MultiLineChartProps) {
     if (!ctx) return;
     ctx.scale(dpr, dpr);
 
-  // Layout (extra space for axis labels)
-  const padding = { top: 10, right: 10, bottom: 34, left: 44 };
+    // Layout (extra space for axis labels)
+    const padding = { top: 10, right: 10, bottom: 34, left: 44 };
     const w = cssWidth - padding.left - padding.right;
     const h = cssHeight - padding.top - padding.bottom;
 
@@ -64,16 +64,25 @@ export function MultiLineChart({ series, height = 220 }: MultiLineChartProps) {
     ctx.clearRect(0, 0, cssWidth, cssHeight);
 
     // Draw axes and ticks to match Figma style
-    const axisColor = "#9b8afc"; // violet-ish
+    const axisColor = "#A78BFA"; // light violet
     const labelColor = "#6b7280"; // gray-500
     ctx.font = "12px sans-serif";
     ctx.textAlign = "right";
     ctx.textBaseline = "middle";
 
-    // Y-axis ticks (0..niceMax)
-    const niceMax = Math.ceil(topY / 10) * 10;
+    // Y-axis ticks (0..niceMax) using nice step (1/2/5 * 10^n)
+    const desiredTicks = 5;
+    const rawStep = topY / Math.max(1, desiredTicks);
+    const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
+    const residual = rawStep / magnitude;
+    let step: number;
+    if (residual > 5) step = 10 * magnitude;
+    else if (residual > 2) step = 5 * magnitude;
+    else if (residual > 1) step = 2 * magnitude;
+    else step = magnitude;
+    const niceMax = Math.ceil(topY / step) * step;
     const yTicks: number[] = [];
-    for (let v = 10; v <= niceMax; v += 10) yTicks.push(v);
+    for (let v = step; v <= niceMax; v += step) yTicks.push(v);
 
     // Y axis line
     ctx.strokeStyle = axisColor;
@@ -91,7 +100,7 @@ export function MultiLineChart({ series, height = 220 }: MultiLineChartProps) {
       ctx.moveTo(padding.left, y);
       ctx.lineTo(padding.left + 8, y);
       ctx.strokeStyle = axisColor;
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 2;
       ctx.stroke();
 
       // label
@@ -101,11 +110,16 @@ export function MultiLineChart({ series, height = 220 }: MultiLineChartProps) {
 
     // X-axis ticks using labels from first series
     const labels = series[0].data.map((d) => d.x);
-    const tickEvery = Math.max(1, Math.floor(labels.length / 10));
+    const indices = new Set<number>([0, labels.length - 1]);
+    if (labels.length >= 5) {
+      indices.add(Math.round((labels.length - 1) * 0.25));
+      indices.add(Math.round((labels.length - 1) * 0.5));
+      indices.add(Math.round((labels.length - 1) * 0.75));
+    }
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
     labels.forEach((lbl, i) => {
-      if (i % tickEvery !== 0 && i !== labels.length - 1) return;
+      if (!indices.has(i)) return;
       const x = padding.left + (i / Math.max(1, labels.length - 1)) * w;
       const yBottom = padding.top + h;
       // bottom tick
@@ -113,7 +127,7 @@ export function MultiLineChart({ series, height = 220 }: MultiLineChartProps) {
       ctx.moveTo(x, yBottom);
       ctx.lineTo(x, yBottom - 10);
       ctx.strokeStyle = axisColor;
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 2;
       ctx.stroke();
 
       // label slightly below
