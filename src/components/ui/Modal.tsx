@@ -15,10 +15,12 @@ export interface ModalProps {
   description?: string;
   children?: React.ReactNode;
   actions?: ModalAction[];
-  size?: "sm" | "md" | "lg" | "xl";
+  size?: "sm" | "md" | "lg" | "xl" | "2xl";
   showCloseButton?: boolean;
   closeOnOverlayClick?: boolean;
   icon?: React.ReactNode;
+  headerAlign?: "left" | "center";
+  actionsAlign?: "left" | "center" | "right";
 }
 
 export function Modal({
@@ -32,6 +34,8 @@ export function Modal({
   showCloseButton = true,
   closeOnOverlayClick = true,
   icon,
+  headerAlign = "center",
+  actionsAlign = "center",
 }: ModalProps) {
   if (!isOpen) return null;
 
@@ -45,6 +49,8 @@ export function Modal({
         return "max-w-xl";
       case "xl":
         return "max-w-2xl";
+      case "2xl":
+        return "max-w-4xl";
       default:
         return "max-w-lg";
     }
@@ -58,7 +64,7 @@ export function Modal({
       case "primary":
         return `${baseClasses} bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-600 shadow-sm`;
       case "destructive":
-        return `${baseClasses} bg-red-100 text-red-600 hover:bg-red-200 focus:ring-red-500 border border-red-200`;
+        return `${baseClasses} bg-white text-red-600 hover:bg-red-50 focus:ring-red-500 border border-red-200`;
       case "warning":
         return `${baseClasses} bg-amber-100 text-amber-600 hover:bg-amber-200 focus:ring-amber-500 border border-amber-200`;
       case "secondary":
@@ -99,13 +105,29 @@ export function Modal({
           )}
 
           {/* Header */}
-          <div className='px-8 pt-8 pb-6'>
-            {icon && <div className='flex justify-center mb-4'>{icon}</div>}
-            <h3 className='text-xl font-semibold text-gray-900 mb-3'>
+          <div
+            className={`px-8 pt-8 pb-6 ${
+              headerAlign === "left" ? "text-left" : "text-center"
+            }`}
+          >
+            {icon && (
+              <div
+                className={`mb-4 ${
+                  headerAlign === "left" ? "flex" : "flex justify-center"
+                }`}
+              >
+                {icon}
+              </div>
+            )}
+            <h3 className='text-xl font-semibold text-gray-900 mb-2'>
               {title}
             </h3>
             {description && (
-              <p className='text-sm text-gray-600 leading-relaxed max-w-sm mx-auto'>
+              <p
+                className={`text-sm text-gray-600 leading-relaxed ${
+                  headerAlign === "left" ? "max-w-none" : "max-w-sm mx-auto"
+                }`}
+              >
                 {description}
               </p>
             )}
@@ -117,7 +139,15 @@ export function Modal({
           {/* Actions */}
           {actions.length > 0 && (
             <div className='px-8 pb-8'>
-              <div className='flex justify-center gap-4'>
+              <div
+                className={`flex gap-4 ${
+                  actionsAlign === "left"
+                    ? "justify-start"
+                    : actionsAlign === "right"
+                    ? "justify-end"
+                    : "justify-center"
+                }`}
+              >
                 {actions.map((action, index) => (
                   <button
                     key={index}

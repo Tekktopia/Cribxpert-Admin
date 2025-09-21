@@ -52,7 +52,9 @@ const complaintPriorityMap = new Map([
 // KYC status mappings
 const kycStatusMap = new Map([
   ["verified", { variant: "success" as const, label: "Verified" }],
+  ["approved", { variant: "success" as const, label: "Approved" }],
   ["pending", { variant: "warning" as const, label: "Pending" }],
+  ["under review", { variant: "pending" as const, label: "Under Review" }],
   ["blocked", { variant: "destructive" as const, label: "Blocked" }],
   ["flagged", { variant: "destructive" as const, label: "Flagged" }],
   ["rejected", { variant: "destructive" as const, label: "Rejected" }],

@@ -20,9 +20,3 @@ export { CarouselDots } from "./components/CarouselDots";
 
 // Modals
 export { ListingDetailsModal } from "./modals/ListingDetailsModal";
-export {
-  ApproveListingModal,
-  RejectListingModal,
-  FlagListingModal,
-  SuspendListingModal,
-} from "./modals/ListingActionModals";
