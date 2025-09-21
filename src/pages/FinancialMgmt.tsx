@@ -1,11 +1,13 @@
 import { PageWrapper } from "@/components/layout/PageWrapper";
+import { FinancialsGrid } from "@/features/financials";
+import { financialsData } from "@/data/financialsData";
 
 export default function FinancialMgmt() {
   return (
     <PageWrapper
       title='Financials'
       subtitle='Manage escrow balances, track payouts, and review financial transactions'
-      isPopulated={false}
+      isPopulated={true}
       emptyState={{
         iconUrl: "/svg/financials.svg",
         title: "No transactions yet",
@@ -13,7 +15,7 @@ export default function FinancialMgmt() {
           "Payments, commissions, and payouts will show here once bookings start happening",
       }}
     >
-      {/* Future financial management content will go here */}
+      <FinancialsGrid data={financialsData} />
     </PageWrapper>
   );
 }
