@@ -5,6 +5,7 @@ import { TransactionsTable } from "./components/TransactionsTable";
 import { TransactionDetailsModal } from "./components/TransactionDetailsModal";
 import { IssueRefundModal } from "./components/IssueRefundModal";
 import { PayoutModal } from "./components/PayoutModal";
+import { FreezeTransactionModal } from "./components/FreezeTransactionModal";
 import {
   formatCurrencyNGN,
   type FinancialsData,
@@ -37,6 +38,7 @@ export function FinancialsGrid({ data }: Props) {
   const [open, setOpen] = useState(false);
   const [refundOpen, setRefundOpen] = useState(false);
   const [payoutOpen, setPayoutOpen] = useState(false);
+  const [freezeOpen, setFreezeOpen] = useState(false);
 
   const filtered = useMemo(() => {
     return data.transactions.filter((t) => {
@@ -125,6 +127,11 @@ export function FinancialsGrid({ data }: Props) {
     if (action === "payout") {
       setSelected(item);
       setPayoutOpen(true);
+      return;
+    }
+    if (action === "freeze") {
+      setSelected(item);
+      setFreezeOpen(true);
       return;
     }
     if (action === "export") {
@@ -222,6 +229,22 @@ export function FinancialsGrid({ data }: Props) {
             message: `Payment of ${formatCurrencyNGN(
               selected?.amount || 0
             )} will be sent to the host.`,
+          });
+        }}
+      />
+
+      <FreezeTransactionModal
+        isOpen={freezeOpen}
+        onClose={() => setFreezeOpen(false)}
+        transaction={selected || undefined}
+        onConfirm={({ reason, notes }) => {
+          setFreezeOpen(false);
+          showNotification({
+            type: "warning",
+            title: "Transaction Frozen",
+            message: `Freeze placed for ${formatCurrencyNGN(
+              selected?.amount || 0
+            )}. Reason: ${reason}${notes ? ` — ${notes}` : ""}.`,
           });
         }}
       />

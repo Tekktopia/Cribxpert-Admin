@@ -53,19 +53,25 @@ export function TransactionsTable({ data, onAction }: Props) {
       renderRowAction={(t) => (
         <ActionMenu
           items={(function () {
-            const base = [{ label: "View details", action: "view" } as const];
+            const base: { label: string; action: string }[] = [
+              { label: "View details", action: "view" },
+            ];
 
             // Completed: only View details + Payout
             if (t.status === "Completed") {
-              return [...base, { label: "Payout", action: "payout" } as const];
+              return [...base, { label: "Payout", action: "payout" }];
             }
 
-            // Non-completed: allow refund for guest payments
+            // Non-completed guest payment: allow refund and freeze
             if (t.type === "Guest Payment") {
-              return [
+              const items: { label: string; action: string }[] = [
                 ...base,
-                { label: "Issue refund", action: "refund" } as const,
+                { label: "Issue refund", action: "refund" },
               ];
+              if (t.status === "Pending" || t.status === "Disputed") {
+                items.push({ label: "Freeze transaction", action: "freeze" });
+              }
+              return items;
             }
 
             return base;
