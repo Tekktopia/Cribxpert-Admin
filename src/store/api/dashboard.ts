@@ -14,7 +14,7 @@ import type {
 export const dashboardApi = createApi({
   reducerPath: "dashboardApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: "/api",
+    baseUrl: `${import.meta.env.VITE_API_URL}/api`,
     prepareHeaders: (headers) => {
       // Get auth headers from secure token storage
       const authHeaders = SecureTokenStorage.getAuthHeader();
