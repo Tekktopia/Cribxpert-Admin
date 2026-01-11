@@ -1,3 +1,10 @@
+// =====================================================
+// File: src/pages/Dashboard.tsx
+// (Only change: move console logs into useEffect so they don't spam every render.)
+// =====================================================
+import { skipToken } from "@reduxjs/toolkit/query";
+import { useEffect } from "react";
+
 import { DashboardHeader } from "../features/dashboard/DashboardHeader";
 import { DashboardMetrics } from "../features/dashboard/DashboardMetrics";
 import { DashboardGrid } from "../features/dashboard/DashboardGrid";
@@ -12,38 +19,87 @@ import {
   useGetNotificationsQuery,
 } from "../store/api/dashboard";
 
+import SecureTokenStorage from "@/utils/secureStorage";
 import { mapDashboardData } from "../utils/dashboardMapper";
+import type { MetricData, DashboardUIMetrics } from "../types/dashboardUi";
+
+const asArray = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
+
+function base64UrlToString(input: string): string {
+  const base64 = input
+    .replace(/-/g, "+")
+    .replace(/_/g, "/")
+    .padEnd(Math.ceil(input.length / 4) * 4, "=");
+  return atob(base64);
+}
+
+function tryGetUserId(): string | null {
+  const auth = SecureTokenStorage.getAuthHeader?.()?.Authorization ?? "";
+  const token = auth.startsWith("Bearer ")
+    ? auth.slice("Bearer ".length).trim()
+    : auth.trim();
+  if (!token) return null;
+
+  const parts = token.split(".");
+  if (parts.length < 2) return null;
+
+  try {
+    const payload = JSON.parse(base64UrlToString(parts[1])) as Record<string, unknown>;
+    const candidate = payload.userId ?? payload.id ?? payload._id ?? payload.sub ?? payload.uid;
+    return typeof candidate === "string" && candidate.trim() ? candidate : null;
+  } catch {
+    return null;
+  }
+}
+
+function metric(value: unknown, changeText = "—", details?: string): MetricData {
+  return {
+    value: Number(value ?? 0),
+    change: 0,
+    changeText,
+    details,
+  };
+}
+
+function toUIMetrics(raw: any): DashboardUIMetrics {
+  return {
+    totalUsers: metric(raw?.totalUsers, "—", "All registered users"),
+    activeListings: metric(raw?.activeListings, "—"),
+    weeklyBookings: metric(raw?.weeklyBookings, "—"),
+    totalRevenue: metric(raw?.totalRevenue, "—"),
+  };
+}
 
 export function DashboardPage() {
-  // -----------------------------
-  // PRIMARY METRICS (PAGE GATE)
-  // -----------------------------
+  const userId = tryGetUserId();
+
   const {
     data: metrics,
     isLoading: metricsLoading,
-    isError: metricsError,error
-  } = useGetDashboardMetricsQuery();
+    isError: metricsError,
+    error: metricsApiError,
+  } = useGetDashboardMetricsQuery(undefined);
 
-  console.log("Metrics loading:", metricsLoading);
-console.log("Metrics error:", metricsError);
-console.log("Metrics object:", metrics);
-console.log("Metrics API error object:", error);
-  // -----------------------------
-  // SECONDARY DATA
-  // -----------------------------
+  useEffect(() => {
+    console.log("Metrics loading:", metricsLoading);
+    console.log("Metrics error:", metricsError);
+    console.log("Metrics object:", metrics);
+    console.log("Metrics API error object:", metricsApiError);
+  }, [metricsLoading, metricsError, metrics, metricsApiError]);
+
   const { data: users = [] } = useGetUsersQuery({ page: 1 });
   const { data: listings = [] } = useGetListingsQuery({ page: 1 });
-  const { data: bookings = [] } = useGetBookingsQuery({ page: 1 });
-  const { data: activities = [] } = useGetRecentActivitiesQuery();
-  const { data: notifications = [] } = useGetNotificationsQuery();
 
-    console.log("Metrics loading:", metricsLoading);
-  console.log("Metrics error:", metricsError);
-  console.log("Metrics data:", metrics);
+  const { data: bookings = [] } = useGetBookingsQuery(
+    userId ? { userId, page: 1 } : skipToken
+  );
 
-  // -----------------------------
-  // LOADING STATE
-  // -----------------------------
+  const { data: activities = [] } = useGetRecentActivitiesQuery(undefined);
+
+  const { data: notifications = [] } = useGetNotificationsQuery(
+    userId ? { userId } : skipToken
+  );
+
   if (metricsLoading) {
     return (
       <PageWrapper
@@ -61,9 +117,6 @@ console.log("Metrics API error object:", error);
     );
   }
 
-  // -----------------------------
-  // ERROR STATE
-  // -----------------------------
   if (metricsError || !metrics) {
     return (
       <PageWrapper
@@ -81,29 +134,22 @@ console.log("Metrics API error object:", error);
     );
   }
 
-  // -----------------------------
-  // MAP API → DASHBOARD VIEW MODEL
-  // -----------------------------
   const dashboardData = mapDashboardData({
     metrics,
-    users,
-    listings,
-    bookings,
-    activities,
-    notifications,
+    users: asArray(users),
+    listings: asArray(listings),
+    bookings: asArray(bookings),
+    activities: asArray(activities),
+    notifications: asArray(notifications),
   });
 
-  // -----------------------------
-  // POPULATED STATE
-  // -----------------------------
   const isPopulated =
-    metrics.totalUsers > 0 ||
-    metrics.activeListings > 0 ||
-    metrics.weeklyBookings > 0;
+    Number((metrics as any).totalUsers ?? 0) > 0 ||
+    Number((metrics as any).activeListings ?? 0) > 0 ||
+    Number((metrics as any).weeklyBookings ?? 0) > 0;
 
-  // -----------------------------
-  // NORMAL RENDER
-  // -----------------------------
+  const uiMetrics = toUIMetrics(metrics);
+
   return (
     <PageWrapper
       title="Dashboard Overview"
@@ -113,7 +159,7 @@ console.log("Metrics API error object:", error);
       headerComponent={
         <>
           <DashboardHeader />
-          <DashboardMetrics metrics={metrics} />
+          <DashboardMetrics metrics={uiMetrics} />
         </>
       }
       emptyState={{

@@ -1,3 +1,6 @@
+// =====================================================
+// File: src/features/kyc/KYCTable.tsx
+// =====================================================
 import { useState } from "react";
 import type { KYCSubmission } from "@/data/kycData";
 import { DataTable, type TableColumn } from "@/components/layout/DataTable";
@@ -5,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { getStatusVariant } from "@/utils/statusBadges";
 import { KYCDetailsModal } from "@/features/kyc/KYCDetailsModal";
+import { getInitials, normalizeAvatarSrc, safeText } from "@/utils/userDisplay";
 
 interface KYCTableProps {
   submissions: KYCSubmission[];
@@ -12,19 +16,12 @@ interface KYCTableProps {
   onUpdateStatus?: (id: string, newStatus: KYCSubmission["status"]) => void;
 }
 
-export function KYCTable({
-  submissions,
-  onAction,
-  onUpdateStatus,
-}: KYCTableProps) {
+export function KYCTable({ submissions, onAction, onUpdateStatus }: KYCTableProps) {
   const [selected, setSelected] = useState<KYCSubmission | null>(null);
 
   const statusBadge = (status: KYCSubmission["status"]) => (
-    <Badge
-      variant={getStatusVariant(status.toLowerCase(), "kyc")}
-      className='text-xs'
-    >
-      {status}
+    <Badge variant={getStatusVariant(String(status).toLowerCase(), "kyc")} className="text-xs">
+      {safeText(status, "Pending")}
     </Badge>
   );
 
@@ -33,57 +30,54 @@ export function KYCTable({
       key: "ticketId",
       header: "Ticket ID",
       width: "w-24",
-      render: (row) => (
-        <span className='text-sm text-gray-900'>{row.ticketId}</span>
-      ),
+      render: (row) => <span className="text-sm text-gray-900">{safeText((row as any).ticketId)}</span>,
     },
     {
       key: "name",
       header: "Name",
       width: "w-56",
-      render: (row) => (
-        <div className='flex items-center'>
-          <Avatar className='h-8 w-8 mr-3'>
-            <AvatarImage src={row.avatar} alt={row.name} />
-            <AvatarFallback>
-              {row.name
-                .split(" ")
-                .map((n) => n[0])
-                .join("")}
-            </AvatarFallback>
-          </Avatar>
-          <div className='text-sm font-medium text-gray-900'>{row.name}</div>
-        </div>
-      ),
+      render: (row) => {
+        const name = safeText((row as any).name, "Unknown User");
+        const initials = getInitials((row as any).name, "U");
+        const avatarSrc = normalizeAvatarSrc((row as any).avatar);
+
+        return (
+          <div className="flex items-center">
+            <Avatar className="h-8 w-8 mr-3">
+              <AvatarImage src={avatarSrc} alt={name} />
+              <AvatarFallback>{initials}</AvatarFallback>
+            </Avatar>
+            <div className="text-sm font-medium text-gray-900">{name}</div>
+          </div>
+        );
+      },
     },
     {
       key: "email",
       header: "Email",
       width: "w-56",
-      render: (row) => (
-        <span className='text-sm text-gray-900'>{row.email}</span>
-      ),
+      render: (row) => <span className="text-sm text-gray-900">{safeText((row as any).email)}</span>,
     },
     {
       key: "documentType",
       header: "Document Type",
       width: "w-40",
       render: (row) => (
-        <span className='text-sm text-gray-900'>{row.documentType}</span>
+        <span className="text-sm text-gray-900">{safeText((row as any).documentType)}</span>
       ),
     },
     {
       key: "status",
       header: "Role",
       width: "w-28",
-      render: (row) => statusBadge(row.status),
+      render: (row) => statusBadge((row as any).status),
     },
     {
       key: "submissionDate",
       header: "Submission Date",
       width: "w-32",
       render: (row) => (
-        <span className='text-sm text-gray-900'>{row.submissionDate}</span>
+        <span className="text-sm text-gray-900">{safeText((row as any).submissionDate)}</span>
       ),
     },
   ];
@@ -92,9 +86,9 @@ export function KYCTable({
     <button
       onClick={() => {
         setSelected(row);
-        onAction?.(row.id, "view");
+        onAction?.((row as any).id, "view");
       }}
-      className='text-sm text-cyan-700 hover:underline font-medium'
+      className="text-sm text-cyan-700 hover:underline font-medium"
     >
       View Details
     </button>
@@ -105,11 +99,11 @@ export function KYCTable({
       <DataTable
         data={submissions}
         columns={columns}
-        keyExtractor={(row) => row.id}
+        keyExtractor={(row) => String((row as any).id)}
         renderRowAction={renderRowAction}
         showCheckboxes={true}
         showPagination={true}
-        maxHeight='500px'
+        maxHeight="500px"
         initialItemsPerPage={10}
       />
       <KYCDetailsModal
