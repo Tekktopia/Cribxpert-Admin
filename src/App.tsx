@@ -4,13 +4,13 @@ import { store } from "./store";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import { initializeSecurity } from "./security";
 import { useEffect, Suspense, lazy } from "react";
-import  LoadingPage  from "./components/ui/LoadingPage";
+import LoadingPage from "./components/ui/LoadingPage";
 
-// Lazy load all route components for better performance
+import FinanceAdminLayout from "./components/layout/FinanceAdminLayout.jsx";
+
+// Lazy load pages
 const DashboardPage = lazy(() =>
-  import("./pages/Dashboard").then((module) => ({
-    default: module.DashboardPage,
-  }))
+  import("./pages/Dashboard").then((m) => ({ default: m.DashboardPage }))
 );
 const UsersMgmt = lazy(() => import("./pages/UsersMgmt"));
 const UserDetails = lazy(() => import("./pages/UserDetails"));
@@ -28,7 +28,7 @@ const LogOut = lazy(() => import("./pages/LogOut"));
 
 function App() {
   useEffect(() => {
-    initializeSecurity(); // Turn on all security systems
+    initializeSecurity();
   }, []);
 
   return (
@@ -37,21 +37,32 @@ function App() {
         <BrowserRouter>
           <Suspense fallback={<LoadingPage />}>
             <Routes>
-              <Route path='/' element={<Navigate to='/dashboard' replace />} />
-              <Route path='/dashboard' element={<DashboardPage />} />
-              <Route path='/users' element={<UsersMgmt />} />
-              <Route path='/users/:id' element={<UserDetails />} />
-              <Route path='/listings' element={<ListingMgmt />} />
-              <Route path='/bookings' element={<BookingMgmt />} />
-              <Route path='/kyc' element={<KYCVerification />} />
-              <Route path='/messaging' element={<MessagingMgmt />} />
-              <Route path='/booking-metrics' element={<BookingMetrics />} />
-              <Route path='/analytics' element={<Analytics />} />
-              <Route path='/financials' element={<FinancialMgmt />} />
-              <Route path='/settings' element={<Settings />} />
-              <Route path='/notifications' element={<Notifications />} />
-              <Route path='/admin-roles' element={<AdminRolesMgmt />} />
-              <Route path='/log-out' element={<LogOut />} />
+              {/* Root */}
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
+              {/* ===== EXISTING ADMIN ROUTES (unchanged) ===== */}
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/users" element={<UsersMgmt />} />
+              <Route path="/users/:id" element={<UserDetails />} />
+              <Route path="/listings" element={<ListingMgmt />} />
+              <Route path="/bookings" element={<BookingMgmt />} />
+              <Route path="/kyc" element={<KYCVerification />} />
+              <Route path="/messaging" element={<MessagingMgmt />} />
+              <Route path="/booking-metrics" element={<BookingMetrics />} />
+              <Route path="/analytics" element={<Analytics />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/notifications" element={<Notifications />} />
+              <Route path="/admin-roles" element={<AdminRolesMgmt />} />
+              <Route path="/log-out" element={<LogOut />} />
+
+              {/* ===== FINANCE ADMIN (with layout) ===== */}
+              <Route path="/finance-admin" element={<FinanceAdminLayout />}>
+                <Route index element={<Navigate to="financials" replace />} />
+                <Route path="financials" element={<FinancialMgmt />} />
+              </Route>
+
+              {/* Fallback */}
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
           </Suspense>
         </BrowserRouter>
