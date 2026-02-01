@@ -23,6 +23,12 @@ const Analytics = lazy(() => import("./pages/Analytics"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const FinancialMgmt = lazy(() => import("./pages/FinancialMgmt"));
+const FinanceDashboard = lazy(() =>import("./pages/finance-admin/FinanceDashboard.jsx"));
+const FinancePayouts = lazy(() =>import("./pages/finance-admin/FinancePayouts.jsx"));
+const FinanceRefunds = lazy(() =>import("./pages/finance-admin/FinanceRefunds.jsx"));
+const FinanceTrans = lazy(() =>import("./pages/finance-admin/FinanceTrans.jsx"));
+const FinanceReports = lazy(() =>import("./pages/finance-admin/FinanceReports.jsx"));
+
 const AdminRolesMgmt = lazy(() => import("./pages/AdminRolesMgmt"));
 const LogOut = lazy(() => import("./pages/LogOut"));
 
@@ -57,8 +63,15 @@ function App() {
 
               {/* ===== FINANCE ADMIN (with layout) ===== */}
               <Route path="/finance-admin" element={<FinanceAdminLayout />}>
+                {/* Index route - redirects to financials */}
                 <Route index element={<Navigate to="financials" replace />} />
-                <Route path="financials" element={<FinancialMgmt />} />
+                
+                {/* Child routes */}
+                <Route path="financials" element={<FinanceDashboard />} />
+                <Route path="payouts" element={<FinancePayouts />} />
+                <Route path="refunds" element={<FinanceRefunds />} />
+                <Route path="transactions" element={<FinanceTrans />} />
+                <Route path="reports" element={<FinanceReports />} />
               </Route>
 
               {/* Fallback */}
