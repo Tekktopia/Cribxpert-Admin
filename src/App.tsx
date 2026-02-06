@@ -23,7 +23,7 @@ const Analytics = lazy(() => import("./pages/Analytics"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const FinancialMgmt = lazy(() => import("./pages/FinancialMgmt"));
-const FinanceDashboard = lazy(() =>import("./pages/finance-admin/FinanceDashboard.jsx"));
+const FinanceDashboard = lazy(() =>import("./pages/finance-admin/FinanceDashboard.js"));
 const FinancePayouts = lazy(() =>import("./pages/finance-admin/FinancePayouts.jsx"));
 const FinanceRefunds = lazy(() =>import("./pages/finance-admin/FinanceRefunds.jsx"));
 const FinanceTrans = lazy(() =>import("./pages/finance-admin/FinanceTrans.jsx"));

@@ -1,6 +1,5 @@
 // components/layout/FinancePageWrapper.tsx
 import type { ReactNode } from "react";
-import { EmptyState } from "@/components/layout/EmptyState";
 import PageTitle from "@/components/layout/PageTitle";
 import FinanceSidebar from "./FinanceSidebar";
 
@@ -9,12 +8,7 @@ interface FinancePageWrapperProps {
   subtitle: string;
   isPopulated?: boolean;
   children?: ReactNode;
-  emptyState?: {
-    iconUrl: string;
-    title: string;
-    subtitle: string;
-    showRefreshButton?: boolean;
-  };
+  emptyState?:ReactNode; // Accepts custom empty state component
   headerComponent?: ReactNode; // Accepts DashboardHeader or custom header
   showDefaultHeader?: boolean;
   showHeader?: boolean; // Control whether to show any header at all
@@ -53,15 +47,13 @@ export function FinancePageWrapper({
           )}
 
           {/* Main Content */}
-          {isPopulated
-            ? children
-            : emptyState && (
-                <EmptyState
-                  iconUrl={emptyState.iconUrl}
-                  title={emptyState.title}
-                  subtitle={emptyState.subtitle}
-                />
-              )}
+          {isPopulated ? (
+        children
+      ) : (
+        <div className="flex justify-center items-center min-h-[400px]">
+          {emptyState}
+        </div>
+      )}
         </div>
       </main>
     </div>

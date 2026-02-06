@@ -57,12 +57,12 @@ export function EmptyFinanceState({
       )}
 
       {/* Title */}
-      <h3 className="text-xl font-semibold text-gray-900 mb-2">
+      <h3 className="text-xl font-semibold z-10 text-gray-900 mb-2">
         {title}
       </h3>
 
       {/* Subtitle */}
-      <p className="text-gray-600 max-w-md mx-auto mb-6">
+      <p className="text-gray-600 z-10 max-w-md mx-auto mb-6">
         {subtitle}
       </p>
 
