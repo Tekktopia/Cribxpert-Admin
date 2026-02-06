@@ -7,26 +7,21 @@ interface LeftColumnProps {
 }
 
 export function LeftColumn({ listing }: LeftColumnProps) {
-  const amenities = [
-    "• WiFi",
-    "• Kitchen",
-    "• Washer & Dryer",
-    "• Air Conditioning",
-    "• Heating",
-    "• TV",
-    "• Gym Access",
-    "• Rooftop Terrace",
-    "• Concierge",
-    "• Parking",
-  ].map((amenity) => ({ label: amenity, value: "" }));
+  // Use actual amenities from listing or fallback to empty array
+  const amenities = listing.amenities && listing.amenities.length > 0
+    ? listing.amenities.map((amenity) => ({
+        label: `• ${amenity.name}`,
+        value: "",
+      }))
+    : [];
 
-  const houseRules = [
-    "• No smoking",
-    "• No pets",
-    "• No parties or events",
-    "• Quiet hours 10 PM - 8 AM",
-    "• Maximum 4 guests",
-  ].map((rule) => ({ label: rule, value: "" }));
+  // Use actual house rules from listing or fallback to empty array
+  const houseRules = listing.houseRules && listing.houseRules.length > 0
+    ? listing.houseRules.map((rule) => ({
+        label: `• ${rule.name}`,
+        value: "",
+      }))
+    : [];
 
   return (
     <div className='space-y-0'>
@@ -38,8 +33,8 @@ export function LeftColumn({ listing }: LeftColumnProps) {
         fields={amenities}
         variant='bordered'
         className=''
-        contentClassName='grid grid-cols-3 gap-1'
-        fieldClassName='py-1'
+        contentClassName='grid grid-cols-2 gap-x-6 gap-y-2'
+        fieldClassName='py-1.5'
       />
 
       {/* House Rules */}
@@ -48,15 +43,48 @@ export function LeftColumn({ listing }: LeftColumnProps) {
         fields={houseRules}
         variant='bordered'
         className=''
-        fieldClassName='py-1'
+        contentClassName='grid grid-cols-2 gap-x-6 gap-y-2'
+        fieldClassName='py-1.5'
       />
 
-      {/* Check In & Check Out */}
+      {/* Availability */}
       <InfoSection
-        title='Check In & Check Out'
+        title='Availability'
         fields={[
-          { label: "Check-in", value: "3:00 PM" },
-          { label: "Check-out", value: "11:00 AM" },
+          {
+            label: "Available From",
+            value: listing.avaliableFrom
+              ? (() => {
+                  try {
+                    const date = new Date(listing.avaliableFrom);
+                    return date.toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    });
+                  } catch {
+                    return listing.avaliableFrom;
+                  }
+                })()
+              : "Not specified",
+          },
+          {
+            label: "Available Until",
+            value: listing.avaliableUntil
+              ? (() => {
+                  try {
+                    const date = new Date(listing.avaliableUntil);
+                    return date.toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    });
+                  } catch {
+                    return listing.avaliableUntil;
+                  }
+                })()
+              : "Not specified",
+          },
         ]}
         variant='bordered'
         className='mt-4'
@@ -71,21 +99,34 @@ export function LeftColumn({ listing }: LeftColumnProps) {
       </div>
 
       {/* Action History */}
-      <InfoSection
-        title='Action History'
-        fields={[
-          {
-            label: "Approved By",
-            value: "Jennifer D on August 15, 2025",
-          },
-          {
-            label: "Notes",
-            value: "Property meets all requirements. Approved for listing",
-          },
-        ]}
-        variant='bordered'
-        className='mt-4'
-      />
+      {listing.approvedBy && listing.approvedAt && (
+        <InfoSection
+          title='Action History'
+          fields={[
+            {
+              label: "Approved By",
+              value: listing.approvedBy,
+            },
+            {
+              label: "Approved At",
+              value: (() => {
+                try {
+                  const date = new Date(listing.approvedAt);
+                  return date.toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  });
+                } catch {
+                  return listing.approvedAt;
+                }
+              })(),
+            },
+          ]}
+          variant='bordered'
+          className='mt-4'
+        />
+      )}
     </div>
   );
 }

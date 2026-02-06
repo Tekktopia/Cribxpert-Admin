@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAppDispatch } from "@/store/hooks";
+import { logout } from "@/store/slices/authSlice";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { ConfirmationModal } from "@/components/ui/ActionModals";
 import { SvgIcon } from "@/components/ui/SvgIcon";
-import SecureTokenStorage from "@/utils/secureStorage";
 
 export default function LogOut() {
   const [showModal, setShowModal] = useState(true);
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
 
   // If user cancels, redirect back to dashboard
   const handleCancel = () => {
@@ -19,13 +21,16 @@ export default function LogOut() {
   const handleLogout = () => {
     setShowModal(false);
 
-    // Use secure token storage to clear all authentication data
-    SecureTokenStorage.clearToken();
+    // Clear sessionStorage completely
+    if (typeof window !== "undefined") {
+      sessionStorage.clear();
+    }
 
-    // Show a brief confirmation and redirect to login
-    setTimeout(() => {
-      navigate("/login", { replace: true });
-    }, 500);
+    // Dispatch logout action to clear Redux state
+    dispatch(logout());
+
+    // Redirect to login page immediately
+    navigate("/login", { replace: true });
   };
 
   // Auto-redirect if modal is closed without action

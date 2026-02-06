@@ -11,7 +11,7 @@ export const ListingActionButtons = ({
   listing,
   onAction,
 }: ListingActionButtonsProps) => {
-  const actions = getListingActions(listing.status);
+  const actions = getListingActions(listing.status, listing.hideStatus);
 
   return actions.length > 0 ? (
     <div className='flex gap-2'>

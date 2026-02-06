@@ -18,8 +18,11 @@ export function ListingDetailsModal({
 }: ListingDetailsModalProps) {
   if (!listing || !isOpen) return null;
 
-  // Generate array of images (6 copies of the same image for demo)
-  const listingImages = Array(6).fill(listing.image);
+  // Use actual listing images if available, otherwise use the single image
+  const listingImages =
+    listing.listingImg && listing.listingImg.length > 0
+      ? listing.listingImg.map((img) => img.fileUrl)
+      : [listing.image];
 
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center'>
@@ -42,10 +45,10 @@ export function ListingDetailsModal({
           {/* Main Content - Two Column Layout */}
           <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
             <LeftColumn listing={listing} />
-            <RightColumn />
+            <RightColumn listing={listing} />
           </div>
 
-          <ExploreAreaSection className='mt-6' />
+          <ExploreAreaSection listing={listing} className='mt-6' />
         </div>
       </div>
     </div>

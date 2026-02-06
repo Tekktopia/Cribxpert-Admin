@@ -37,7 +37,7 @@ export function InfoSection({
         return {
           container: "border border-[#EBEBEB] rounded-b-lg",
           header: "text-lg font-semibold py-3 px-4 bg-[#E6EFF1] mb-2",
-          content: "space-y-1 px-6 pb-2",
+          content: "space-y-1 px-6 pb-4",
         };
       default:
         return {
@@ -55,25 +55,45 @@ export function InfoSection({
       <h3 className={`${variantClasses.header} ${headerClassName}`}>{title}</h3>
 
       <div className={`${variantClasses.content} ${contentClassName}`}>
-        {fields.map((field, index) => (
-          <div
-            key={index}
-            className={`flex items-center gap-4 py-2 ${fieldClassName}`}
-          >
-            <span className='text-sm text-gray-600 min-w-0 flex-shrink-0'>
-              {field.label}{typeof field.label === "string" ? ":" : ""}
-            </span>
-            <div className='flex items-center space-x-2 min-w-0 flex-1'>
-              {typeof field.value === "string" ? (
-                <span className='text-sm text-gray-900 font-medium'>
-                  {field.value}
+        {fields.map((field, index) => {
+          // Check if this is a list item (has label but no value, or label starts with bullet)
+          const isListItem = !field.value || (typeof field.label === "string" && field.label.trim().startsWith("•"));
+          
+          if (isListItem) {
+            // Render as simple list item without label/value structure
+            return (
+              <div
+                key={index}
+                className={`${fieldClassName}`}
+              >
+                <span className='text-sm text-gray-700'>
+                  {field.label}
                 </span>
-              ) : (
-                field.value
-              )}
+              </div>
+            );
+          }
+          
+          // Render as label/value pair
+          return (
+            <div
+              key={index}
+              className={`flex items-center gap-4 py-2 ${fieldClassName}`}
+            >
+              <span className='text-sm text-gray-600 min-w-0 flex-shrink-0'>
+                {field.label}{typeof field.label === "string" ? ":" : ""}
+              </span>
+              <div className='flex items-center space-x-2 min-w-0 flex-1'>
+                {typeof field.value === "string" ? (
+                  <span className='text-sm text-gray-900 font-medium'>
+                    {field.value}
+                  </span>
+                ) : (
+                  field.value
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

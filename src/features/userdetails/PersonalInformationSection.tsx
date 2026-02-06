@@ -8,10 +8,9 @@ interface PersonalInformationSectionProps {
     role: string;
     verificationStatus: "verified" | "pending" | "rejected";
     fullName: string;
-    gender: string;
     phoneNumber: string;
     email: string;
-    location: string;
+    accountDisabled?: boolean;
   };
 }
 
@@ -52,10 +51,19 @@ export function PersonalInformationSection({
       ),
     },
     { label: "Full Name", value: userInfo.fullName },
-    { label: "Gender", value: userInfo.gender },
     { label: "Phone number", value: userInfo.phoneNumber },
     { label: "Email", value: userInfo.email },
-    { label: "Location", value: userInfo.location },
+    {
+      label: "Account Status",
+      value: (
+        <Badge
+          variant={userInfo.accountDisabled ? "destructive" : "default"}
+          className='text-xs'
+        >
+          {userInfo.accountDisabled ? "Blocked" : "Active"}
+        </Badge>
+      ),
+    },
   ];
 
   return (

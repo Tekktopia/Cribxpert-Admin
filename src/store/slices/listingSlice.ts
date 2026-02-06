@@ -11,7 +11,7 @@ export interface ListingState {
     approve: boolean;
     reject: boolean;
     flag: boolean;
-    suspend: boolean;
+    hide: boolean;
     success: boolean;
   };
   successMessage: string;
@@ -29,7 +29,7 @@ const initialState: ListingState = {
     approve: false,
     reject: false,
     flag: false,
-    suspend: false,
+    hide: false,
     success: false,
   },
   successMessage: "",
@@ -53,6 +53,7 @@ export const listingSlice = createSlice({
 
       switch (action.payload) {
         case "approved":
+          // Filter for "active" status (which is "approved" in API)
           state.filteredListings = state.listings.filter(
             (listing) => listing.status === "active"
           );
@@ -73,6 +74,7 @@ export const listingSlice = createSlice({
           );
           break;
         default:
+          // "all" - show all listings
           state.filteredListings = state.listings;
       }
     },
@@ -160,10 +162,11 @@ export const listingSlice = createSlice({
       }
     },
 
-    suspendListing: (state, action: PayloadAction<string>) => {
+    hideListing: (state, action: PayloadAction<string>) => {
       const listing = state.listings.find((l) => l.id === action.payload);
       if (listing) {
-        listing.status = "pending"; // or create a "suspended" status
+        // Hide status is handled by hideStatus field in the API
+        // We don't need to change the status here as the API handles it
       }
       // Update filtered listings if needed
       if (state.activeTab !== "all") {
@@ -190,7 +193,7 @@ export const {
   approveListing,
   rejectListing,
   flagListing,
-  suspendListing,
+  hideListing,
 } = listingSlice.actions;
 
 // Export selectors

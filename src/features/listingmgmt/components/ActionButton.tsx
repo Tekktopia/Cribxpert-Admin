@@ -4,7 +4,7 @@ import { cn } from "@/utils/cn";
 interface ActionButtonProps {
   label: string;
   onClick: () => void;
-  variant?: "approve" | "reject" | "flag" | "suspend";
+  variant?: "approve" | "reject" | "flag" | "hide";
   className?: string;
   disabled?: boolean;
 }
@@ -13,7 +13,7 @@ const variantStyles = {
   approve: "bg-primary-600 hover:bg-primary-700 text-white",
   reject: "bg-[#FFC2DE] hover:bg-red-100 text-red-600 border-red-200",
   flag: "bg-[#FFC2DE] hover:bg-red-100 text-red-600 border-red-200",
-  suspend: "bg-amber-50 hover:bg-amber-100 text-amber-600 border-amber-200",
+  hide: "bg-amber-50 hover:bg-amber-100 text-amber-600 border-amber-200",
 } as const;
 
 export const ActionButton = ({

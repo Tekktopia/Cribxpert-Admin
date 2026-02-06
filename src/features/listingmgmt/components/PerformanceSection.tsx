@@ -1,17 +1,18 @@
 import { InfoSection } from "@/components/layout/InfoSection";
 import { Star } from "lucide-react";
+import type { ListingRecord } from "@/data/listingMgmtData";
 
 interface PerformanceSectionProps {
-  totalBookings?: number;
-  averageRating?: number;
-  reviewsCount?: number;
+  listing?: ListingRecord;
 }
 
 export function PerformanceSection({
-  totalBookings = 12,
-  averageRating = 4.8,
-  reviewsCount = 10,
+  listing,
 }: PerformanceSectionProps) {
+  const totalBookings = listing?.totalBookings ?? 0;
+  const averageRating = listing?.averageRating ?? 0;
+  const reviewCount = listing?.reviewCount ?? 0;
+
   return (
     <InfoSection
       title='Performance'
@@ -22,11 +23,11 @@ export function PerformanceSection({
           value: (
             <span className='flex items-center gap-1'>
               <Star className='w-4 h-4 fill-yellow-400 text-yellow-400' />
-              {averageRating}
+              {averageRating > 0 ? averageRating.toFixed(1) : "0.0"}
             </span>
           ),
         },
-        { label: "Reviews", value: reviewsCount.toString() },
+        { label: "Reviews", value: reviewCount.toString() },
       ]}
       headerClassName='!text-lg'
       variant='gray'

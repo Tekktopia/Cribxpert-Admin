@@ -1,6 +1,8 @@
 import { X } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { memo, useMemo, useCallback } from "react";
+import { useAppDispatch } from "@/store/hooks";
+import { logout } from "@/store/slices/authSlice";
 import { cn } from "../../utils/cn";
 import { SvgIcon } from "@/components/ui/SvgIcon";
 
@@ -85,11 +87,30 @@ export const Sidebar = memo(function Sidebar({
   onClose,
 }: SidebarProps) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
 
   // Memoize the close handler to prevent unnecessary re-renders of child components
   const handleClose = useCallback(() => {
     onClose?.();
   }, [onClose]);
+
+  // Handle logout
+  const handleLogout = useCallback(() => {
+    // Clear sessionStorage completely
+    if (typeof window !== "undefined") {
+      sessionStorage.clear();
+    }
+
+    // Dispatch logout action to clear Redux state
+    dispatch(logout());
+
+    // Close sidebar if open
+    onClose?.();
+
+    // Redirect to login page
+    navigate("/login", { replace: true });
+  }, [dispatch, navigate, onClose]);
 
   // Memoize navigation items rendering
   const navigationLinks = useMemo(() => {
@@ -99,6 +120,30 @@ export const Sidebar = memo(function Sidebar({
         item.href === "/log-out"
           ? location.pathname === item.href
           : location.pathname.startsWith(item.href);
+
+      // Handle logout separately
+      if (item.href === "/log-out") {
+        return (
+          <button
+            key={item.href}
+            onClick={handleLogout}
+            className={cn(
+              "w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors",
+              "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+            )}
+          >
+            <SvgIcon
+              src={item.iconSrc}
+              width={20}
+              height={20}
+              className='mr-3'
+              color="#6b7280"
+              alt={`${item.label} icon`}
+            />
+            {item.label}
+          </button>
+        );
+      }
 
       return (
         <Link
@@ -124,7 +169,7 @@ export const Sidebar = memo(function Sidebar({
         </Link>
       );
     });
-  }, [location.pathname, handleClose]);
+  }, [location.pathname, handleClose, handleLogout]);
 
   return (
     <div

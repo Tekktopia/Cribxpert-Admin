@@ -118,13 +118,6 @@ export function UserDetailsDrawer({
               </div>
 
               <div className='flex justify-between'>
-                <span className='text-sm text-gray-600'>Gender:</span>
-                <span className='text-sm font-medium text-gray-900'>
-                  {user.gender || "Not specified"}
-                </span>
-              </div>
-
-              <div className='flex justify-between'>
                 <span className='text-sm text-gray-600'>Date Joined:</span>
                 <span className='text-sm font-medium text-gray-900'>
                   {user.dateJoined || "2024-09-15"}
@@ -143,7 +136,7 @@ export function UserDetailsDrawer({
               <div className='flex justify-between'>
                 <span className='text-sm text-gray-600'>Phone number:</span>
                 <span className='text-sm font-medium text-gray-900'>
-                  {user.phone || "08167889767"}
+                  {user.phone || "Not provided"}
                 </span>
               </div>
 
@@ -151,13 +144,6 @@ export function UserDetailsDrawer({
                 <span className='text-sm text-gray-600'>Email:</span>
                 <span className='text-sm font-medium text-gray-900'>
                   {user.email}
-                </span>
-              </div>
-
-              <div className='flex justify-between'>
-                <span className='text-sm text-gray-600'>Location:</span>
-                <span className='text-sm font-medium text-gray-900'>
-                  {user.location || "Lagos, Nigeria"}
                 </span>
               </div>
             </div>
@@ -180,14 +166,14 @@ export function UserDetailsDrawer({
               <div className='flex justify-between'>
                 <span className='text-sm text-gray-600'>Total Bookings:</span>
                 <span className='text-sm font-medium text-gray-900'>
-                  {user.totalBookings || "12"}
+                  {user.totalBookings ?? 0}
                 </span>
               </div>
 
               <div className='flex justify-between'>
                 <span className='text-sm text-gray-600'>Active Bookings:</span>
                 <span className='text-sm font-medium text-gray-900'>
-                  {user.activeBookings || "3"}
+                  {user.activeBookings ?? 0}
                 </span>
               </div>
             </div>

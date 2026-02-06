@@ -13,6 +13,7 @@ import {
   ConfirmationModal,
 } from "@/components/ui/ActionModals";
 import { useNotification } from "@/hooks/useNotification";
+import { useBlockUserMutation, useGetAllUsersQuery } from "@/api/features/adminUserManagement/adminUserManagementApiSlice";
 
 interface UserMgmtGridProps {
   data: UserMgmtData;
@@ -23,6 +24,9 @@ export function UserMgmtGrid({ data }: UserMgmtGridProps) {
   const [searchValue, setSearchValue] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+
+  // API hooks
+  const [blockUserMutation, { isLoading: isBlocking }] = useBlockUserMutation();
 
   // Modal states
   const [selectedUser, setSelectedUser] = useState<{
@@ -72,31 +76,44 @@ export function UserMgmtGrid({ data }: UserMgmtGridProps) {
   };
 
   const handleBlockUser = async (reason: string) => {
-    try {
-      // Here you would make an API call to block the user
-      console.log("Blocking user:", selectedUser?.name, "Reason:", reason);
+    if (!selectedUser?.id) return;
 
+    try {
       setShowBlockModal(false);
 
-      // Simulate API call
-      // await blockUserAPI(selectedUser?.id, reason);
+      // Call the API to block the user
+      // Cache invalidation will automatically refetch the users list
+      await blockUserMutation({
+        userId: selectedUser.id,
+        reason: reason.trim(),
+      }).unwrap();
 
       // Show success notification
       showNotification({
         type: "success",
         title: "User Blocked Successfully",
-        message: `${selectedUser?.name} has been blocked and will no longer have access to their account.`,
+        message: `${selectedUser.name} has been blocked and will no longer have access to their account.`,
         duration: 5000,
       });
 
       setSelectedUser(null);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error blocking user:", error);
+      
+      // Extract error message
+      let errorMessage = "There was an error blocking the user. Please try again.";
+      if (error && typeof error === "object" && "data" in error) {
+        const errorData = error.data as { message?: string };
+        if (errorData?.message) {
+          errorMessage = errorData.message;
+        }
+      }
+
       // Show error notification
       showNotification({
         type: "error",
         title: "Failed to Block User",
-        message: "There was an error blocking the user. Please try again.",
+        message: errorMessage,
         duration: 5000,
       });
     }

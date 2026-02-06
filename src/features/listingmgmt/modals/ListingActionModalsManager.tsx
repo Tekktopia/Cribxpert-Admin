@@ -9,10 +9,11 @@ export function ListingActionModalsManager() {
   const {
     modals,
     successMessage,
+    selectedListing,
     handleApprove,
     handleReject,
     handleFlag,
-    handleSuspend,
+    handleHide,
     handleCloseModal,
   } = useListingActions();
 
@@ -88,20 +89,29 @@ export function ListingActionModalsManager() {
         additionalNotesPlaceholder='Enter your note....'
       />
 
-      {/* Suspend Listing Modal */}
-      <TextInputModal
-        isOpen={modals.suspend}
-        onClose={() => handleCloseModal("suspend")}
-        title='Suspend Listing'
-        description='This listing will be temporarily hidden from guests.'
-        inputLabel='Additional Notes (Optional)'
-        inputPlaceholder='Enter your note....'
-        onConfirm={(notes) => handleSuspend(notes)}
-        confirmLabel='Suspend Listing'
-        variant='warning'
-        useTextarea={true}
-        required={false}
-      />
+      {/* Hide/Unhide Listing Modal */}
+      {(() => {
+        const isHidden = selectedListing?.hideStatus === true;
+        return (
+          <TextInputModal
+            isOpen={modals.hide}
+            onClose={() => handleCloseModal("hide")}
+            title={isHidden ? "Unhide Listing" : "Hide Listing"}
+            description={
+              isHidden
+                ? "This listing will be made visible to guests again."
+                : "This listing will be hidden and no longer visible to guests."
+            }
+            inputLabel='Additional Notes (Optional)'
+            inputPlaceholder='Enter your note....'
+            onConfirm={(notes) => handleHide(notes)}
+            confirmLabel={isHidden ? "Unhide Listing" : "Hide Listing"}
+            variant='warning'
+            useTextarea={true}
+            required={false}
+          />
+        );
+      })()}
 
       {/* Success Modal */}
       <SuccessModal

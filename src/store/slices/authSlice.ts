@@ -53,7 +53,12 @@ export const authSlice = createSlice({
       state.error = null;
       state.lastActivity = Date.now();
 
-      // Store token securely
+      // Store token in sessionStorage (as requested)
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("accessToken", action.payload.token);
+      }
+      
+      // Also store token securely for consistency
       SecureTokenStorage.setToken(action.payload.token);
       SecureTokenStorage.setUserData(action.payload.user);
     },
@@ -76,6 +81,11 @@ export const authSlice = createSlice({
       state.token = null;
       state.error = null;
       state.lastActivity = Date.now();
+
+      // Clear sessionStorage (as requested)
+      if (typeof window !== "undefined") {
+        sessionStorage.clear();
+      }
 
       // Clear secure storage
       SecureTokenStorage.clearToken();

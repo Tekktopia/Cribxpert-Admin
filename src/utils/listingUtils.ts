@@ -1,17 +1,18 @@
 export interface ActionConfig {
   label: string;
   action: string;
-  variant: "approve" | "reject" | "flag" | "suspend";
+  variant: "approve" | "reject" | "flag" | "hide";
 }
 
 export type ListingStatus = "pending" | "active" | "flagged" | "rejected";
 
 /**
- * Get the available actions for a listing based on its status
+ * Get the available actions for a listing based on its status and hideStatus
  * @param status - The current status of the listing
+ * @param hideStatus - Whether the listing is currently hidden
  * @returns Array of action configurations
  */
-export function getListingActions(status: ListingStatus): ActionConfig[] {
+export function getListingActions(status: ListingStatus, hideStatus?: boolean): ActionConfig[] {
   switch (status) {
     case "pending":
       return [
@@ -21,7 +22,11 @@ export function getListingActions(status: ListingStatus): ActionConfig[] {
     case "active":
       return [
         { label: "Flag", action: "flag", variant: "flag" },
-        { label: "Suspend", action: "suspend", variant: "suspend" },
+        { 
+          label: hideStatus ? "Unhide" : "Hide", 
+          action: "hide", 
+          variant: "hide" 
+        },
       ];
     case "flagged":
       return [

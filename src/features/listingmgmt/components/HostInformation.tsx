@@ -1,17 +1,17 @@
 import { InfoSection } from "@/components/layout/InfoSection";
 import { Mail, Phone } from "lucide-react";
+import type { ListingRecord } from "@/data/listingMgmtData";
 
 interface HostInformationProps {
-  hostName?: string;
-  hostEmail?: string;
-  hostPhone?: string;
+  host?: ListingRecord["host"];
 }
 
 export function HostInformation({
-  hostName = "Sarah Johnson",
-  hostEmail = "topsky@gmail.com",
-  hostPhone = "+2348187134675",
+  host,
 }: HostInformationProps) {
+  const hostName = host?.name || "Unknown Host";
+  const hostEmail = host?.email || "Not provided";
+
   return (
     <InfoSection
       title='Host Information'
@@ -25,15 +25,6 @@ export function HostInformation({
             </span>
           ),
           value: hostEmail,
-        },
-        {
-          label: (
-            <span className='flex items-center gap-2'>
-              <Phone className='w-4 h-4 text-gray-500' />
-              <span>:</span>
-            </span>
-          ),
-          value: hostPhone,
         },
       ]}
       headerClassName='!text-lg'

@@ -14,7 +14,7 @@ export function PropertyDetailsSection({
       <h3 className='text-lg font-semibold py-3 px-4 bg-[#E6EFF1] mb-2'>
         Property Details
       </h3>
-      <div className='space-y-1 px-4 pb-2'>
+      <div className='space-y-4 px-4 pb-4'>
         <div className='flex items-center gap-4 py-2'>
           <span className='text-sm text-gray-600 min-w-0 flex-shrink-0'>
             Role:
@@ -26,17 +26,16 @@ export function PropertyDetailsSection({
           </div>
         </div>
 
-        <PropertyStats listing={listing} className='mb-4' />
+        <PropertyStats listing={listing} />
 
         {/* Description */}
-        <div className='mt-4'>
-          <p className='text-sm text-gray-700 leading-relaxed'>
-            Experience luxury living in this stunning downtown loft featuring
-            floor-to-ceiling windows with breathtaking city views. This modern
-            space combines industrial charm with contemporary comfort, perfect
-            for business travelers and urban explorers.
-          </p>
-        </div>
+        {listing.description && (
+          <div className='mt-4'>
+            <p className='text-sm text-gray-700 leading-relaxed'>
+              {listing.description}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

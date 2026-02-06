@@ -1,92 +1,109 @@
-import { MapPin, Plane, ChevronRight } from "lucide-react";
+import { MapPin, ChevronRight } from "lucide-react";
+import type { ListingRecord } from "@/data/listingMgmtData";
 
 interface ExploreAreaSectionProps {
+  listing?: ListingRecord;
   className?: string;
 }
 
 export function ExploreAreaSection({
+  listing,
   className = "",
 }: ExploreAreaSectionProps) {
-  const nearbyPlaces = [
-    {
-      name: "Trans Amusement Children's Museum",
-      distance: "2 min walk",
-      icon: MapPin,
-    },
-    {
-      name: "Ventura Mall",
-      distance: "10 min walk",
-      icon: MapPin,
-    },
-    {
-      name: "National Airport Station",
-      distance: "24 min walk",
-      icon: Plane,
-    },
-  ];
+  // Construct location string for map
+  const locationString = listing?.location || "";
+  const hasCoordinates = listing?.latitude !== undefined && listing?.longitude !== undefined && listing.latitude !== 0 && listing.longitude !== 0;
+
+  // Generate OpenStreetMap embed URL
+  const getMapEmbedUrl = () => {
+    if (hasCoordinates && listing) {
+      const lat = listing.latitude!;
+      const lon = listing.longitude!;
+      const zoom = 15;
+      // OpenStreetMap embed URL with marker
+      return `https://www.openstreetmap.org/export/embed.html?bbox=${lon - 0.01},${lat - 0.01},${lon + 0.01},${lat + 0.01}&layer=mapnik&marker=${lat},${lon}`;
+    }
+    return null;
+  };
+
+  // Generate map link for external viewing
+  const getMapLink = () => {
+    if (hasCoordinates && listing) {
+      return `https://www.openstreetmap.org/?mlat=${listing.latitude}&mlon=${listing.longitude}&zoom=15`;
+    } else if (locationString && locationString !== "Location not specified") {
+      return `https://www.openstreetmap.org/search?query=${encodeURIComponent(locationString)}`;
+    }
+    return null;
+  };
+
+  // Get location display text
+  const locationDisplay = listing?.city && listing?.state
+    ? `${listing.city}, ${listing.state}`
+    : listing?.location || "Location not specified";
 
   return (
     <div className={className}>
       <h3 className='text-lg font-semibold mb-4'>Explore The Area</h3>
 
-      <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-        {/* Map Section */}
-        <div className='relative'>
-          <div className='w-full h-64 bg-green-100 rounded-lg overflow-hidden relative'>
-            {/* Placeholder map with location marker */}
-            <div className='absolute inset-0 bg-gradient-to-br from-green-200 to-green-300'>
-              {/* Map placeholder content */}
-              <div className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2'>
-                <div className='w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center border-4 border-white shadow-lg'>
-                  <MapPin className='w-6 h-6 text-white' />
-                </div>
-              </div>
-              {/* Map grid lines for realistic look */}
-              <div className='absolute inset-0 opacity-20'>
-                <div className='grid grid-cols-8 h-full'>
-                  {[...Array(8)].map((_, i) => (
-                    <div key={i} className='border-r border-gray-400'></div>
-                  ))}
-                </div>
-              </div>
+      {/* Map Section - Full Width */}
+      <div className='relative w-full'>
+        {hasCoordinates && listing ? (
+          // Show actual embedded map when coordinates are available
+          <div className='w-full h-96 rounded-lg overflow-hidden border border-gray-200 shadow-sm'>
+            <iframe
+              width="100%"
+              height="100%"
+              frameBorder="0"
+              scrolling="no"
+              marginHeight={0}
+              marginWidth={0}
+              src={getMapEmbedUrl() || undefined}
+              className="border-0"
+              title="Location Map"
+            />
+          </div>
+        ) : locationString && locationString !== "Location not specified" ? (
+          // Show location text with map icon when we have address but no coordinates
+          <div className='w-full h-64 rounded-lg border border-gray-200 bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col items-center justify-center p-4'>
+            <MapPin className='w-12 h-12 text-blue-600 mb-3' />
+            <p className='text-sm font-medium text-gray-900 text-center mb-1'>{locationString}</p>
+            {getMapLink() && (
+              <a
+                href={getMapLink() || undefined}
+                target="_blank"
+                rel="noopener noreferrer"
+                className='text-xs text-blue-600 hover:text-blue-700 transition-colors mt-2'
+              >
+                Click to view in map
+              </a>
+            )}
+          </div>
+        ) : (
+          // Fallback placeholder when no location data
+          <div className='w-full h-64 rounded-lg border border-gray-200 bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center'>
+            <div className='text-center'>
+              <MapPin className='w-12 h-12 text-gray-400 mx-auto mb-2' />
+              <p className='text-sm text-gray-500'>Location not available</p>
             </div>
           </div>
-        </div>
+        )}
+      </div>
 
-        {/* Locations List */}
-        <div className='space-y-4'>
-          {nearbyPlaces.map((place, index) => {
-            const Icon = place.icon;
-            return (
-              <div key={index} className='flex items-center gap-3'>
-                <div className='w-6 h-6 rounded-full border-2 border-gray-400 flex items-center justify-center flex-shrink-0'>
-                  <Icon className='w-3 h-3 text-gray-600' />
-                </div>
-                <div className='flex-1'>
-                  <div className='font-medium text-gray-900'>{place.name}</div>
-                  <div className='text-sm text-gray-500'>{place.distance}</div>
-                </div>
-              </div>
-            );
-          })}
-
-          <button className='flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors mt-4'>
-            <span className='text-sm'>See more about area</span>
+      {/* Location Information */}
+      {locationDisplay !== "Location not specified" && getMapLink() && (
+        <div className='mt-4 pt-4 border-t border-gray-200'>
+          <p className='text-sm text-gray-600 mb-2'>{locationDisplay}</p>
+          <a
+            href={getMapLink() || undefined}
+            target="_blank"
+            rel="noopener noreferrer"
+            className='flex items-center gap-2 text-blue-600 hover:text-blue-700 transition-colors'
+          >
+            <span className='text-sm'>View in map</span>
             <ChevronRight className='w-4 h-4' />
-          </button>
+          </a>
         </div>
-      </div>
-
-      {/* Federal Capital Territory Guidance */}
-      <div className='mt-6 pt-4 border-t border-gray-200'>
-        <p className='text-sm text-gray-600 mb-2'>
-          Federal Capital Territory Gombe
-        </p>
-        <button className='flex items-center gap-2 text-blue-600 hover:text-blue-700 transition-colors'>
-          <span className='text-sm'>View in map</span>
-          <ChevronRight className='w-4 h-4' />
-        </button>
-      </div>
+      )}
     </div>
   );
 }

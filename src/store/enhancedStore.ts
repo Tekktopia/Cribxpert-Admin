@@ -4,6 +4,12 @@
 import { configureStore } from "@reduxjs/toolkit";
 import { setupListeners } from "@reduxjs/toolkit/query";
 import { dashboardApi } from "./api/dashboard";
+import { apiSlice } from "@/api/apiSlice";
+// Import API slices to ensure endpoints are injected into apiSlice
+import "@/api/features/auth/authApiSlice";
+import "@/api/features/adminDashboard/adminDashboardApiSlice";
+import "@/api/features/adminUserManagement/adminUserManagementApiSlice";
+import "@/api/features/adminListingManagement/adminListingManagementApiSlice";
 import { authSlice } from "./slices/authSlice";
 import { securitySlice } from "./slices/securitySlice";
 import { uiSlice } from "./slices/uiSlice";
@@ -13,6 +19,7 @@ export const store = configureStore({
   reducer: {
     // API slices
     [dashboardApi.reducerPath]: dashboardApi.reducer,
+    [apiSlice.reducerPath]: apiSlice.reducer,
 
     // State slices
     auth: authSlice.reducer,
@@ -29,7 +36,7 @@ export const store = configureStore({
           "persist/REHYDRATE",
         ],
       },
-    }).concat(dashboardApi.middleware),
+    }).concat(dashboardApi.middleware, apiSlice.middleware),
   devTools: process.env.NODE_ENV !== "production",
 });
 

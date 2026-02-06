@@ -4,9 +4,17 @@ import { store } from "./store";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import { initializeSecurity } from "./security";
 import { useEffect, Suspense, lazy } from "react";
-import  LoadingPage  from "./components/ui/LoadingPage";
+import LoadingPage from "./components/ui/LoadingPage";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { PublicRoute } from "./components/auth/PublicRoute";
+import { initializeAuth } from "./store/slices/authSlice";
 
 // Lazy load all route components for better performance
+const LoginPage = lazy(() =>
+  import("./pages/Login").then((module) => ({
+    default: module.LoginPage,
+  }))
+);
 const DashboardPage = lazy(() =>
   import("./pages/Dashboard").then((module) => ({
     default: module.DashboardPage,
@@ -29,6 +37,7 @@ const LogOut = lazy(() => import("./pages/LogOut"));
 function App() {
   useEffect(() => {
     initializeSecurity(); // Turn on all security systems
+    store.dispatch(initializeAuth()); // Initialize auth state from storage
   }, []);
 
   return (
@@ -37,21 +46,140 @@ function App() {
         <BrowserRouter>
           <Suspense fallback={<LoadingPage />}>
             <Routes>
-              <Route path='/' element={<Navigate to='/dashboard' replace />} />
-              <Route path='/dashboard' element={<DashboardPage />} />
-              <Route path='/users' element={<UsersMgmt />} />
-              <Route path='/users/:id' element={<UserDetails />} />
-              <Route path='/listings' element={<ListingMgmt />} />
-              <Route path='/bookings' element={<BookingMgmt />} />
-              <Route path='/kyc' element={<KYCVerification />} />
-              <Route path='/messaging' element={<MessagingMgmt />} />
-              <Route path='/booking-metrics' element={<BookingMetrics />} />
-              <Route path='/analytics' element={<Analytics />} />
-              <Route path='/financials' element={<FinancialMgmt />} />
-              <Route path='/settings' element={<Settings />} />
-              <Route path='/notifications' element={<Notifications />} />
-              <Route path='/admin-roles' element={<AdminRolesMgmt />} />
-              <Route path='/log-out' element={<LogOut />} />
+              {/* Public Route - Login */}
+              <Route
+                path="/login"
+                element={
+                  <PublicRoute>
+                    <LoginPage />
+                  </PublicRoute>
+                }
+              />
+
+              {/* Protected Routes */}
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <Navigate to="/dashboard" replace />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <DashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/users"
+                element={
+                  <ProtectedRoute>
+                    <UsersMgmt />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/users/:id"
+                element={
+                  <ProtectedRoute>
+                    <UserDetails />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/listings"
+                element={
+                  <ProtectedRoute>
+                    <ListingMgmt />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/bookings"
+                element={
+                  <ProtectedRoute>
+                    <BookingMgmt />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/kyc"
+                element={
+                  <ProtectedRoute>
+                    <KYCVerification />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/messaging"
+                element={
+                  <ProtectedRoute>
+                    <MessagingMgmt />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/booking-metrics"
+                element={
+                  <ProtectedRoute>
+                    <BookingMetrics />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/analytics"
+                element={
+                  <ProtectedRoute>
+                    <Analytics />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/financials"
+                element={
+                  <ProtectedRoute>
+                    <FinancialMgmt />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <Settings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/notifications"
+                element={
+                  <ProtectedRoute>
+                    <Notifications />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin-roles"
+                element={
+                  <ProtectedRoute>
+                    <AdminRolesMgmt />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/log-out"
+                element={
+                  <ProtectedRoute>
+                    <LogOut />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Catch all - redirect to login */}
+              <Route path="*" element={<Navigate to="/login" replace />} />
             </Routes>
           </Suspense>
         </BrowserRouter>
