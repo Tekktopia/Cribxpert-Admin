@@ -8,6 +8,7 @@ interface SidebarProps {
   className?: string;
   isOpen?: boolean;
   onClose?: () => void;
+  navigationItems?: Array<{ readonly label: string; readonly iconSrc: string; readonly href: string }>; // modification for csr unique sidebar
 }
 
 // Move navigation items outside component to prevent recreation on every render
@@ -83,8 +84,10 @@ export const Sidebar = memo(function Sidebar({
   className,
   isOpen = false,
   onClose,
+  navigationItems: customNavigationItems, // csr sidebar modification
 }: SidebarProps) {
   const location = useLocation();
+  const items = customNavigationItems ?? navigationItems; // csr sidebar mods
 
   // Memoize the close handler to prevent unnecessary re-renders of child components
   const handleClose = useCallback(() => {
@@ -93,7 +96,8 @@ export const Sidebar = memo(function Sidebar({
 
   // Memoize navigation items rendering
   const navigationLinks = useMemo(() => {
-    return navigationItems.map((item) => {
+    // return navigationItems.map((item) => {
+      return items.map((item) => {
       // Use path matching for better sub-page detection
       const isActive =
         item.href === "/log-out"
@@ -124,7 +128,7 @@ export const Sidebar = memo(function Sidebar({
         </Link>
       );
     });
-  }, [location.pathname, handleClose]);
+  }, [items, location.pathname, handleClose]); // csr sidebar mods
 
   return (
     <div

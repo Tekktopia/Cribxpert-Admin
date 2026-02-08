@@ -1,0 +1,402 @@
+.supportDash {
+  display: flex;
+}
+.supportDash .main {
+  flex: 1;
+}
+.supportDash .main .container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 15px;
+  gap: 20px;
+}
+.supportDash .main .container .text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  justify-content: space-between;
+  width: 100%;
+}
+.supportDash .main .container .text span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  line-height: 100%;
+  letter-spacing: 0%;
+  vertical-align: bottom;
+}
+.supportDash .main .container .text span h1 {
+  font-weight: 600;
+  font-size: 25px;
+}
+.supportDash .main .container .text span p {
+  font-weight: 400;
+  font-style: normal;
+  font-size: 16px;
+  color: #525866;
+}
+.supportDash .main .container .text button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  background-color: #006073;
+  color: #fff;
+  border-radius: 8px;
+  gap: 6px;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0%;
+}
+.supportDash .main .container .text button:hover {
+  cursor: pointer;
+  background-color: #fff;
+  color: #006073;
+  border: 1px solid #006073;
+}
+.supportDash .main .container .text button:hover img {
+  filter: invert(25%) sepia(95%) saturate(5000%) hue-rotate(170deg);
+}
+.supportDash .main .container .top {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 20px;
+}
+.supportDash .main .container .top .status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.supportDash .main .container .top .status .statusItem {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #F0F0F0;
+}
+.supportDash .main .container .top .status .statusItem div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 16px;
+  gap: 8px;
+}
+.supportDash .main .container .top .status .statusItem div p {
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 20px;
+  letter-spacing: 0%;
+  vertical-align: bottom;
+  color: #525866;
+}
+.supportDash .main .container .top .status .statusItem div h4 {
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 100%;
+  letter-spacing: 0%;
+  vertical-align: bottom;
+}
+.supportDash .main .container .top .status .statusItem div #cent {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.supportDash .main .container .top .status .statusItem div #cent span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 0 5px;
+}
+.supportDash .main .container .top .ticket {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 1000px;
+}
+.supportDash .main .container .top .ticket .tableFilters {
+  width: 100%;
+}
+.supportDash .main .container .top .ticket .tableFilters .filterControls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.supportDash .main .container .top .ticket .tableFilters .filterControls .filterGroup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 80px;
+  padding: 8px 20px;
+  border: 1px solid #CDD0D5;
+  border-radius: 8px;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0;
+  text-align: center;
+}
+.supportDash .main .container .top .ticket .tableFilters .filterControls .filterGroup .filterSelect {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+.supportDash .main .container .top .ticket .tableFilters .filterControls .clearFilters {
+  height: -moz-fit-content;
+  height: fit-content;
+  padding: 12px 24px;
+  background: #f1f5f9;
+  color: #525866;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.supportDash .main .container .top .ticket .tableFilters .filterControls .clearFilters:hover {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+}
+.supportDash .main .container .top .ticket .tableFilters .filterControls .clearFilters:active {
+  background: #cbd5e1;
+}
+.supportDash .main .container .top .ticket .ticketsTable {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  justify-content: space-evenly;
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  min-width: 900px;
+  overflow-x: auto;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableCont {
+  overflow-x: auto;
+  max-height: 211px;
+  overflow-y: auto;
+  width: 100%;
+}
+.supportDash .main .container .top .ticket .ticketsTable table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableHeader tr th {
+  padding: 16px 0;
+  font-size: 12px;
+  font-weight: 400;
+  color: #525866;
+  text-transform: uppercase;
+  line-height: 16px;
+  letter-spacing: 0%;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-bottom: 2px solid #f1f5f9;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableHeader tr th:nth-child(1) {
+  width: 120px;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableHeader tr th:nth-child(2) {
+  width: 140px;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableHeader tr th:nth-child(3) {
+  width: 200px;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableHeader tr th:nth-child(4) {
+  width: 138px;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableHeader tr th:nth-child(5) {
+  width: 100px;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableHeader tr th:nth-child(6) {
+  width: 100px;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableHeader tr th:nth-child(7) {
+  width: 120px;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableHeader tr th:nth-child(8) {
+  width: 120px;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableHeader tr .ticketIdHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableHeader tr .ticketIdHeader .selectAllCheckbox { /* Level 4: Checkbox inside header */
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableBody .tableRow {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-bottom: 1px solid #f1f5f9;
+  height: 55px;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableBody .tableRow:hover {
+  background-color: #f8fafc;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableBody .tableRow:last-child {
+  border-bottom: none;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableBody .tableRow td {
+  padding: 10px 0;
+  font-size: 14px;
+  text-align: center;
+  vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableBody .tableRow td:nth-child(1) {
+  width: 120px;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableBody .tableRow td:nth-child(2) {
+  width: 140px;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableBody .tableRow td:nth-child(3) {
+  width: 200px;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableBody .tableRow td:nth-child(4) {
+  width: 138px;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableBody .tableRow td:nth-child(5) {
+  width: 100px;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableBody .tableRow td:nth-child(6) {
+  width: 100px;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableBody .tableRow td:nth-child(7) {
+  width: 120px;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableBody .tableRow td:nth-child(8) {
+  width: 120px;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableBody .tableRow .ticketIdCell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableBody .tableRow .ticketIdCell .ticketCheckbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableBody .tableRow .ticketIdCell .ticketId {
+  font-weight: 600;
+  color: #006073;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableBody .tableRow .categoryCell {
+  width: 73px;
+  height: 28px;
+  opacity: 1;
+  gap: 8px;
+  padding: 4px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #E6E6E6;
+  color: #070707;
+  border-radius: 5px;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableBody .tableRow .badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+  white-space: nowrap;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableBody .tableRow .badge.badge-high {
+  background-color: #F5E5E0;
+  color: #FF3B3B;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableBody .tableRow .badge.badge-medium {
+  background-color: #FFFDE9;
+  color: #FFAD09;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableBody .tableRow .badge.badge-low {
+  background-color: #E0F5E4;
+  color: #09974C;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableBody .tableRow .badge.badge-open {
+  background-color: #E4E9FF;
+  color: #0064D9;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableBody .tableRow .badge.badge-resolved {
+  color: #09974C;
+  background-color: #EBFFED;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableBody .tableRow .badge.badge-escalated {
+  color: #FF3B3B;
+  background-color: #F4E8E7;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableBody .tableRow .badge.badge-pending {
+  color: #d97706;
+  background-color: rgba(217, 119, 6, 0.1);
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableBody .noResults td {
+  text-align: center;
+  padding: 40px 20px;
+  color: #525866;
+  font-style: italic;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableFooter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  justify-content: space-between;
+  padding-top: 16px;
+  margin-top: 16px;
+  border-top: 1px solid #f1f5f9;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableFooter .selectedCount {
+  font-size: 14px;
+  color: #525866;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableFooter .seeAllBtn {
+  padding: 10px;
+  background-color: #fff;
+  color: #006073;
+  border: 1px solid #BCC3CA;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0%;
+  font-weight: 400;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  width: 242px;
+}
+.supportDash .main .container .top .ticket .ticketsTable .tableFooter .seeAllBtn:hover {
+  background-color: rgb(0, 53.4260869565, 64);
+  color: #fff;
+}/*# sourceMappingURL=style.css.map */

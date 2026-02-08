@@ -25,6 +25,7 @@ const Notifications = lazy(() => import("./pages/Notifications"));
 const FinancialMgmt = lazy(() => import("./pages/FinancialMgmt"));
 const AdminRolesMgmt = lazy(() => import("./pages/AdminRolesMgmt"));
 const LogOut = lazy(() => import("./pages/LogOut"));
+const SupportDash = lazy(() => import("./pages/SupportDashboard"));
 
 function App() {
   useEffect(() => {
@@ -52,6 +53,8 @@ function App() {
               <Route path='/notifications' element={<Notifications />} />
               <Route path='/admin-roles' element={<AdminRolesMgmt />} />
               <Route path='/log-out' element={<LogOut />} />
+              <Route path='/log-out' element={<LogOut />} />
+              <Route path='/SupportDash' element={<SupportDash />} />
             </Routes>
           </Suspense>
         </BrowserRouter>
