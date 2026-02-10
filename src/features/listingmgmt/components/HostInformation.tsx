@@ -1,5 +1,5 @@
 import { InfoSection } from "@/components/layout/InfoSection";
-import { Mail, Phone } from "lucide-react";
+import { Mail } from "lucide-react";
 import type { ListingRecord } from "@/data/listingMgmtData";
 
 interface HostInformationProps {
