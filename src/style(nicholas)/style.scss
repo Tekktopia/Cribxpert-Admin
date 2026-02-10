@@ -502,6 +502,7 @@
                                           font-size: 20px;
                                           line-height: 100%;
                                           letter-spacing: 0%;
+                                          color: map.get(variables.$colors, bOpenT);
 
                                           // &:of-type(1){
                                           //       color: map.get(variables.$colors, bOpenT);
@@ -520,10 +521,6 @@
                                           //       color: map.get(variables.$colors, bOpenT);
                                           // }
                                     }
-
-                                    &:nth-child(1) h4 {
-                                          color: map.get(variables.$colors, bOpenT);
-                                    }
                                     
                                     &:nth-child(2) h4 {
                                           color: map.get(variables.$colors, primary);
@@ -531,10 +528,6 @@
                                     
                                     &:nth-child(3) h4 {
                                           color: map.get(variables.$colors, bMedT);
-                                    }
-                                    
-                                    &:nth-child(4) h4 {
-                                          color: map.get(variables.$colors, bOpenT);
                                     }
                               }
                         }

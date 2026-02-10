@@ -476,8 +476,6 @@
   font-size: 20px;
   line-height: 100%;
   letter-spacing: 0%;
-}
-.supportDash .main .container .footer .stats .statItem:nth-child(1) h4 {
   color: #0064D9;
 }
 .supportDash .main .container .footer .stats .statItem:nth-child(2) h4 {
@@ -485,7 +483,4 @@
 }
 .supportDash .main .container .footer .stats .statItem:nth-child(3) h4 {
   color: #FFAD09;
-}
-.supportDash .main .container .footer .stats .statItem:nth-child(4) h4 {
-  color: #0064D9;
 }/*# sourceMappingURL=style.css.map */
