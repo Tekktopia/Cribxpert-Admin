@@ -438,7 +438,7 @@
   gap: 16px;
 }
 .supportDash .main .container .footer span {
-  width: 1104px;
+  min-width: 1000px;
   border-bottom: 1px solid #E6E6E6;
 }
 .supportDash .main .container .footer span p {
