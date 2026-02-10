@@ -1,3 +1,8 @@
+@use 'variables';
+@use 'sass:color';
+@use 'sass:map';
+
+
 @mixin flexer{
       display: flex;
       align-items: center;
@@ -77,5 +82,27 @@
 @mixin nthChild($num){
       &:nth-child(#{$num}) {
             @content;
+      }
+}
+
+
+@mixin btnAll(){
+      padding: 10px;
+      background-color: #fff;
+      color: map.get(variables.$colors, primary);
+      border: 1px solid #BCC3CA;
+      font-size: 14px;
+      line-height: 20px;
+      letter-spacing: 0%;
+      font-weight: 400;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      width: 242px;
+      border-radius: 8px;
+
+
+      &:hover {
+            background-color: color.adjust(map.get(variables.$colors, primary), $lightness: -10%);
+            color: #fff;
       }
 }

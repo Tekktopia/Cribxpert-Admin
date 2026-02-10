@@ -1,6 +1,7 @@
 @use 'sass:map';
 @use 'mixins';
 @use 'variables';
+@use 'sass:color';
 
 .supportDash{
       // @include mixins.flexerJust;
@@ -439,185 +440,105 @@
                                           }
 
                                           .seeAllBtn{
-                                                padding: 10px;
-                                                background-color: #fff;
-                                                color: map.get(variables.$colors, primary);
-                                                border: 1px solid #BCC3CA;
-                                                font-size: 14px;
-                                                line-height: 20px;
-                                                letter-spacing: 0%;
-                                                font-weight: 400;
-                                                cursor: pointer;
-                                                transition: background-color 0.2s;
-                                                width: 242px;
-
-
-                                                &:hover {
-                                                      background-color: darken(map.get(variables.$colors, primary), 10%);
-                                                      color: #fff;
-                                                }
+                                                @include mixins.btnAll();
                                           }
                                     }
                               }
+                        }
 
-                              // .ticketsTable{
-                              //       @include mixins.flexColEven;
-                              //       background: white;
-                              //       border-radius: 12px;
-                              //       padding: 24px;
-                              //       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-                              //       width: 100%;
-                              //       min-width: 800px;
-                              //       overflow-x: auto;
+                        .activity{
+                              @include mixins.flexCol;
+                              width: 100%;
 
-                              //       .tableHeader{
-                              //             display: grid;
-                              //             grid-template-columns: 120px 140px 200px 138px 100px 100px 120px 120px;
-                              //             gap: 12px;
-                              //             padding: 16px 0;
-                              //             border-bottom: 2px solid #f1f5f9;
-                              //             // min-width: 968px;
+                              gap: 24px;
 
-                              //             span {
-                              //                   font-size: 12px;
-                              //                   font-weight: 400;
-                              //                   color: map.get(variables.$colors, sub);
-                              //                   text-transform: uppercase;
-                              //                   line-height: 16px;
-                              //                   letter-spacing: 0%;
-                              //                   display: flex;
-                              //                   align-items: center;
-                              //                   white-space: nowrap;
-                              //             }
+                              .activities{
+                                    width: 100%;
+                              }
 
-                              //             .ticketIdHeader {
-                              //                   display: flex;
-                              //                   align-items: center;
-                              //                   gap: 8px;
-
-                              //                   .selectAllCheckbox {
-                              //                         width: 16px;
-                              //                         height: 16px;
-                              //                         cursor: pointer;
-                              //                   }
-                              //             }    
-                              //       }
-
-                              //       .tableBody{
-                              //             max-height: 211px;
-                              //             overflow-y: auto;
-                              //             // min-width: 968px;
-                              //             .tableRow{
-                              //                   display: grid;
-                              //                   grid-template-columns: 120px 140px 200px 138px 100px 100px 120px 120px;
-                              //                   gap: 12px;
-                              //                   padding: 10px 0;
-                              //                   border-bottom: 1px solid #f1f5f9;
-                              //                   transition: background-color 0.2s ease;
-                              //                   cursor: pointer;
-                              //                   align-items: center;
-                              //                   height: 55px;
-
-                              //                   &:hover {
-                              //                         background-color: #f8fafc;
-                              //                   }
-                                                
-                              //                   &:last-child {
-                              //                         border-bottom: none;
-                              //                   }
-
-                              //                   span {
-                              //                         font-size: 14px;
-                              //                         color: map.get(variables.$colors, text);
-                              //                         display: flex;
-                              //                         align-items: center;
-                              //                         white-space: nowrap;
-                              //                         overflow: hidden;
-                              //                         text-overflow: ellipsis;
-                              //                   }
-
-                              //                   .ticketIdCell {
-                              //                         display: flex;
-                              //                         align-items: center;
-                              //                         gap: 8px;
-
-                              //                         .ticketCheckbox {
-                              //                               width: 16px;
-                              //                               height: 16px;
-                              //                               cursor: pointer;
-                              //                         }
-
-                              //                         .ticketId {
-                              //                               font-weight: 600;
-                              //                               color: map.get(variables.$colors, primary);
-                              //                         }
-                              //                   }
-                                                
-                                                
-
-                                               
-
-                              //                   .badge {
-                              //                         padding: 4px 12px;
-                              //                         border-radius: 20px;
-                              //                         font-size: 12px;
-                              //                         font-weight: 600;
-                              //                         display: inline-block;
-                              //                         white-space: nowrap;
-                              //                   }
-
-                              //                   .badge-high {
-                              //                         background-color: map.get(variables.$colors, bHigh);
-                              //                         color: map.get(variables.$colors, bHighT);
-                              //                   }
-
-                              //                   .badge-medium {
-                              //                         background-color: map.get(variables.$colors, bMed);
-                              //                         color: map.get(variables.$colors, bMedT);
-                              //                   }
-
-                              //                   .badge-low {
-                              //                         background-color: map.get(variables.$colors, bLow);
-                              //                         color: map.get(variables.$colors, bLowT);
-                              //                   }
-
-                              //                   .badge-open {
-                              //                         background-color: map.get(variables.$colors, bOpen);
-                              //                         color: map.get(variables.$colors, bOpenT);
-                              //                   }
-
-                              //                   .badge-resolved {
-                              //                         color: map.get(variables.$colors, bResT);
-                              //                         background-color: map.get(variables.$colors, bRes);
-                              //                   }
-
-                              //                   .badge-escalated {
-                              //                         color: map.get(variables.$colors, bHighT);
-                              //                         background-color: map.get(variables.$colors, bEsca);
-                              //                   }
-
-                              //                   .badge-pending {
-                              //                         color: #d97706;
-                              //                         background-color: rgba(217, 119, 6, 0.1);
-                              //                   }
-                              //             }
-
-                              //             .noResults {
-                              //                   grid-column: 1 / -1;
-                              //                   text-align: center;
-                              //                   padding: 40px 20px;
-                              //                   color: map.get(variables.$colors, sub);
-                              //                   font-style: italic;
-                              //                   background: #f8fafc;
-                              //                   border-radius: 8px;
-                              //                   margin-top: 16px;
-                              //             }
-                              //       }
-                              // }
+                              .loadMore{
+                                    @include mixins.btnAll();
+                              }
                         }
                   }
 
-                  // border: 1px solid blue;
+                  .footer{
+                        @include mixins.flexCol;
+                        gap: 16px;
+
+                        span{
+                              width: 1104px;
+                              border-bottom: 1px solid #E6E6E6;
+                              
+                              p{
+                                    font-weight: 600;
+                                    font-size: 16px;
+                                    line-height: 100%;
+                                    letter-spacing: 0;
+                                    padding: 25px 0;
+                                    color: map.get(variables.$colors, pCol);
+                              }
+                        }
+
+                        .stats{
+                              @include mixins.flexEven;
+                              width: 100%;
+                              gap: 40px;
+
+                              .statItem{
+                                    @include mixins.flexCol;
+                                    gap: 8px;
+
+                                    p{
+                                          font-weight: 400;
+                                          font-size: 12px;
+                                          line-height: 20px;
+                                          letter-spacing: 0%;
+                                          color: map.get(variables.$colors, pFoot);
+                                    }
+
+                                    h4{
+                                          font-weight: 600;
+                                          font-size: 20px;
+                                          line-height: 100%;
+                                          letter-spacing: 0%;
+
+                                          // &:of-type(1){
+                                          //       color: map.get(variables.$colors, bOpenT);
+                                          // }
+
+                                          // &:of-type(2){
+                                          //       color: map.get(variables.$colors, primary);
+
+                                          // }
+
+                                          // &:of-type(3){
+                                          //       color: map.get(variables.$colors, bMedT);
+                                          // }
+
+                                          // &:of-type(4){
+                                          //       color: map.get(variables.$colors, bOpenT);
+                                          // }
+                                    }
+
+                                    &:nth-child(1) h4 {
+                                          color: map.get(variables.$colors, bOpenT);
+                                    }
+                                    
+                                    &:nth-child(2) h4 {
+                                          color: map.get(variables.$colors, primary);
+                                    }
+                                    
+                                    &:nth-child(3) h4 {
+                                          color: map.get(variables.$colors, bMedT);
+                                    }
+                                    
+                                    &:nth-child(4) h4 {
+                                          color: map.get(variables.$colors, bOpenT);
+                                    }
+                              }
+                        }
+                  }
             }
       }
       // border: 1px solid red;

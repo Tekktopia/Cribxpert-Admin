@@ -395,8 +395,97 @@
   cursor: pointer;
   transition: background-color 0.2s;
   width: 242px;
+  border-radius: 8px;
 }
 .supportDash .main .container .top .ticket .ticketsTable .tableFooter .seeAllBtn:hover {
   background-color: rgb(0, 53.4260869565, 64);
   color: #fff;
+}
+.supportDash .main .container .top .activity {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  width: 100%;
+  gap: 24px;
+}
+.supportDash .main .container .top .activity .activities {
+  width: 100%;
+}
+.supportDash .main .container .top .activity .loadMore {
+  padding: 10px;
+  background-color: #fff;
+  color: #006073;
+  border: 1px solid #BCC3CA;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0%;
+  font-weight: 400;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  width: 242px;
+  border-radius: 8px;
+}
+.supportDash .main .container .top .activity .loadMore:hover {
+  background-color: rgb(0, 53.4260869565, 64);
+  color: #fff;
+}
+.supportDash .main .container .footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 16px;
+}
+.supportDash .main .container .footer span {
+  width: 1104px;
+  border-bottom: 1px solid #E6E6E6;
+}
+.supportDash .main .container .footer span p {
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 100%;
+  letter-spacing: 0;
+  padding: 25px 0;
+  color: #070707;
+}
+.supportDash .main .container .footer .stats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  justify-content: space-evenly;
+  width: 100%;
+  gap: 40px;
+}
+.supportDash .main .container .footer .stats .statItem {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+}
+.supportDash .main .container .footer .stats .statItem p {
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 20px;
+  letter-spacing: 0%;
+  color: #313131;
+}
+.supportDash .main .container .footer .stats .statItem h4 {
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 100%;
+  letter-spacing: 0%;
+}
+.supportDash .main .container .footer .stats .statItem:nth-child(1) h4 {
+  color: #0064D9;
+}
+.supportDash .main .container .footer .stats .statItem:nth-child(2) h4 {
+  color: #006073;
+}
+.supportDash .main .container .footer .stats .statItem:nth-child(3) h4 {
+  color: #FFAD09;
+}
+.supportDash .main .container .footer .stats .statItem:nth-child(4) h4 {
+  color: #0064D9;
 }/*# sourceMappingURL=style.css.map */

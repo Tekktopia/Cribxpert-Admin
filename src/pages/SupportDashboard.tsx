@@ -8,6 +8,7 @@ import ticket from "../../public/svg/tickets.svg";
 import assign from "../../public/svg/assigned.svg";
 import resolve from "../../public/svg/resolved.svg";
 import escalate from "../../public/svg/escalate.svg";
+import { RecentActivity } from "@/features/dashboard/RecentActivity";
 import "../style(nicholas)/style.scss";
 import { useState, useMemo } from "react";
 
@@ -27,6 +28,15 @@ interface ticketFilter {
       category: string;
       priority: string;
       status: string;
+}
+
+interface ActivityItem {
+      id: string;
+      type: "user_verification" | "listing_flagged" | "payout_processed";
+      title: string;
+      description: string;
+      timestamp: string;
+      status: "pending" | "completed" | "failed";
 }
 
 const SupportDash = () => {
@@ -109,6 +119,33 @@ const SupportDash = () => {
                   },
             ];
       }, []);
+
+      const activitiesData: ActivityItem[] = useMemo(() => [
+            {
+                  id: "1",
+                  type: "user_verification",
+                  title: "New Ticket #4523 Assigned To You",
+                  description: "Payment Issue - Requires immediate attention",
+                  timestamp: "2 minutes ago",
+                  status: "pending"
+            },
+            {
+                  id: "2",
+                  type: "listing_flagged",
+                  title: "Guest Ada Replied To Ticket",
+                  description: "Ticket #4488 - Guest responded to your query",
+                  timestamp: "2 minutes ago",
+                  status: "completed"
+            },
+            {
+                  id: "3",
+                  type: "payout_processed",
+                  title: "Ticket #4487 Resolved",
+                  description: "Issue marked as resolved successfully",
+                  timestamp: "2 minutes ago",
+                  status: "completed"
+            }
+      ], []);
 
       const filteredTickets = useMemo(() => {
             return ticketsData.filter(ticket => {
@@ -423,9 +460,39 @@ const SupportDash = () => {
                                           </div>
                                     </div>
                                     <div className="activity">
-                                          <h2 className="activityTit">Recent Ticket Activity</h2>
+                                          <div className="activities">
+                                                <RecentActivity activities={activitiesData} />
+                                          </div>
+                                          <button className="loadMore">Load More Activity</button>
                                     </div>
                               </div>
+                              <footer className="footer">
+                              <span>
+                                    <p>Performance Summary</p>
+                              </span>
+                              <div className="stats">
+                                    <div className="statItem">
+                                          <h4>300</h4>
+                                          <p>Total Tickets Handled</p>
+                                    </div>
+                                    <div className="statItem">
+                                          <h4>94.5%</h4>
+                                          <p>Resolution Time</p>
+                                    </div>
+                                    <div className="statItem">
+                                          <h4>12m</h4>
+                                          <p>Avg Response Time</p>
+                                    </div>
+                                    <div className="statItem">
+                                          <h4>245</h4>
+                                          <p>Disputes Resolved</p>
+                                    </div>
+                                    <div className="statItem">
+                                          <h4>4.8</h4>
+                                          <p>Customer Rating</p>
+                                    </div>
+                              </div>
+                              </footer>
                         </section>
                   </div>
                   <ComplaintDetailsDrawer
