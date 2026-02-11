@@ -5,7 +5,7 @@ import FinanceSidebar from "./FinanceSidebar";
 
 interface FinancePageWrapperProps {
   title: string;
-  subtitle: string;
+  subtitle?: string;
   isPopulated?: boolean;
   children?: ReactNode;
   emptyState?:ReactNode; // Accepts custom empty state component

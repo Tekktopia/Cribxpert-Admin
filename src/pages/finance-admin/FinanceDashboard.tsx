@@ -1,23 +1,20 @@
 import { useState } from 'react';
 import { FinancePageWrapper } from "@/components/layout/FinancePageWrapper";
 import { DashboardHeader } from "@/features/dashboard/DashboardHeader";
-import  { FinanceMetricsCards } from "@/features/finance-admin/FinanceMetricsCards";
+import { FinanceMetricsCards } from "@/features/finance-admin/FinanceMetricsCards";
 import { EmptyFinanceState } from "@/features/finance-admin/EmptyFinanceState";
 import { FinanceTable } from "@/features/finance-admin/FinanceTable";
 import { DetailsModal } from "@/features/finance-admin/DetailsModal"; 
-
-// Match imports exactly to your financeAdminData.ts file
 import { financeData, type Transaction } from "@/data/financeAdminData";
 
 export default function FinanceDashboard() {
-  const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
-
-  // Derive "hasData" from your actual recentTransactions array
+  const [selectedItem, setSelectedItem] = useState<Transaction | null>(null);
   const hasData = financeData.recentTransactions.length > 0;
 
   return (
     <FinancePageWrapper
       title="Finance Dashboard"
+      subtitle="Manage payouts, monitor transactions, and track platform revenue"
       isPopulated={hasData}
       headerComponent={
         <DashboardHeader
@@ -39,7 +36,6 @@ export default function FinanceDashboard() {
         />
       }
     >
-      {/* Passes the metrics array from your financeData object */}
       <FinanceMetricsCards metrics={financeData.metrics} />
       
       <div className="mt-8">
@@ -48,18 +44,19 @@ export default function FinanceDashboard() {
           <button className="text-teal-700 text-sm font-semibold hover:underline">View all</button>
         </div>
         
+        {/* Change transaction to item in onRowClick */}
         <FinanceTable 
           data={financeData.recentTransactions} 
-          onRowClick={(tx) => setSelectedTx(tx)} 
+          onRowClick={(item) => setSelectedItem(item)} 
         />
       </div>
 
-      {/* Slide-over details modal */}
-      {selectedTx && (
+      {/* Update prop name from transaction to item */}
+      {selectedItem && (
         <DetailsModal 
-          isOpen={!!selectedTx} 
-          onClose={() => setSelectedTx(null)} 
-          transaction={selectedTx}
+          isOpen={!!selectedItem} 
+          onClose={() => setSelectedItem(null)} 
+          item={selectedItem} // Changed from transaction to item
         />
       )}
     </FinancePageWrapper>

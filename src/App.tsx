@@ -24,10 +24,10 @@ const Settings = lazy(() => import("./pages/Settings"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const FinancialMgmt = lazy(() => import("./pages/FinancialMgmt"));
 const FinanceDashboard = lazy(() =>import("./pages/finance-admin/FinanceDashboard.js"));
-const FinancePayouts = lazy(() =>import("./pages/finance-admin/FinancePayouts.jsx"));
-const FinanceRefunds = lazy(() =>import("./pages/finance-admin/FinanceRefunds.jsx"));
-const FinanceTrans = lazy(() =>import("./pages/finance-admin/FinanceTrans.jsx"));
-const FinanceReports = lazy(() =>import("./pages/finance-admin/FinanceReports.jsx"));
+const FinancePayouts = lazy(() =>import("./pages/finance-admin/FinancePayouts.js"));
+const FinanceRefunds = lazy(() =>import("./pages/finance-admin/FinanceRefunds.js"));
+const FinanceTrans = lazy(() =>import("./pages/finance-admin/FinanceTrans.js"));
+const FinanceReports = lazy(() =>import("./pages/finance-admin/FinanceReports.js"));
 
 const AdminRolesMgmt = lazy(() => import("./pages/AdminRolesMgmt"));
 const LogOut = lazy(() => import("./pages/LogOut"));
