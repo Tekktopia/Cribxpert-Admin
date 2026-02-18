@@ -236,9 +236,11 @@ class CSPManager {
       ],
       "connect-src": [
         "'self'",
-        "ws:", // For WebSocket connections
-        "wss:", // For secure WebSocket connections
+        "ws:",
+        "wss:",
+        "https://cribxpert-backend.onrender.com",
       ],
+
       "font-src": [
         "'self'",
         "https://fonts.gstatic.com",
