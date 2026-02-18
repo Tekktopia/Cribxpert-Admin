@@ -1,10 +1,13 @@
 /**
  * Initialize Security for Cribxpert Admin Dashboard
- * This file should be imported and called early in the application lifecycle
+ * Import and call initializeSecurity() early in app startup.
  */
 
 import SecurityManager from "./utils/securityManager";
 import type { SecurityConfig } from "./utils/securityManager";
+
+const BACKEND_ORIGIN =
+  import.meta.env.VITE_API_BASE_URL || "https://cribxpert-backend.onrender.com";
 
 /**
  * Production security configuration
@@ -17,46 +20,34 @@ const PRODUCTION_CONFIG: SecurityConfig = {
   },
   rateLimit: {
     enabled: true,
-    reportingEndpoint: "/api/security/rate-limit-violations",
+    // If you don't have this endpoint on your backend, set to undefined
+    reportingEndpoint: undefined,
   },
   csp: {
     enabled: true,
-    reportingEndpoint: "/api/security/csp-violations",
+    // Meta CSP cannot use report-uri reliably. Disable to avoid 404 spam.
+    reportingEndpoint: undefined,
     customPolicy: {
       "default-src": ["'self'"],
       "script-src": [
         "'self'",
-        "'unsafe-inline'", // Remove in production
-        "'unsafe-eval'", // Remove in production
-        "https://cdn.jsdelivr.net", // For any CDN scripts
+        "'unsafe-inline'", // TODO: remove when you can
+        "'unsafe-eval'", // TODO: remove when you can
+        "https://cdn.jsdelivr.net",
       ],
       "style-src": [
         "'self'",
-        "'unsafe-inline'", // For CSS-in-JS libraries
+        "'unsafe-inline'",
         "https://fonts.googleapis.com",
       ],
-      "img-src": [
-        "'self'",
-        "data:", // For base64 images
-        "https:", // Allow external images
-        "blob:", // For generated images
-      ],
-      "connect-src": [
-        "'self'",
-        "ws:", // For WebSocket connections
-        "wss:", // For secure WebSocket connections
-        "https://api.cribxpert.com", // Your API domain
-      ],
-      "font-src": [
-        "'self'",
-        "https://fonts.gstatic.com",
-        "data:", // For base64 fonts
-      ],
-      "object-src": ["'none'"], // Disable plugins
+      "img-src": ["'self'", "data:", "https:", "blob:"],
+      "connect-src": ["'self'", "ws:", "wss:", BACKEND_ORIGIN],
+      "font-src": ["'self'", "https://fonts.gstatic.com", "data:"],
+      "object-src": ["'none'"],
       "media-src": ["'self'"],
-      "frame-src": ["'none'"], // Disable iframes
-      "base-uri": ["'self'"], // Restrict base URI
-      "form-action": ["'self'"], // Restrict form submissions
+      "frame-src": ["'none'"],
+      "base-uri": ["'self'"],
+      "form-action": ["'self'"],
     },
   },
   tokenStorage: {
@@ -75,10 +66,10 @@ const DEVELOPMENT_CONFIG: SecurityConfig = {
   },
   rateLimit: {
     enabled: true,
-    reportingEndpoint: undefined, // Don't report in development
+    reportingEndpoint: undefined,
   },
   csp: {
-    enabled: false, // Disable CSP in development for easier debugging
+    enabled: false,
     reportingEndpoint: undefined,
   },
   tokenStorage: {
@@ -86,27 +77,20 @@ const DEVELOPMENT_CONFIG: SecurityConfig = {
   },
 };
 
-/**
- * Initialize security based on environment
- */
 export function initializeSecurity(): void {
-  const isDevelopment = process.env.NODE_ENV === "development";
+  const isDevelopment = import.meta.env.DEV;
   const config = isDevelopment ? DEVELOPMENT_CONFIG : PRODUCTION_CONFIG;
 
   try {
     SecurityManager.initialize(config);
 
     console.log(
-      `🔒 Security initialized for ${
-        isDevelopment ? "development" : "production"
-      } environment`
+      `🔒 Security initialized for ${isDevelopment ? "development" : "production"} environment`
     );
 
-    // Log security status
     const status = SecurityManager.getSecurityStatus();
     console.log("Security Status:", status);
 
-    // Set up periodic security status logging
     if (!isDevelopment) {
       setInterval(() => {
         const currentStatus = SecurityManager.getSecurityStatus();
@@ -115,36 +99,22 @@ export function initializeSecurity(): void {
             `⚠️ CSP violations detected: ${currentStatus.csp.violations}`
           );
         }
-      }, 5 * 60 * 1000); // Check every 5 minutes
+      }, 5 * 60 * 1000);
     }
   } catch (error) {
     console.error("❌ Failed to initialize security:", error);
-
-    // In production, you might want to prevent app startup
     if (!isDevelopment) {
-      throw new Error(
-        "Security initialization failed. Cannot start application."
-      );
+      throw new Error("Security initialization failed. Cannot start application.");
     }
   }
 }
 
-/**
- * Get current security configuration
- */
 export function getSecurityConfig(): SecurityConfig {
-  const isDevelopment = process.env.NODE_ENV === "development";
+  const isDevelopment = import.meta.env.DEV;
   return isDevelopment ? DEVELOPMENT_CONFIG : PRODUCTION_CONFIG;
 }
 
-/**
- * Enhanced fetch function that should be used throughout the app
- */
 export const secureFetch = SecurityManager.secureFetch;
-
-/**
- * Form validation function that should be used for all form submissions
- */
 export const validateFormData = SecurityManager.validateFormData;
 
 export default {
