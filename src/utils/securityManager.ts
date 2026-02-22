@@ -69,7 +69,8 @@ class SecurityManager {
         }
 
         if (config.csp?.reportingEndpoint) {
-          CSPManager.setupReporting(config.csp.reportingEndpoint);
+          CSPManager.setReportEndpoint(config.csp.reportingEndpoint);
+          CSPManager.setupReporting();
         }
       }
 

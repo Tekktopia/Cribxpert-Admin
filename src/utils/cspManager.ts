@@ -135,13 +135,20 @@ class CSPManager {
   }
 
   /**
-   * Set up CSP violation reporting
+   * Set the reporting endpoint (call before setupReporting if using custom endpoint).
    */
-  static setupReporting(endpoint: string): void {
+  static setReportEndpoint(endpoint: string): void {
     CSPManager.reportEndpoint = endpoint;
-
-    // Add report-uri to policy
     CSPManager.addSources("report-uri", [endpoint]);
+  }
+
+  /**
+   * Set up CSP violation reporting. Call setReportEndpoint(endpoint) first if using a custom endpoint.
+   */
+  static setupReporting(): void {
+    if (!CSPManager.reportEndpoint) {
+      return;
+    }
 
     // Listen for CSP violations
     document.addEventListener("securitypolicyviolation", (event) => {

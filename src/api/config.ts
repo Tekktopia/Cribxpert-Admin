@@ -1,6 +1,6 @@
 const url = {
   baseURL: "http://localhost:5000",
-  hostedUrl: "https://rissabites-service-jbda-w.fly.dev",
+  hostedUrl: "https://cribxpert-backend.onrender.com",
   mobileUrl: "http://192.168.0.145:5000",
 };
 
