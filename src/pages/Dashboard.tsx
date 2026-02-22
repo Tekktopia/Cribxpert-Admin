@@ -146,7 +146,9 @@ export function DashboardPage() {
   }, [transformedMetrics, transformedUserManagement, transformedRecentActivity, transformedListingSummary]);
 
   const isLoading = cardsLoading || userMgmtLoading || activityLoading || listingSummaryLoading;
-  const isPopulated = !isLoading && (cardsData || userMgmtData || activityData || listingSummaryData);
+  const hasData = Boolean(cardsData || userMgmtData || activityData || listingSummaryData);
+  const isPopulated = !isLoading && hasData;
+  
 
   if (isLoading) {
     return <LoadingPage />;

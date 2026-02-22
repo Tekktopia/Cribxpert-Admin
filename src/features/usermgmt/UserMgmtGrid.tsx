@@ -13,7 +13,7 @@ import {
   ConfirmationModal,
 } from "@/components/ui/ActionModals";
 import { useNotification } from "@/hooks/useNotification";
-import { useBlockUserMutation, useGetAllUsersQuery } from "@/api/features/adminUserManagement/adminUserManagementApiSlice";
+import { useBlockUserMutation } from "@/api/features/adminUserManagement/adminUserManagementApiSlice";
 
 interface UserMgmtGridProps {
   data: UserMgmtData;
@@ -26,7 +26,7 @@ export function UserMgmtGrid({ data }: UserMgmtGridProps) {
   const [statusFilter, setStatusFilter] = useState("all");
 
   // API hooks
-  const [blockUserMutation, { isLoading: isBlocking }] = useBlockUserMutation();
+  const [blockUserMutation] = useBlockUserMutation();
 
   // Modal states
   const [selectedUser, setSelectedUser] = useState<{

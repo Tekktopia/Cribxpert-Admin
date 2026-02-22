@@ -75,7 +75,7 @@ export const adminUserManagementApiSlice = apiSlice.injectEndpoints({
         url: `/admin-user-management/user/${userId}`,
         method: "GET",
       }),
-      providesTags: (result, error, userId) => [{ type: "User", id: userId }],
+      providesTags: (_result, _error, userId) => [{ type: "User", id: userId }],
     }),
     blockUser: builder.mutation<BlockUserResponse, { userId: string; reason: string }>({
       query: ({ userId, reason }) => ({
@@ -84,7 +84,7 @@ export const adminUserManagementApiSlice = apiSlice.injectEndpoints({
         body: { reason },
       }),
       // Invalidate users list and user details after blocking
-      invalidatesTags: (result, error, { userId }) => [
+      invalidatesTags: (_result, _error, { userId }) => [
         { type: "User", id: "LIST" },
         { type: "User", id: userId },
       ],

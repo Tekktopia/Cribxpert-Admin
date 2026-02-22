@@ -13,16 +13,16 @@ export function ExploreAreaSection({
   // Construct location string for map
   const locationString = listing?.location || "";
   const hasCoordinates = listing?.latitude !== undefined && listing?.longitude !== undefined && listing.latitude !== 0 && listing.longitude !== 0;
+  
 
   // Generate OpenStreetMap embed URL
   const getMapEmbedUrl = () => {
     if (hasCoordinates && listing) {
       const lat = listing.latitude!;
       const lon = listing.longitude!;
-      const zoom = 15;
       // OpenStreetMap embed URL with marker
       return `https://www.openstreetmap.org/export/embed.html?bbox=${lon - 0.01},${lat - 0.01},${lon + 0.01},${lat + 0.01}&layer=mapnik&marker=${lat},${lon}`;
-    }
+          }
     return null;
   };
 
@@ -37,9 +37,7 @@ export function ExploreAreaSection({
   };
 
   // Get location display text
-  const locationDisplay = listing?.city && listing?.state
-    ? `${listing.city}, ${listing.state}`
-    : listing?.location || "Location not specified";
+  const locationDisplay = listing?.location || "Location not specified";
 
   return (
     <div className={className}>

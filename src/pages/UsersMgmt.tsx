@@ -41,12 +41,12 @@ export default function UsersMgmt() {
       const ticketId = `1000${String(index + 1).padStart(2, "0")}`;
 
       // Get initials for avatar fallback
-      const initials = apiUser.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2);
+      // const initials = apiUser.name
+      //   .split(" ")
+      //   .map((n) => n[0])
+      //   .join("")
+      //   .toUpperCase()
+      //   .slice(0, 2);
 
       return {
         id: apiUser.userId,

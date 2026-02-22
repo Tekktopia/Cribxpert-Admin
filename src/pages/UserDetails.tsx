@@ -129,7 +129,7 @@ export default function UserDetails() {
       setShowDeleteModal(false);
 
       // Call the API to delete the user
-      const result = await deleteUserMutation(id).unwrap();
+      await deleteUserMutation(id).unwrap();
 
       // Show success notification
       showNotification({
