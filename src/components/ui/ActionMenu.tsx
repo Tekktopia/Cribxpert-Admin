@@ -22,6 +22,10 @@ export function ActionMenu({
 }: ActionMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [menuPosition, setMenuPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -42,6 +46,20 @@ export function ActionMenu({
     };
   }, [isOpen]);
 
+  const toggleMenu = () => {
+    setIsOpen((prev) => {
+      const next = !prev;
+      if (next && dropdownRef.current) {
+        const rect = dropdownRef.current.getBoundingClientRect();
+        const menuWidth = 192; // w-48 = 12rem ≈ 192px
+        const top = rect.bottom + 8; // small offset below trigger
+        const left = rect.right - menuWidth;
+        setMenuPosition({ top, left });
+      }
+      return next;
+    });
+  };
+
   const handleItemClick = (action: string) => {
     onSelect(action);
     setIsOpen(false);
@@ -52,10 +70,13 @@ export function ActionMenu({
       className={`relative inline-block text-left ${className}`}
       ref={dropdownRef}
     >
-      <div onClick={() => setIsOpen(!isOpen)}>{trigger}</div>
+      <div onClick={toggleMenu}>{trigger}</div>
 
-      {isOpen && (
-        <div className='absolute right-0 z-50 mt-2 w-48 rounded-md bg-white py-1 shadow-lg focus:outline-none'>
+      {isOpen && menuPosition && (
+        <div
+          className='fixed z-50 w-48 rounded-md bg-white py-1 shadow-lg focus:outline-none'
+          style={{ top: menuPosition.top, left: menuPosition.left }}
+        >
           {items.map((item, index) => (
             <button
               key={index}

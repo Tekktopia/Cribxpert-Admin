@@ -113,6 +113,7 @@ export function UserTable({ users, onUserAction }: UserTableProps) {
   ];
 
   const renderRowAction = (user: User) => {
+    const isBlocked = user.status === "Blocked";
     const menuItems = [
       {
         label: "View",
@@ -120,7 +121,7 @@ export function UserTable({ users, onUserAction }: UserTableProps) {
         icon: <Eye className='w-4 h-4' />,
       },
       {
-        label: "Block",
+        label: isBlocked ? "Unblock" : "Block",
         action: "block",
         icon: <Ban className='w-4 h-4' />,
         variant: "destructive" as const,

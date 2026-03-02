@@ -5,10 +5,83 @@ import {
   AnalyticsChartsGrid,
   TopPerformingHosts,
 } from "@/features/analytics";
-import { analyticsData } from "@/data/analyticsData";
+import { analyticsData, type AnalyticsMetrics } from "@/data/analyticsData";
+import {
+  useGetCardStatsQuery,
+  useGetPieChartDataQuery,
+  useGetUserGrowthTrendQuery,
+} from "@/api/features/analytics/analyticsApiSlice";
 
 export default function Analytics() {
-  const isPopulated = true;
+  const {
+    data: cardStats,
+    isLoading: cardLoading,
+    isError: cardError,
+  } = useGetCardStatsQuery();
+  const {
+    data: pieData,
+    isLoading: pieLoading,
+    isError: pieError,
+  } = useGetPieChartDataQuery();
+  const {
+    data: growthData,
+    isLoading: growthLoading,
+    isError: growthError,
+  } = useGetUserGrowthTrendQuery();
+
+  const isLoading = cardLoading || pieLoading || growthLoading;
+  const hasError = cardError || pieError || growthError;
+
+  let metrics: AnalyticsMetrics = analyticsData.metrics;
+  let distribution = analyticsData.distribution;
+  let growth = analyticsData.growth;
+
+  if (cardStats && !hasError) {
+    metrics = {
+      dau: {
+        value: cardStats.dailyActiveUsers,
+        change: 0,
+        changeText: "today",
+        details: "Daily Active Users (DAU)",
+      },
+      mau: {
+        value: cardStats.activeUsersStats.totalActiveUsers,
+        change: 0,
+        changeText: "active users",
+        details: "Users who have logged in at least once",
+      },
+      guestHostRatio: {
+        value:
+          cardStats.guestToHostRatio > 0
+            ? `${cardStats.guestToHostRatio}:1`
+            : "0",
+        change: 0,
+        changeText: "guests per host",
+      },
+      conversionRate: {
+        value: `${cardStats.conversionRate}%`,
+        change: 0,
+        changeText: "Guests who became hosts",
+      },
+    };
+  }
+
+  if (pieData && !hasError) {
+    distribution = [
+      { label: "Guest", value: pieData.guests, color: "#0F6B6F" },
+      { label: "Host", value: pieData.hosts, color: "#9A6200" },
+    ];
+  }
+
+  if (growthData && !hasError) {
+    growth = growthData.data.map((point) => ({
+      month: point.month,
+      host: point.hostCount,
+      guest: point.guestCount,
+    }));
+  }
+
+  const isPopulated = !isLoading && !hasError;
 
   return (
     <PageWrapper
@@ -25,12 +98,12 @@ export default function Analytics() {
       }}
     >
       {/* Metric cards */}
-      <AnalyticsMetricsCards metrics={analyticsData.metrics} />
+      <AnalyticsMetricsCards metrics={metrics} />
 
       {/* Charts */}
       <AnalyticsChartsGrid
-        growth={analyticsData.growth}
-        distribution={analyticsData.distribution}
+        growth={growth}
+        distribution={distribution}
       />
 
       {/* Top hosts */}

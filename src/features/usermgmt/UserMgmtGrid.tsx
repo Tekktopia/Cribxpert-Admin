@@ -62,7 +62,12 @@ export function UserMgmtGrid({ data }: UserMgmtGridProps) {
 
     switch (action) {
       case "block":
-        setShowBlockModal(true);
+        if (user.status === "Blocked") {
+          // Unblock immediately without asking for a reason
+          void handleUnblockUser(userId, user.name);
+        } else {
+          setShowBlockModal(true);
+        }
         break;
       case "send-notification":
         setShowNotificationModal(true);
@@ -113,6 +118,42 @@ export function UserMgmtGrid({ data }: UserMgmtGridProps) {
       showNotification({
         type: "error",
         title: "Failed to Block User",
+        message: errorMessage,
+        duration: 5000,
+      });
+    }
+  };
+
+  const handleUnblockUser = async (userId: string, userName: string) => {
+    try {
+      await blockUserMutation({
+        userId,
+        reason: "",
+      }).unwrap();
+
+      showNotification({
+        type: "success",
+        title: "User Unblocked Successfully",
+        message: `${userName} has been unblocked and can access their account again.`,
+        duration: 5000,
+      });
+
+      setSelectedUser(null);
+    } catch (error: unknown) {
+      console.error("Error unblocking user:", error);
+
+      let errorMessage =
+        "There was an error unblocking the user. Please try again.";
+      if (error && typeof error === "object" && "data" in error) {
+        const errorData = (error as { data?: { message?: string } }).data;
+        if (errorData?.message) {
+          errorMessage = errorData.message;
+        }
+      }
+
+      showNotification({
+        type: "error",
+        title: "Failed to Unblock User",
         message: errorMessage,
         duration: 5000,
       });

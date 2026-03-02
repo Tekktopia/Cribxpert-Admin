@@ -10,7 +10,7 @@ import config from "./config";
 
 // Helper function to get cookie value
 const baseQuery = fetchBaseQuery({
-  baseUrl: config.hostedUrl, // your API URL
+  baseUrl: config.baseURL, // your API URL
   credentials: "include", // Still include for cookie fallback
   prepareHeaders: (headers) => {
     const token =

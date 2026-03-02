@@ -162,7 +162,7 @@ function App() {
                 }
               />
               <Route
-                path="/admin-roles"
+                path="/admin-management"
                 element={
                   <ProtectedRoute>
                     <AdminRolesMgmt />

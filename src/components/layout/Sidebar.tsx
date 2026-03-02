@@ -70,9 +70,9 @@ const navigationItems = [
     href: "/settings",
   },
   {
-    label: "Admin Roles",
+    label: "Admin Management",
     iconSrc: "/sidebar/carbon_user-role.svg",
-    href: "/admin-roles",
+    href: "/admin-management",
   },
   {
     label: "Logout",
