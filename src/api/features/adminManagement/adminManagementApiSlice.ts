@@ -1,10 +1,12 @@
 import { apiSlice } from "@/api/apiSlice";
 
+export type AdminRole = "Admin" | "SuperAdmin" | "FinanceAdmin" | "CSRAdmin";
+
 export interface AdminManagementAdmin {
   id: string;
   fullName: string;
   email: string;
-  role: "Admin" | "SuperAdmin";
+  role: AdminRole;
   accountDisabled?: boolean;
   lastActive?: string | null;
 }
@@ -13,9 +15,14 @@ export interface GetAdminsResponse {
   admins: AdminManagementAdmin[];
 }
 
+/** Role type that can be assigned when creating an admin (SuperAdmin is not assignable). */
+export type CreateAdminRole = "Admin" | "FinanceAdmin" | "CSRAdmin";
+
 export interface CreateAdminRequest {
   email: string;
   fullName: string;
+  /** Defaults to Admin if omitted. */
+  adminType?: CreateAdminRole;
 }
 
 export interface CreateAdminResponse {

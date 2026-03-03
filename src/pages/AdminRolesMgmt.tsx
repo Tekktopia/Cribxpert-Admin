@@ -3,6 +3,7 @@ import { PageWrapper } from "@/components/layout/PageWrapper";
 import { Button } from "@/components/ui/button";
 import { SearchAndFilters, type FilterConfig } from "@/components/ui/SearchAndFilters";
 import { Modal } from "@/components/ui/Modal";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 import { Trash2, UserPlus, MoreVertical } from "lucide-react";
 import { cn } from "@/utils/cn";
 import {
@@ -11,14 +12,22 @@ import {
   useDisableAdminMutation,
   useDeleteAdminMutation,
   type AdminManagementAdmin,
+  type CreateAdminRole,
 } from "@/api/features/adminManagement/adminManagementApiSlice";
 import LoadingPage from "@/components/ui/LoadingPage";
 
 type AdminStatus = "Active" | "Disabled";
 
+const CREATE_ADMIN_ROLES: { value: CreateAdminRole; label: string }[] = [
+  { value: "Admin", label: "Admin" },
+  { value: "FinanceAdmin", label: "Finance Admin" },
+  { value: "CSRAdmin", label: "CSR Admin" },
+];
+
 interface AdminFormState {
   fullName: string;
   email: string;
+  adminType: CreateAdminRole;
 }
 
 function mapApiAdminToLocal(admin: AdminManagementAdmin) {
@@ -85,6 +94,7 @@ export default function AdminRolesMgmt() {
   const [formState, setFormState] = useState<AdminFormState>({
     fullName: "",
     email: "",
+    adminType: "Admin",
   });
 
   // Sync local admins with API data
@@ -95,7 +105,7 @@ export default function AdminRolesMgmt() {
   }, [data?.admins]);
 
   const handleOpenAddModal = () => {
-    setFormState({ fullName: "", email: "" });
+    setFormState({ fullName: "", email: "", adminType: "Admin" });
     setIsAddModalOpen(true);
   };
 
@@ -107,6 +117,7 @@ export default function AdminRolesMgmt() {
     const newAdminPayload = {
       fullName: trimmedName,
       email: trimmedEmail,
+      adminType: formState.adminType,
     };
 
     try {
@@ -142,6 +153,8 @@ export default function AdminRolesMgmt() {
       options: [
         { value: "superadmin", label: "Super Admin" },
         { value: "admin", label: "Admin" },
+        { value: "financeadmin", label: "Finance Admin" },
+        { value: "csradmin", label: "CSR Admin" },
       ],
     },
     {
@@ -166,7 +179,9 @@ export default function AdminRolesMgmt() {
       const matchesRole =
         roleFilter === "all" ||
         (roleFilter === "admin" && admin.role === "Admin") ||
-        (roleFilter === "superadmin" && admin.role === "SuperAdmin");
+        (roleFilter === "superadmin" && admin.role === "SuperAdmin") ||
+        (roleFilter === "financeadmin" && admin.role === "FinanceAdmin") ||
+        (roleFilter === "csradmin" && admin.role === "CSRAdmin");
 
       const matchesStatus =
         statusFilter === "all" ||
@@ -413,14 +428,30 @@ export default function AdminRolesMgmt() {
           </div>
 
           <div>
-            <label className='block text-sm font-medium text-gray-700 mb-1'>
+            <label
+              htmlFor='admin-role'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
               Role
             </label>
-            <div className='inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-slate-50 text-slate-700 border border-slate-200'>
-              Admin
-            </div>
+            <CustomSelect
+              id='admin-role'
+              value={formState.adminType}
+              onChange={(e) =>
+                setFormState((prev) => ({
+                  ...prev,
+                  adminType: e.target.value as CreateAdminRole,
+                }))
+              }
+            >
+              {CREATE_ADMIN_ROLES.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </CustomSelect>
             <p className='mt-1 text-xs text-gray-500'>
-              Admins can manage platform operations based on their assigned permissions.
+              Admins can manage platform operations based on their assigned role.
             </p>
           </div>
         </div>

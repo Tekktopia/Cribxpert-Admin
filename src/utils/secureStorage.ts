@@ -8,7 +8,9 @@ interface UserData {
   email: string;
   name: string;
   role: string;
-  [key: string]: string | number | boolean;
+  fullName?: string;
+  roles?: Record<string, number>;
+  [key: string]: string | number | boolean | Record<string, number> | undefined;
 }
 
 interface TokenData {
@@ -92,13 +94,14 @@ class SecureTokenStorage {
    */
   static setUserData(userData: UserData): void {
     try {
-      // Only store non-sensitive user data
+      // Store non-sensitive user data including role/roles for correct display after refresh
       const safeUserData: UserData = {
         id: userData.id,
         email: userData.email,
         name: userData.name,
         role: userData.role,
-        // Exclude sensitive fields like passwords, tokens, etc.
+        fullName: userData.fullName,
+        roles: userData.roles,
       };
 
       sessionStorage.setItem(this.USER_KEY, JSON.stringify(safeUserData));

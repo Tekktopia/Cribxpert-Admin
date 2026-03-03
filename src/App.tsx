@@ -7,6 +7,8 @@ import { useEffect, Suspense, lazy } from "react";
 import LoadingPage from "./components/ui/LoadingPage";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { PublicRoute } from "./components/auth/PublicRoute";
+import { RoleGuard } from "./components/auth/RoleGuard";
+import { HomeRedirect } from "./components/auth/HomeRedirect";
 import { initializeAuth } from "./store/slices/authSlice";
 
 // Lazy load all route components for better performance
@@ -16,9 +18,7 @@ const LoginPage = lazy(() =>
   }))
 );
 const DashboardPage = lazy(() =>
-  import("./pages/Dashboard").then((module) => ({
-    default: module.DashboardPage,
-  }))
+  import("./pages/Dashboard").then((m) => ({ default: m.DashboardPage }))
 );
 const UsersMgmt = lazy(() => import("./pages/UsersMgmt"));
 const UserDetails = lazy(() => import("./pages/UserDetails"));
@@ -31,6 +31,12 @@ const Analytics = lazy(() => import("./pages/Analytics"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const FinancialMgmt = lazy(() => import("./pages/FinancialMgmt"));
+const FinanceDashboard = lazy(() => import("./pages/finance-admin/FinanceDashboard"));
+const FinancePayouts = lazy(() => import("./pages/finance-admin/FinancePayouts"));
+const FinanceRefunds = lazy(() => import("./pages/finance-admin/FinanceRefunds"));
+const FinanceTrans = lazy(() => import("./pages/finance-admin/FinanceTrans"));
+const FinanceReports = lazy(() => import("./pages/finance-admin/FinanceReports"));
+
 const AdminRolesMgmt = lazy(() => import("./pages/AdminRolesMgmt"));
 const LogOut = lazy(() => import("./pages/LogOut"));
 
@@ -56,126 +62,45 @@ function App() {
                 }
               />
 
-              {/* Protected Routes */}
+              {/* Protected Routes with role-based access */}
               <Route
                 path="/"
                 element={
                   <ProtectedRoute>
-                    <Navigate to="/dashboard" replace />
+                    <RoleGuard />
                   </ProtectedRoute>
                 }
+              >
+                <Route index element={<HomeRedirect />} />
+                <Route path="dashboard" element={<DashboardPage />} />
+                <Route path="users" element={<UsersMgmt />} />
+                <Route path="users/:id" element={<UserDetails />} />
+                <Route path="listings" element={<ListingMgmt />} />
+                <Route path="bookings" element={<BookingMgmt />} />
+                <Route path="kyc" element={<KYCVerification />} />
+                <Route path="messaging" element={<MessagingMgmt />} />
+                <Route path="booking-metrics" element={<BookingMetrics />} />
+                <Route path="analytics" element={<Analytics />} />
+                <Route path="financials" element={<FinancialMgmt />} />
+                <Route path="finance-dashboard" element={<FinanceDashboard />} />
+                <Route path="finance-payouts" element={<FinancePayouts />} />
+                <Route path="finance-refunds" element={<FinanceRefunds />} />
+                <Route path="finance-transactions" element={<FinanceTrans />} />
+                <Route path="finance-reports" element={<FinanceReports />} />
+                <Route path="settings" element={<Settings />} />
+                <Route path="notifications" element={<Notifications />} />
+                <Route path="admin-management" element={<AdminRolesMgmt />} />
+                <Route path="log-out" element={<LogOut />} />
+              </Route>
+
+              {/* Legacy finance-admin path redirects to main finance dashboard */}
+              <Route
+                path="/finance-admin"
+                element={<Navigate to="/finance-dashboard" replace />}
               />
               <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <DashboardPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/users"
-                element={
-                  <ProtectedRoute>
-                    <UsersMgmt />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/users/:id"
-                element={
-                  <ProtectedRoute>
-                    <UserDetails />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/listings"
-                element={
-                  <ProtectedRoute>
-                    <ListingMgmt />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/bookings"
-                element={
-                  <ProtectedRoute>
-                    <BookingMgmt />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/kyc"
-                element={
-                  <ProtectedRoute>
-                    <KYCVerification />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/messaging"
-                element={
-                  <ProtectedRoute>
-                    <MessagingMgmt />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/booking-metrics"
-                element={
-                  <ProtectedRoute>
-                    <BookingMetrics />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/analytics"
-                element={
-                  <ProtectedRoute>
-                    <Analytics />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/financials"
-                element={
-                  <ProtectedRoute>
-                    <FinancialMgmt />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/settings"
-                element={
-                  <ProtectedRoute>
-                    <Settings />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/notifications"
-                element={
-                  <ProtectedRoute>
-                    <Notifications />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin-management"
-                element={
-                  <ProtectedRoute>
-                    <AdminRolesMgmt />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/log-out"
-                element={
-                  <ProtectedRoute>
-                    <LogOut />
-                  </ProtectedRoute>
-                }
+                path="/finance-admin/*"
+                element={<Navigate to="/finance-dashboard" replace />}
               />
 
               {/* Catch all - redirect to login */}

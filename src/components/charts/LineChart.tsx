@@ -1,3 +1,4 @@
+// File: src/components/charts/LineChart.tsx
 import { useEffect, useRef } from "react";
 
 interface ChartData {
@@ -13,36 +14,60 @@ export function LineChart({ data }: LineChartProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    if (!canvasRef.current) return;
-
     const canvas = canvasRef.current;
+    if (!canvas) return;
+
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Calculate max value for scaling
-    const maxValue = Math.max(...data.map((item) => item.value)) * 1.2; // Add headroom
-    const minValue = Math.min(...data.map((item) => item.value)) * 0.8; // Add some bottom space
-    const padding = 15; // Increased padding to match Figma
+    // ✅ Guard: no points
+    if (!Array.isArray(data) || data.length === 0) return;
 
-    // Chart dimensions
+    const padding = 15;
     const chartWidth = canvas.width;
     const chartHeight = canvas.height - padding * 2;
 
-    // Create control points for smooth curve
-    const getControlPoints = (
-      points: { x: number; y: number }[],
-      tension = 0.3
-    ) => {
-      const result = [];
+    const values = data.map((d) => Number(d.value ?? 0));
+    const rawMax = Math.max(...values);
+    const rawMin = Math.min(...values);
+
+    const maxValue = rawMax * 1.2; // headroom
+    const minValue = rawMin * 0.8; // bottom space
+
+    const valueRange = maxValue - minValue;
+    const denom = valueRange === 0 ? 1 : valueRange;
+
+    const toY = (v: number) => {
+      const normalized = (v - minValue) / denom;
+      return chartHeight - normalized * chartHeight + padding;
+    };
+
+    // ✅ Special-case: single point (avoid division by 0 for X)
+    if (data.length === 1) {
+      const x = chartWidth / 2;
+      const y = toY(values[0]);
+
+      ctx.beginPath();
+      ctx.arc(x, y, 4, 0, 2 * Math.PI);
+      ctx.fillStyle = "#2D9CDB";
+      ctx.fill();
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      return;
+    }
+
+    const getControlPoints = (points: { x: number; y: number }[], tension = 0.3) => {
+      const result: { cp1x: number; cp1y: number; cp2x: number; cp2y: number }[] = [];
 
       for (let i = 0; i < points.length; i++) {
         const prev = i > 0 ? points[i - 1] : points[0];
         const curr = points[i];
-        const next =
-          i < points.length - 1 ? points[i + 1] : points[points.length - 1];
+        const next = i < points.length - 1 ? points[i + 1] : points[points.length - 1];
 
         const dx = next.x - prev.x;
         const dy = next.y - prev.y;
@@ -58,26 +83,22 @@ export function LineChart({ data }: LineChartProps) {
       return result;
     };
 
-    // Create points array for the curve
+    // Build points (safe because data.length >= 2 here)
     const points = data.map((item, index) => {
       const x = (index / (data.length - 1)) * chartWidth;
-      const normalizedValue =
-        (item.value - minValue) / (maxValue - minValue || 1);
-      const y = chartHeight - normalizedValue * chartHeight + padding;
+      const y = toY(Number(item.value ?? 0));
       return { x, y };
     });
 
-    const controlPoints = getControlPoints(points, 0.35); // Increased tension for smoother curves like in Figma
+    const controlPoints = getControlPoints(points, 0.35);
 
     // Draw smooth curve
     ctx.beginPath();
-    ctx.lineWidth = 2.5; // Slightly thicker line to match Figma
-    ctx.strokeStyle = "#38bdf8"; // Exact light blue color from Figma
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = "#38bdf8";
 
-    // Start from the first point
     ctx.moveTo(points[0].x, points[0].y);
 
-    // Draw smooth curve through all points
     for (let i = 0; i < points.length - 1; i++) {
       ctx.bezierCurveTo(
         controlPoints[i].cp2x,
@@ -91,32 +112,30 @@ export function LineChart({ data }: LineChartProps) {
 
     ctx.stroke();
 
-    // Add a light blue fill below the line
-    // Continue the path to create a closed shape
+    // Fill under the curve
     ctx.lineTo(chartWidth, chartHeight + padding);
     ctx.lineTo(0, chartHeight + padding);
     ctx.closePath();
 
-    // Create gradient fill to match Figma
     const gradient = ctx.createLinearGradient(0, 0, 0, chartHeight + padding);
-    gradient.addColorStop(0, "rgba(56, 189, 248, 0.2)"); // Light blue with opacity at top
-    gradient.addColorStop(1, "rgba(56, 189, 248, 0.05)"); // Very light blue at bottom
+    gradient.addColorStop(0, "rgba(56, 189, 248, 0.2)");
+    gradient.addColorStop(1, "rgba(56, 189, 248, 0.05)");
     ctx.fillStyle = gradient;
     ctx.fill();
 
-    // Draw points - only draw points at peaks and valleys to match Figma
-    const pointsToShow = [0, 2, 4, 6]; // Show only specific points (Sunday, Tuesday, Thursday, Saturday) to match Figma
+    // Points (only specific indices)
+    const pointsToShow = [0, 2, 4, 6];
 
     points.forEach((point, index) => {
-      if (pointsToShow.includes(index)) {
-        ctx.beginPath();
-        ctx.arc(point.x, point.y, 4, 0, 2 * Math.PI); // Point circle
-        ctx.fillStyle = "#2D9CDB"; // Match exact line color
-        ctx.fill();
-        ctx.strokeStyle = "#ffffff"; // White border
-        ctx.lineWidth = 2; // Slightly thicker border for better visibility
-        ctx.stroke();
-      }
+      if (!pointsToShow.includes(index)) return;
+
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, 4, 0, 2 * Math.PI);
+      ctx.fillStyle = "#2D9CDB";
+      ctx.fill();
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2;
+      ctx.stroke();
     });
   }, [data]);
 
@@ -124,8 +143,8 @@ export function LineChart({ data }: LineChartProps) {
     <canvas
       ref={canvasRef}
       width={400}
-      height={90} // Adjusted height to match Figma's proportion
-      className='w-full h-full'
-    ></canvas>
+      height={90}
+      className="w-full h-full"
+    />
   );
 }

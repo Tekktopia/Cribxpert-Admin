@@ -35,7 +35,11 @@ export function LoginPage() {
         password,
       }).unwrap();
 
-      // Update Redux state with user data
+      // Update Redux state with user data (role can be on result.user or result)
+      const role =
+        (result as { role?: string }).role ??
+        (result.user as { role?: string }).role ??
+        "";
       dispatch(
         loginSuccess({
           user: {
@@ -43,7 +47,7 @@ export function LoginPage() {
             _id: result.user._id,
             email: result.user.email,
             name: result.user.name || result.user.fullName || "",
-            role: result.user.role || "",
+            role,
             fullName: result.user.fullName,
             phoneNo: result.user.phoneNo,
             roles: result.user.roles,

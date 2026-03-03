@@ -21,7 +21,11 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   // Handle API response - update Redux state when API check succeeds
   useEffect(() => {
     if (isSuccess && data?.user) {
-      // Update Redux state with the user data from API
+      // Role can be on data.user or at top-level data
+      const role =
+        (data as { role?: string }).role ??
+        (data.user as { role?: string }).role ??
+        "";
       const token = sessionStorage.getItem("accessToken") || "";
       dispatch(
         loginSuccess({
@@ -30,7 +34,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
             _id: data.user._id,
             email: data.user.email,
             name: data.user.name || data.user.fullName || "",
-            role: data.user.role || "",
+            role,
             fullName: data.user.fullName,
             phoneNo: data.user.phoneNo,
             roles: data.user.roles,

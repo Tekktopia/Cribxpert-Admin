@@ -3,152 +3,242 @@ import { DashboardHeader } from "../features/dashboard/DashboardHeader";
 import { DashboardMetrics } from "../features/dashboard/DashboardMetrics";
 import { DashboardGrid } from "../features/dashboard/DashboardGrid";
 import { PageWrapper } from "@/components/layout/PageWrapper";
-import { dashboardData } from "../data/dashboardData";
+import LoadingPage from "@/components/ui/LoadingPage";
 import {
   useGetDashboardCardsQuery,
   useGetUserManagementQuery,
   useGetRecentActivityQuery,
   useGetListingSummaryQuery,
 } from "@/api/features/adminDashboard/adminDashboardApiSlice";
-import LoadingPage from "@/components/ui/LoadingPage";
+import { dashboardData } from "../data/dashboardData";
+import type {
+  DashboardData,
+  MetricData as SampleMetricData,
+} from "../data/dashboardData";
+import type {
+  DashboardUIMetrics,
+  MetricData as UIMetricData,
+} from "../types/dashboardUi";
+
+const toUIMetric = (
+  value: number,
+  changeText: string,
+  details?: string
+): UIMetricData => ({
+  value,
+  change: 0,
+  changeText,
+  details,
+});
 
 export function DashboardPage() {
-  // Fetch admin dashboard data from APIs
-  const { data: cardsData, isLoading: cardsLoading } = useGetDashboardCardsQuery();
-  const { data: userMgmtData, isLoading: userMgmtLoading } = useGetUserManagementQuery();
-  const { data: activityData, isLoading: activityLoading } = useGetRecentActivityQuery({ limit: 20 });
-  const { data: listingSummaryData, isLoading: listingSummaryLoading } = useGetListingSummaryQuery();
+  const {
+    data: cardsData,
+    isLoading: cardsLoading,
+  } = useGetDashboardCardsQuery();
+  const { data: userMgmtData, isLoading: userMgmtLoading } =
+    useGetUserManagementQuery();
+  const { data: activityData, isLoading: activityLoading } =
+    useGetRecentActivityQuery({ limit: 20 });
+  const { data: listingSummaryData, isLoading: listingSummaryLoading } =
+    useGetListingSummaryQuery();
 
-  // Transform API data to match component expectations
-  const transformedMetrics = useMemo(() => {
-    if (!cardsData) return dashboardData.metrics;
+  const uiMetrics: DashboardUIMetrics = useMemo(() => {
+    if (!cardsData) {
+      const m = dashboardData.metrics;
+      const parse = (metric: SampleMetricData) =>
+        Number(metric.value.replace(/[^0-9.-]+/g, "")) || 0;
+
+      return {
+        totalUsers: toUIMetric(
+          parse(m.totalUsers),
+          m.totalUsers.changeText,
+          m.totalUsers.details
+        ),
+        activeListings: toUIMetric(
+          parse(m.activeListings),
+          m.activeListings.changeText
+        ),
+        weeklyBookings: toUIMetric(
+          parse(m.weeklyBookings),
+          m.weeklyBookings.changeText
+        ),
+        // For now keep revenue from sample data
+        totalRevenue: toUIMetric(
+          parse(m.totalRevenue),
+          m.totalRevenue.changeText
+        ),
+      };
+    }
 
     return {
-      totalUsers: {
-        value: cardsData.totalUsers.toString(),
-        change: 0, // API doesn't provide change percentage
-        changeText: "",
-        details: undefined,
-      },
-      activeListings: {
-        value: cardsData.activeListings.toString(),
-        change: 0,
-        changeText: "",
-      },
-      weeklyBookings: {
-        value: cardsData.weeklyBookings.toString(),
-        change: 0,
-        changeText: "",
-      },
-      totalRevenue: dashboardData.metrics.totalRevenue, // Keep existing revenue data
+      totalUsers: toUIMetric(
+        cardsData.totalUsers,
+        "this week",
+        "All registered users"
+      ),
+      activeListings: toUIMetric(cardsData.activeListings, "this week"),
+      weeklyBookings: toUIMetric(cardsData.weeklyBookings, "vs last week"),
+      // Backend doesn't yet send revenue, so keep sample revenue
+      totalRevenue: toUIMetric(
+        Number(
+          dashboardData.metrics.totalRevenue.value.replace(/[^0-9.-]+/g, "")
+        ) || 0,
+        dashboardData.metrics.totalRevenue.changeText
+      ),
     };
   }, [cardsData]);
 
-  const transformedUserManagement = useMemo(() => {
-    if (!userMgmtData) return dashboardData.userManagement;
+  const combinedData: DashboardData = useMemo(() => {
+    // Start from the existing sample dashboard data
+    const base = dashboardData;
 
-    return [
-      {
-        label: "Verified",
-        value: userMgmtData.verifiedUsers,
-        color: "#3b82f6", // blue
-      },
-      {
-        label: "Pending",
-        value: userMgmtData.pendingUsers,
-        color: "#f97316", // orange
-      },
-      {
-        label: "Blocked",
-        value: userMgmtData.blockedUsers,
-        color: "#ef4444", // red
-      },
-    ];
-  }, [userMgmtData]);
+    // Metrics: override counts if we have card data
+    const metrics: DashboardData["metrics"] = cardsData
+      ? {
+          ...base.metrics,
+          totalUsers: {
+            ...base.metrics.totalUsers,
+            value: String(cardsData.totalUsers),
+          },
+          activeListings: {
+            ...base.metrics.activeListings,
+            value: String(cardsData.activeListings),
+          },
+          weeklyBookings: {
+            ...base.metrics.weeklyBookings,
+            value: String(cardsData.weeklyBookings),
+          },
+          totalRevenue: base.metrics.totalRevenue,
+        }
+      : base.metrics;
 
-  const transformedRecentActivity = useMemo(() => {
-    if (!activityData?.activities) return dashboardData.recentActivity;
+    // User management chart
+    const userManagement: DashboardData["userManagement"] = userMgmtData
+      ? [
+          {
+            label: "Verified",
+            value: userMgmtData.verifiedUsers,
+            color: "#0e7490",
+          },
+          {
+            label: "Pending",
+            value: userMgmtData.pendingUsers,
+            color: "#f59e0b",
+          },
+          {
+            label: "Blocked",
+            value: userMgmtData.blockedUsers,
+            color: "#ef4444",
+          },
+        ]
+      : base.userManagement;
 
-    return activityData.activities.map((activity, index) => {
-      // Map API activity types to component types
-      let type: "user_verification" | "listing_flagged" | "payout_processed" = "user_verification";
-      let title = "";
-      let description = "";
-      let status: "completed" | "pending" | "failed" = "completed";
+    // Recent activity timeline
+    const recentActivity: DashboardData["recentActivity"] =
+      activityData?.activities?.map((activity, index) => {
+        let type:
+          | "user_verification"
+          | "listing_flagged"
+          | "payout_processed" = "user_verification";
+        let title = "";
+        let description = "";
+        let status: "completed" | "pending" | "failed" = "completed";
 
-      if (activity.type === "signup") {
-        type = "user_verification";
-        title = "User Verification Approved";
-        description = activity.user?.fullName || activity.user?.email || "New user";
-        status = "completed";
-      } else if (activity.type === "listing_update") {
-        type = "listing_flagged";
-        title = "Listing Flagged For Review";
-        description = activity.listing?.name || "Listing updated";
-        status = "pending";
-      } else if (activity.type === "booking") {
-        type = "payout_processed";
-        title = "Payout Processed";
-        description = `${activity.user?.fullName || "User"} - $${activity.booking?.totalPrice || 0}`;
-        status = activity.booking?.status === "Confirmed" ? "completed" : "pending";
-      }
+        if (activity.type === "signup") {
+          type = "user_verification";
+          title = "New user signup";
+          description =
+            activity.user?.fullName ||
+            activity.user?.email ||
+            "New user account";
+          status = "completed";
+        } else if (activity.type === "listing_update") {
+          type = "listing_flagged";
+          title = "Listing updated";
+          description = activity.listing?.name || "Listing updated";
+          status = "pending";
+        } else if (activity.type === "booking") {
+          type = "payout_processed";
+          title = "New booking";
+          description = `${activity.user?.fullName || "User"} - $${
+            activity.booking?.totalPrice ?? 0
+          }`;
+          status =
+            activity.booking?.status === "confirmed"
+              ? "completed"
+              : "pending";
+        }
 
-      // Format timestamp to relative time
-      const timestamp = new Date(activity.timestamp);
-      const now = new Date();
-      const diffMs = now.getTime() - timestamp.getTime();
-      const diffMins = Math.floor(diffMs / 60000);
-      const diffHours = Math.floor(diffMs / 3600000);
-      
-      let timeAgo = "";
-      if (diffMins < 1) {
-        timeAgo = "Just now";
-      } else if (diffMins < 60) {
-        timeAgo = `${diffMins}mins ago`;
-      } else if (diffHours < 24) {
-        timeAgo = `${diffHours}hrs ago`;
-      } else {
-        const diffDays = Math.floor(diffHours / 24);
-        timeAgo = `${diffDays}days ago`;
-      }
+        const timestamp = new Date(activity.timestamp);
+        const now = new Date();
+        const diffMs = now.getTime() - timestamp.getTime();
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
 
-      return {
-        id: activity.user?._id || activity.listing?._id || activity.booking?._id || index.toString(),
-        type,
-        title,
-        description,
-        timestamp: timeAgo,
-        status,
-      };
-    });
-  }, [activityData]);
+        let timeAgo = "";
+        if (diffMins < 1) {
+          timeAgo = "Just now";
+        } else if (diffMins < 60) {
+          timeAgo = `${diffMins}mins ago`;
+        } else if (diffHours < 24) {
+          timeAgo = `${diffHours}hrs ago`;
+        } else {
+          const diffDays = Math.floor(diffHours / 24);
+          timeAgo = `${diffDays}days ago`;
+        }
 
-  const transformedListingSummary = useMemo(() => {
-    if (!listingSummaryData) return dashboardData.listingSummary;
+        return {
+          id:
+            activity.user?._id ||
+            activity.listing?._id ||
+            activity.booking?._id ||
+            String(index),
+          type,
+          title,
+          description,
+          timestamp: timeAgo,
+          status,
+        };
+      }) ?? base.recentActivity;
 
-    return [
-      { label: "Active", value: listingSummaryData.activeListings, color: "#006266" }, // Exact Teal from Figma
-      { label: "Inactive", value: listingSummaryData.inactiveListings, color: "#0072CE" }, // Exact Blue from Figma
-      { label: "Pending", value: listingSummaryData.pendingListings, color: "#FFC107" }, // Exact Amber from Figma
-      { label: "Flagged", value: listingSummaryData.flaggedListings, color: "#FF3E41" }, // Exact Red from Figma
-    ];
-  }, [listingSummaryData]);
+    // Listing summary pie chart
+    const listingSummary: DashboardData["listingSummary"] = listingSummaryData
+      ? [
+          {
+            label: "Active",
+            value: listingSummaryData.activeListings,
+            color: "#006266",
+          },
+          {
+            label: "Inactive",
+            value: listingSummaryData.inactiveListings,
+            color: "#0072CE",
+          },
+          {
+            label: "Pending",
+            value: listingSummaryData.pendingListings,
+            color: "#FFC107",
+          },
+          {
+            label: "Flagged",
+            value: listingSummaryData.flaggedListings,
+            color: "#FF3E41",
+          },
+        ]
+      : base.listingSummary;
 
-  // Combine transformed API data with existing mock data
-  const combinedData = useMemo(() => {
     return {
-      ...dashboardData,
-      metrics: transformedMetrics,
-      userManagement: transformedUserManagement,
-      recentActivity: transformedRecentActivity,
-      listingSummary: transformedListingSummary,
+      ...base,
+      metrics,
+      userManagement,
+      recentActivity,
+      listingSummary,
     };
-  }, [transformedMetrics, transformedUserManagement, transformedRecentActivity, transformedListingSummary]);
+  }, [cardsData, userMgmtData, activityData, listingSummaryData]);
 
-  const isLoading = cardsLoading || userMgmtLoading || activityLoading || listingSummaryLoading;
-  const hasData = Boolean(cardsData || userMgmtData || activityData || listingSummaryData);
-  const isPopulated = !isLoading && hasData;
-  
+  const isLoading =
+    cardsLoading || userMgmtLoading || activityLoading || listingSummaryLoading;
 
   if (isLoading) {
     return <LoadingPage />;
@@ -156,14 +246,14 @@ export function DashboardPage() {
 
   return (
     <PageWrapper
-      title='Dashboard Overview'
-      subtitle='Overview of platform activity and key metrics'
-      isPopulated={isPopulated}
-      showDefaultHeader={false} // We use DashboardHeader instead
+      title="Dashboard Overview"
+      subtitle="Overview of key metrics and activities"
+      isPopulated={true}
+      showDefaultHeader={false}
       headerComponent={
         <>
           <DashboardHeader />
-          <DashboardMetrics metrics={combinedData.metrics} />
+          <DashboardMetrics metrics={uiMetrics} />
         </>
       }
       emptyState={{
@@ -173,7 +263,6 @@ export function DashboardPage() {
           "Once users start signing up, listings are added, and bookings roll in, you'll see your key platform metrics here — all in one place.",
       }}
     >
-      {/* Main Content */}
       <DashboardGrid data={combinedData} />
     </PageWrapper>
   );

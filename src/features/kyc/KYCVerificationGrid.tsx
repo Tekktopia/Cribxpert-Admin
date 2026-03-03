@@ -1,13 +1,13 @@
+// =====================================================
+// File: src/features/kyc/KYCVerificationGrid.tsx
+// =====================================================
 import { useState } from "react";
 import type { KYCData, KYCSubmission } from "@/data/kycData";
 import { ManagementGrid } from "@/components/layout/ManagementGrid";
 import { useNotification } from "@/hooks/useNotification";
-import {
-  commonActions,
-  commonFilters,
-  commonSearchConfigs,
-} from "@/utils/managementActions";
+import { commonActions, commonFilters, commonSearchConfigs } from "@/utils/managementActions";
 import { KYCTable } from "./KYCTable";
+import { safeText } from "@/utils/userDisplay";
 
 interface KYCVerificationGridProps {
   data: KYCData;
@@ -44,6 +44,7 @@ export function KYCVerificationGrid({ data }: KYCVerificationGridProps) {
       message: `${name} has been approved.`,
       duration: 4000,
     });
+
   const handleReject = (_id: string, name: string) =>
     showNotification({
       type: "success",
@@ -51,6 +52,7 @@ export function KYCVerificationGrid({ data }: KYCVerificationGridProps) {
       message: `${name}'s submission has been rejected.`,
       duration: 4000,
     });
+
   const handleFlag = (_id: string, name: string) =>
     showNotification({
       type: "success",
@@ -58,6 +60,7 @@ export function KYCVerificationGrid({ data }: KYCVerificationGridProps) {
       message: `${name} has been flagged for review.`,
       duration: 4000,
     });
+
   const handleSendNotification = (_id: string, name: string) =>
     showNotification({
       type: "info",
@@ -74,17 +77,13 @@ export function KYCVerificationGrid({ data }: KYCVerificationGridProps) {
     commonActions.sendNotification(handleSendNotification),
   ];
 
-  const renderTable = (
-    filteredData: KYCSubmission[],
-    onAction: (entityId: string, action: string) => void
-  ) => (
+  const renderTable = (filteredData: KYCSubmission[], onAction: (entityId: string, action: string) => void) => (
     <KYCTable
       submissions={filteredData}
       onAction={onAction}
       onUpdateStatus={(id, newStatus) => {
-        setRows((prev) =>
-          prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r))
-        );
+        setRows((prev) => prev.map((r) => ((r as any).id === id ? { ...r, status: newStatus } : r)));
+
         showNotification({
           type: newStatus === "Approved" ? "success" : "error",
           title: `KYC ${newStatus}`,
@@ -95,13 +94,13 @@ export function KYCVerificationGrid({ data }: KYCVerificationGridProps) {
     />
   );
 
-  const getEntityName = (row: KYCSubmission) => row.name;
+  const getEntityName = (row: KYCSubmission) => safeText((row as any).name, "Unknown User");
 
   return (
     <ManagementGrid
       data={rows}
-      entityName='users'
-      searchPlaceholder='Search Users...'
+      entityName="users"
+      searchPlaceholder="Search Users..."
       searchConfig={commonSearchConfigs.user}
       filters={filters}
       actions={actions}

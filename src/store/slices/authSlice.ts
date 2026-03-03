@@ -11,7 +11,9 @@ interface UserData {
   email: string;
   name: string;
   role: string;
-  [key: string]: string; // Allow additional string properties
+  fullName?: string;
+  roles?: Record<string, number>;
+  [key: string]: string | Record<string, number> | undefined;
 }
 
 interface AuthState {

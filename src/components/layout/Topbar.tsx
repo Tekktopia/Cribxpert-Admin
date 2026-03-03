@@ -18,21 +18,38 @@ const getInitials = (name: string): string => {
   return name.substring(0, 2).toUpperCase();
 };
 
-// Helper function to get role display name
+// Format role string for display (e.g. "FinanceAdmin" -> "Finance Admin")
+const formatRoleLabel = (role: string): string => {
+  if (!role) return "User";
+  const r = role.trim();
+  const lower = r.toLowerCase();
+  if (lower === "superadmin") return "Super Admin";
+  if (lower === "admin") return "Admin";
+  if (lower === "financeadmin") return "Finance Admin";
+  if (lower === "csradmin") return "CSR Admin";
+  return r;
+};
+
+// Derive role from API roles object (priority: SuperAdmin > Admin > FinanceAdmin > CSRAdmin)
 const getRoleDisplay = (roles: unknown): string => {
-  if (!roles || typeof roles !== "object") return "User";
-  
-  const rolesObj = roles as { SuperAdmin?: number; Admin?: number };
-  
-  // Check for SuperAdmin first (role code 5150)
-  if (rolesObj.SuperAdmin === 1995) {
-    return "Super Admin";
+  if (roles == null) return "User";
+  let rolesObj: Record<string, number> | undefined;
+  if (typeof roles === "object" && !Array.isArray(roles)) {
+    rolesObj = roles as Record<string, number>;
+  } else if (typeof roles === "string") {
+    try {
+      const parsed = JSON.parse(roles) as Record<string, number>;
+      if (parsed && typeof parsed === "object") rolesObj = parsed;
+    } catch {
+      return "User";
+    }
   }
-  // Check for Admin (role code 1984)
-  if (rolesObj.Admin === 1996) {
-    return "Admin";
-  }
-  // Default to User
+  if (!rolesObj) return "User";
+  // Check in order of precedence (highest first)
+  if (rolesObj.SuperAdmin != null && rolesObj.SuperAdmin !== 0) return "Super Admin";
+  if (rolesObj.Admin != null && rolesObj.Admin !== 0) return "Admin";
+  if (rolesObj.FinanceAdmin != null && rolesObj.FinanceAdmin !== 0) return "Finance Admin";
+  if (rolesObj.CSRAdmin != null && rolesObj.CSRAdmin !== 0) return "CSR Admin";
   return "User";
 };
 
@@ -55,15 +72,16 @@ export const Topbar = memo(function Topbar({ onMenuClick }: TopbarProps) {
     }
 
     const fullName = (user.fullName as string) || (user.name as string) || user.email || "User";
-    
-    // Check role field first, then roles object
+
+    // Resolve role: prefer string role from API, then derive from roles object
     let role = "User";
-    if (user.role && typeof user.role === "string") {
-      role = user.role === "SuperAdmin" ? "Super Admin" : user.role;
-    } else {
+    const roleStr = user.role && typeof user.role === "string" ? user.role.trim() : "";
+    if (roleStr) {
+      role = formatRoleLabel(roleStr);
+    } else if (user.roles != null) {
       role = getRoleDisplay(user.roles);
     }
-    
+
     const initials = getInitials(fullName);
 
     return {
@@ -111,14 +129,18 @@ export const Topbar = memo(function Topbar({ onMenuClick }: TopbarProps) {
             <span className='absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full'></span>
           </Button>
 
-          {/* User Avatar */}
+          {/* User Avatar (initials when no avatar URL) + Role */}
           <div className='flex items-center space-x-2 sm:space-x-3'>
-            <Avatar className='w-8 h-8'>
-              <AvatarImage src='/api/placeholder/32/32' alt={userDisplay.name} />
-              <AvatarFallback>{userDisplay.initials}</AvatarFallback>
+            <Avatar className='w-8 h-8 shrink-0'>
+              {typeof user?.avatar === "string" && user.avatar ? (
+                <AvatarImage src={user.avatar} alt={userDisplay.name} />
+              ) : null}
+              <AvatarFallback className='bg-primary-100 text-primary-700 text-xs font-semibold'>
+                {userDisplay.initials}
+              </AvatarFallback>
             </Avatar>
-            <div className='hidden sm:block text-sm'>
-              <div className='font-medium text-gray-900'>{userDisplay.name}</div>
+            <div className='hidden sm:block text-sm min-w-0'>
+              <div className='font-medium text-gray-900 truncate'>{userDisplay.name}</div>
               <div className='text-gray-500'>{userDisplay.role}</div>
             </div>
           </div>
