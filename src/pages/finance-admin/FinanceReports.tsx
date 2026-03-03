@@ -99,7 +99,7 @@ export default function FinanceReports() {
                         <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#9CA3AF'}} tickFormatter={(value) => `₦${value/1000}k`} />
                         <Tooltip cursor={{fill: 'transparent'}} contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
                         <Bar dataKey="revenue" radius={[4, 4, 0, 0]}>
-                            {revenueData.map((entry, index) => (
+                            {revenueData.map((_entry, index) => (
                                 <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#0D9488' : '#FCD34D'} />
                             ))}
                         </Bar>

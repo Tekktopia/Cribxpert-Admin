@@ -127,7 +127,13 @@ const ReceiptRow = ({ label, value }: { label: string, value?: string | number }
   </div>
 );
 
-const TimelineItem = ({ date, label }: { date: string; label: string }) => (
+interface TimelineItemProps {
+  date: string;
+  label: string;
+  isLast?: boolean;
+}
+
+const TimelineItem = ({ date, label }: TimelineItemProps) => (
   <div className="flex gap-4 text-sm items-start relative">
      {/* Simple dot for timeline */}
      <div className="mt-1.5 w-2 h-2 rounded-full bg-gray-300 shrink-0" />
