@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, Download, FileText } from "lucide-react";
+import { ChevronDown, FileText } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -54,7 +54,7 @@ const refundData = [
 ];
 
 export default function FinanceReports() {
-  const [period, setPeriod] = useState("This Month");
+  const [period] = useState("This Month");
 
   return (
     <PageWrapper

@@ -57,11 +57,12 @@ export interface ActivityItem {
 
 export interface NotificationItem {
   id: string;
+  type: "system_alert" | "suspicious_activity" | "maintenance" | "broadcast";
   title: string;
-  message: string;
-  type: "info" | "warning" | "error" | "success";
+  description: string;
   timestamp: string;
-  read: boolean;
+  priority: "High" | "Medium" | "Low";
+  status: "unread" | "read";
 }
 
 export interface MessageInsight {

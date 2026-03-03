@@ -1,4 +1,4 @@
-import { X, Download, CheckCircle, Clock, XCircle } from "lucide-react";
+import { X, Download } from "lucide-react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import type { Transaction } from "@/data/financeAdminData";
 
@@ -127,7 +127,7 @@ const ReceiptRow = ({ label, value }: { label: string, value?: string | number }
   </div>
 );
 
-const TimelineItem = ({ date, label, isLast }: { date: string, label: string, isLast?: boolean }) => (
+const TimelineItem = ({ date, label }: { date: string; label: string }) => (
   <div className="flex gap-4 text-sm items-start relative">
      {/* Simple dot for timeline */}
      <div className="mt-1.5 w-2 h-2 rounded-full bg-gray-300 shrink-0" />

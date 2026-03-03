@@ -215,7 +215,7 @@ export const Sidebar = memo(function Sidebar({
           >
             {"iconSrc" in item ? (
               <SvgIcon
-                src={item.iconSrc}
+                src={item.iconSrc ?? ""}
                 width={20}
                 height={20}
                 className="mr-3"

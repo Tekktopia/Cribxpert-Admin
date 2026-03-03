@@ -1,7 +1,12 @@
-// features/finance-admin/FinanceMetricsCards.jsx
-import { DollarSign, Wallet, RefreshCcw, ArrowUp, ArrowDown } from "lucide-react";
+// features/finance-admin/FinanceMetricsCards.tsx
+import { ArrowUp, ArrowDown } from "lucide-react";
+import type { FinanceMetric } from "@/data/financeAdminData";
 
-export function FinanceMetricsCards({ metrics }) {
+interface FinanceMetricsCardsProps {
+  metrics?: FinanceMetric[];
+}
+
+export function FinanceMetricsCards({ metrics }: FinanceMetricsCardsProps) {
   // Add a safety check
   if (!metrics || metrics.length === 0) {
     return (
@@ -21,7 +26,7 @@ export function FinanceMetricsCards({ metrics }) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      {metrics.map((metric) => {
+      {(metrics ?? []).map((metric: FinanceMetric) => {
         // Extract the icon component from the metric
         const Icon = metric.icon;
         

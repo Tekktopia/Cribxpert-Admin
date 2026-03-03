@@ -1,4 +1,4 @@
-import { X, FileText } from "lucide-react";
+import { X } from "lucide-react";
 import type { Transaction } from "@/data/financeAdminData";
 
 // Extended Type for Refund-specific data

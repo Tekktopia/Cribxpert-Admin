@@ -1,16 +1,11 @@
 // data/financeData.ts
-import { 
-  DollarSign, 
-  Wallet, 
-  RefreshCcw, 
-  FileText,
-  TrendingUp,
-  TrendingDown,
+import {
+  DollarSign,
+  Wallet,
+  RefreshCcw,
   CheckCircle,
   XCircle,
   Clock,
-  ArrowUp,
-  ArrowDown
 } from "lucide-react";
 
 // Types
@@ -19,7 +14,7 @@ export interface FinanceMetric {
   title: string;
   value: number;
   change: string;
-  trend: "up" | "down";
+  trend: "up" | "down" | "neutral";
   icon: any; // Lucide icon component
   format: "currency" | "number";
   description?: string;
@@ -351,8 +346,5 @@ export const emptyFinanceData: FinanceData = {
 // For testing/development
 export const testFinanceData: Partial<FinanceData> = {
   metrics: financeData.metrics,
-  recentTransactions: financeData.recentTransactions.slice(0, 3)
+  recentTransactions: financeData.recentTransactions.slice(0, 3),
 };
-
-// Export types
-export type { FinanceMetric, Transaction, RevenueTrend, PayoutBreakdown };

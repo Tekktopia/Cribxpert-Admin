@@ -68,7 +68,7 @@ export const adminManagementApiSlice = apiSlice.injectEndpoints({
         url: `/admin-management/admins/disable/${adminId}`,
         method: "PATCH",
       }),
-      invalidatesTags: (result, error, id) => [
+      invalidatesTags: (_result, _error, id) => [
         { type: "User", id },
         { type: "User", id: "ADMIN_LIST" },
       ],
