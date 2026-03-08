@@ -25,7 +25,10 @@ const Notifications = lazy(() => import("./pages/Notifications"));
 const FinancialMgmt = lazy(() => import("./pages/FinancialMgmt"));
 const AdminRolesMgmt = lazy(() => import("./pages/AdminRolesMgmt"));
 const LogOut = lazy(() => import("./pages/LogOut"));
-const SupportDash = lazy(() => import("./pages/SupportDashboard"));
+// Support/CSR pages
+const SupportDashboard = lazy(() => import("./pages/CSR/SupportDashboard"));
+const TicketDetails = lazy(() => import("./pages/CSR/TicketDetails"));
+const CSRUsers = lazy(() => import("./pages/CSR/Users"));
 
 function App() {
   useEffect(() => {
@@ -53,8 +56,10 @@ function App() {
               <Route path='/notifications' element={<Notifications />} />
               <Route path='/admin-roles' element={<AdminRolesMgmt />} />
               <Route path='/log-out' element={<LogOut />} />
-              <Route path='/log-out' element={<LogOut />} />
-              <Route path='/SupportDash' element={<SupportDash />} />
+
+                <Route path="/support" element={<SupportDashboard />} />
+              <Route path="/support/tickets/:ticketId" element={<TicketDetails />} />
+              <Route path="/csr/users" element={<CSRUsers />} />
             </Routes>
           </Suspense>
         </BrowserRouter>

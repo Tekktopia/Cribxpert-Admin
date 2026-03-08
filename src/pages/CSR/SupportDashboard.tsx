@@ -2,14 +2,14 @@ import { Sidebar } from "@/components/layout";
 import { Topbar } from "@/components/layout";
 import {csrNavigationItems} from "@/components/layout/csrSidebar";
 import { ComplaintDetailsDrawer } from "@/features/userdetails/ComplaintDetailsDrawer";
-import arrow from "../../public/svg/arrow-up.svg";
-import plus from "../../public/svg/plus.svg";
-import ticket from "../../public/svg/tickets.svg";
-import assign from "../../public/svg/assigned.svg";
-import resolve from "../../public/svg/resolved.svg";
-import escalate from "../../public/svg/escalate.svg";
+import arrow from "@public/svg/arrow-up.svg";
+import plus from "@public/svg/plus.svg";
+import ticket from"@public/svg/tickets.svg";
+import assign from "@public/svg/assigned.svg";
+import resolve from "@public/svg/resolved.svg";
+import escalate from "@public/svg/escalate.svg";
 import { RecentActivity } from "@/features/dashboard/RecentActivity";
-import "../style(nicholas)/style.scss";
+import "@/style(nicholas)/style.scss";
 import { useState, useMemo } from "react";
 
 interface Ticket {
