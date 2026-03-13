@@ -1,5 +1,4 @@
-
-import { X, Mail, Phone, Calendar, MessageCircle, Ticket, Home, Star, Award } from "lucide-react";
+import { X, Mail, Phone, Calendar, Home, MessageCircle, Ticket, CheckCircle } from "lucide-react";
 import { type User } from "@/data/csrUserData";
 
 interface UserDetailsDrawerProps {
@@ -13,168 +12,147 @@ export function UserDetailsDrawer({ isOpen, onClose, user }: UserDetailsDrawerPr
 
   const handleSendMessage = () => {
     console.log("Sending message to:", user.email);
-    // Implement message functionality
   };
 
   const handleViewTickets = () => {
     console.log("Viewing tickets for user:", user.id);
-    // Navigate to user tickets or open tickets drawer
   };
 
   return (
     <>
       {/* Overlay */}
       <div 
-        className="fixed inset-0 bg-black/40 z-50 transition-opacity"
+        className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
         onClick={onClose}
-      />
-      
-      {/* Drawer */}
-      <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white z-50 shadow-xl transform transition-transform duration-300 ease-in-out overflow-y-auto">
-        {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 z-10">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900">User Profile</h2>
-            <button 
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-            >
-              <X className="w-5 h-5 text-gray-500" />
-            </button>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="p-6">
-          {/* User Header */}
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center">
-              <span className="text-xl font-semibold text-teal-700">
-                {user.name.charAt(0)}
-              </span>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">{user.name}</h3>
-              <span className="inline-block px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded">
-                {user.role}
-              </span>
-            </div>
-          </div>
-
-          {/* Summary Grid */}
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="flex items-center gap-2 text-gray-600 text-xs mb-2">
-                <Home className="w-4 h-4" />
-                <span>Active Bookings</span>
-              </div>
-              <p className="text-2xl font-bold text-gray-900">{user.metrics?.activeBookings || 0}</p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="flex items-center gap-2 text-gray-600 text-xs mb-2">
-                <Award className="w-4 h-4" />
-                <span>Completed</span>
-              </div>
-              <p className="text-2xl font-bold text-gray-900">{user.metrics?.completedBookings || 0}</p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="flex items-center gap-2 text-gray-600 text-xs mb-2">
-                <Star className="w-4 h-4" />
-                <span>Complaints</span>
-              </div>
-              <p className="text-2xl font-bold text-gray-900">{user.metrics?.complaints || 0}</p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="flex items-center gap-2 text-gray-600 text-xs mb-2">
-                <Award className="w-4 h-4" />
-                <span>Disputes</span>
-              </div>
-              <p className="text-2xl font-bold text-gray-900">{user.metrics?.disputes || 0}</p>
-            </div>
-          </div>
-
-          {/* Contact Information */}
-          <div className="mb-6">
-            <h4 className="text-sm font-semibold text-gray-900 mb-3">Contact Information</h4>
-            <div className="space-y-3">
-              <div className="flex items-start gap-3">
-                <Mail className="w-4 h-4 text-gray-400 mt-0.5" />
-                <div>
-                  <p className="text-xs text-gray-500">Email</p>
-                  <p className="text-sm font-medium text-gray-900">{user.email}</p>
+      >
+        {/* Drawer */}
+        <div 
+          className="w-full max-w-2xl max-h-[90vh] bg-white rounded-2xl shadow-xl transform transition-all duration-300 ease-in-out overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className=" text-black p-6">
+            <div className="flex justify-between items-start">
+              <div>
+                <h2 className="text-2xl font-bold mb-2">{user.name}</h2>
+                <div className="flex items-center gap-2 text-sm">
+                  <span>BK10001</span>
+                  <span>•</span>
+                  <span className="text-primary-800 bg-primary-50 px-2 py-1 rounded">Active</span>
+                  <span>Verified</span>
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <Phone className="w-4 h-4 text-gray-400 mt-0.5" />
-                <div>
-                  <p className="text-xs text-gray-500">Phone</p>
-                  <p className="text-sm font-medium text-gray-900">{user.phone || "Not provided"}</p>
+              <button 
+                onClick={onClose}
+                className="p-2 hover:bg-teal-600 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="p-6">
+            {/* Performance Summary - Grid Layout */}
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Summary</h3>
+              
+              <div className="grid grid-cols-4 gap-4">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-gray-900">2</p>
+                  <p className="text-xs text-gray-500 mt-1">Active Bookings</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-gray-900">10</p>
+                  <p className="text-xs text-gray-500 mt-1">Completed</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-gray-900">1</p>
+                  <p className="text-xs text-gray-500 mt-1">Complaints</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-gray-900">0</p>
+                  <p className="text-xs text-gray-500 mt-1">Disputes</p>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Stay Information */}
-          <div className="mb-6">
-            <h4 className="text-sm font-semibold text-gray-900 mb-3">Stay Information</h4>
-            <div className="space-y-3">
-              <div className="flex items-start gap-3">
-                <Calendar className="w-4 h-4 text-gray-400 mt-0.5" />
-                <div>
-                  <p className="text-xs text-gray-500">Join Date</p>
-                  <p className="text-sm font-medium text-gray-900">{user.joinDate}</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <Calendar className="w-4 h-4 text-gray-400 mt-0.5" />
-                <div>
-                  <p className="text-xs text-gray-500">Last Activity</p>
-                  <p className="text-sm font-medium text-gray-900">{user.lastActive}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Property Information (for hosts) */}
-          {user.role === "Host" && user.propertyInfo && (
+            {/* Host Information */}
             <div className="mb-6">
-              <h4 className="text-sm font-semibold text-gray-900 mb-3">Property Information</h4>
-              <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg mb-2">
-                {user.propertyInfo.address}
-              </p>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Home className="w-4 h-4" />
-                <span>{user.propertyInfo.listings || 0} Listings</span>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Host Information</h3>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <span className="text-sm text-gray-500 min-w-[60px]">Name:</span>
+                  <span className="text-sm font-medium text-gray-900">{user.name}</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Mail className="w-4 h-4 text-gray-400 mt-0.5" />
+                  <span className="text-sm text-gray-900 break-all">{user.email}</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Phone className="w-4 h-4 text-gray-400 mt-0.5" />
+                  <span className="text-sm text-gray-900">{user.phone || "+2348167134675"}</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="text-sm text-gray-500 min-w-[60px]">Role:</span>
+                  <span className="inline-block px-3 py-1 bg-teal-100 text-teal-700 text-xs font-medium rounded-full">
+                    {user.role}
+                  </span>
+                </div>
               </div>
             </div>
-          )}
 
-          {/* Address (for guests) */}
-          {user.address && user.role !== "Host" && (
+            {/* Property Information */}
             <div className="mb-6">
-              <h4 className="text-sm font-semibold text-gray-900 mb-3">Address</h4>
-              <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg">
-                {user.address}
-              </p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Property Information</h3>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <Home className="w-4 h-4 text-gray-400 mt-0.5" />
+                  <span className="text-sm text-gray-900">
+                    {user.propertyInfo?.address || "No 1234, Adeyemo street, Lagos, Nigeria"}
+                  </span>
+                </div>
+              </div>
             </div>
-          )}
 
-          {/* Action Buttons */}
-          <div className="flex gap-3 mt-8 pt-6 border-t border-gray-200">
-            <button 
-              onClick={handleSendMessage}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700 transition-colors"
-            >
-              <MessageCircle className="w-4 h-4" />
-              Send Message
-            </button>
-            <button 
-              onClick={handleViewTickets}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <Ticket className="w-4 h-4" />
-              View Tickets
-            </button>
+            {/* Stay Information */}
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Stay Information</h3>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <Calendar className="w-4 h-4 text-gray-400 mt-0.5" />
+                  <div>
+                    <span className="text-sm text-gray-500">Join Date: </span>
+                    <span className="text-sm text-gray-900">{user.joinDate || "Aug 15, 2025"}</span>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Calendar className="w-4 h-4 text-gray-400 mt-0.5" />
+                  <div>
+                    <span className="text-sm text-gray-500">Last Activity: </span>
+                    <span className="text-sm text-gray-900">{user.lastActive || "2025-10-19 14:30"}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-4 pt-4 border-t border-gray-200">
+              <button 
+                onClick={handleSendMessage}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700 transition-colors"
+              >
+                <MessageCircle className="w-4 h-4" />
+                Send Message
+              </button>
+              <button 
+                onClick={handleViewTickets}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <Ticket className="w-4 h-4" />
+                View Tickets
+              </button>
+            </div>
           </div>
         </div>
       </div>
