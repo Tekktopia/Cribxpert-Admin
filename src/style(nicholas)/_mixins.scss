@@ -29,10 +29,7 @@
       justify-items: center;
 }
 
-@mixin flexerJust{
-      @include flexer;
-      justify-items: center;
-}
+
 
 @mixin flexBet{
       @include flexer;
