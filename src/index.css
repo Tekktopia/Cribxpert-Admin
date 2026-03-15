@@ -20,6 +20,12 @@ body {
   --color-primary-700: #004d5a;
   --color-primary-800: #134e4a;
   --color-primary-900: #134e4a;
+
+  --color-blue:#0064D9;
+  --color-error:#FF3B3B;
+  --color-purple:#CB30E0;
+  --color-light-purple:#F5E0F3;
+  --color-primary-25:#E6EFF1;
 }
 
 /* Custom scrollbar styles */
