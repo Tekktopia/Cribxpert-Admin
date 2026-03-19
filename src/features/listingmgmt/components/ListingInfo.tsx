@@ -7,6 +7,7 @@ interface ListingInfoProps {
   location: string;
   price: string;
   created: string;
+  onHostClick?: () => void; // add this
 }
 
 export const ListingInfo = ({
@@ -16,6 +17,7 @@ export const ListingInfo = ({
   location,
   price,
   created,
+  onHostClick, // add this
 }: ListingInfoProps) => (
   <div>
     <h3
@@ -26,7 +28,19 @@ export const ListingInfo = ({
     </h3>
 
     <div className='space-y-2 text-sm text-gray-600'>
-      <p>Host: {hostName}</p>
+      <p>
+        Host:{" "}
+        {onHostClick ? (
+          <button
+            onClick={onHostClick}
+            className='text-primary-600 underline cursor-pointer hover:text-primary-800 transition-colors font-medium'
+          >
+            {hostName}
+          </button>
+        ) : (
+          hostName
+        )}
+      </p>
 
       <div className='flex items-center'>
         <MapPin className='w-4 h-4 mr-1' />

@@ -112,6 +112,28 @@ export const adminListingManagementApiSlice = apiSlice.injectEndpoints({
         url: `/admin-listing-management/approve/${listingId}`,
         method: "PATCH",
       }),
+      async onQueryStarted(listingId, { dispatch, queryFulfilled }) {
+        // Optimistically update every cached getListings variation
+        const cacheArgs = [
+          undefined,
+          { status: "pending" as const },
+          { status: "approved" as const },
+          { status: "flagged" as const },
+        ];
+        const patches = cacheArgs.map((arg) =>
+          dispatch(
+            adminListingManagementApiSlice.util.updateQueryData("getListings", arg, (draft) => {
+              const listing = draft.listings.find((l) => l._id === listingId);
+              if (listing) listing.status = "approved";
+            })
+          )
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patches.forEach((p) => p.undo());
+        }
+      },
       invalidatesTags: [{ type: "Listing", id: "LIST" }],
     }),
     rejectListing: builder.mutation<

@@ -9,11 +9,12 @@ interface ListingCardProps {
   listing: ListingRecord;
   onViewDetails: (listing: ListingRecord) => void;
   onAction: (listing: ListingRecord, action: string) => void;
+  onHostClick?: (listing: ListingRecord) => void; // add this
   index?: number;
 }
 
 export const ListingCard = React.memo<ListingCardProps>(
-  ({ listing, onViewDetails, onAction, index = 0 }) => (
+  ({ listing, onViewDetails, onAction, onHostClick, index = 0 }) => (
     <div
       className=''
       role='article'
@@ -34,6 +35,7 @@ export const ListingCard = React.memo<ListingCardProps>(
           location={listing.location}
           price={listing.price}
           created={listing.created}
+          onHostClick={onHostClick ? () => onHostClick(listing) : undefined}
         />
 
         <Button
