@@ -1,13 +1,6 @@
 // src/features/tickets/components/TicketDetailsDrawer.tsx
 import {
   X,
-  Mail,
-  Phone,
-  Calendar,
-  User,
-  Star,
-  Clock,
-  AlertCircle,
 } from "lucide-react";
 import { type Ticket } from "@/features/csr/tickets/types";
 

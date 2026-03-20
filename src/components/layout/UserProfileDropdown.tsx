@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { clearUser } from '@/features/auth/authSlice';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { ChevronDown, User, Settings, Calendar, HelpCircle, LogOut } from 'lucide-react';
+import { ChevronDown, User, Settings, LogOut } from 'lucide-react';
 
 interface User {
   _id?: string;

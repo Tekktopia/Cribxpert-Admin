@@ -1,11 +1,9 @@
-// Export all auth-related functionality from a single file
-
 import authReducer, {
   setUser,
+  setToken,
+  setLoading,
+  setError,
   clearUser,
-  updateUserProfile,
-  clearError,
-  setIsAuthenticated,
 } from './authSlice';
 
 import {
@@ -14,24 +12,15 @@ import {
   useGetCurrentUserQuery,
 } from './authService';
 
-import type { User } from './authTypes';
-
-// Re-export everything
 export {
   setUser,
-  setIsAuthenticated,
+  setToken,
+  setLoading,
+  setError,
   clearUser,
-  updateUserProfile,
-  clearError,
   useLoginMutation,
   useRegisterMutation,
   useGetCurrentUserQuery,
 };
 
-// Re-export types
-export type {
-  User,
-};
-
-// Export the reducer as the default export
 export default authReducer;

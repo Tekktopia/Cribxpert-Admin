@@ -1,4 +1,4 @@
-import { X, Mail, Phone, MessageSquareText ,  Eye , CheckCircle } from "lucide-react";
+import { X, Mail, Phone, MessageSquareText ,  Eye } from "lucide-react";
 import { type User } from "@/data/csrUserData";
 import cythia from "@public/avatars/cynthia.png";
 interface UserDetailsDrawerProps {

@@ -7,7 +7,7 @@ interface EscalateModalProps {
   ticket: Ticket; // Replace 'any' with your Ticket type
 }
 
-export function EscalateModal({ isOpen, onClose, ticket }: EscalateModalProps) {
+export function EscalateModal({ isOpen, onClose }: EscalateModalProps) {
   if (!isOpen) return null;
 
   return (

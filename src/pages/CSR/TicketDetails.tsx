@@ -11,7 +11,6 @@ import {
   AlertCircle,
   Clock,
   Calendar,
-  User,
   Phone,
   Mail,
   BookOpen

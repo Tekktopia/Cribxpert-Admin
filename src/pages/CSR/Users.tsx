@@ -5,7 +5,7 @@ import { Topbar } from "@/components/layout";
 import { csrNavigationItems } from "@/components/layout/csrSidebar";
 import { UserDetailsDrawer } from "@/features/csr/tickets/UserDetailsDrawer";
 import { usersData, userSummaryData, type User } from "@/data/csrUserData";
-import { Search, ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { Search, Download } from "lucide-react";
 
 export default function CSRUsers() {
   const [searchTerm, setSearchTerm] = useState("");

@@ -3,7 +3,10 @@ import CustomDropdown from './CustomDropdown';
 import { GoogleSignUp } from './GoogleSignUp';
 import { useInitiateEmailVerificationMutation } from '@/features/auth/authService';
 import { Link } from 'react-router';
-import { isValidEmail } from '@/utils/utils';
+
+const isValidEmail = (email: string): boolean => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
 
 type StepOneProps = {
   methodSelected: string | null;

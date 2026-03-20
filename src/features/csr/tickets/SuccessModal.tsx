@@ -1,5 +1,5 @@
 // pages/CSR/tickets/components/SuccessModal.tsx
-import { CheckCircle, X } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface SuccessModalProps {
