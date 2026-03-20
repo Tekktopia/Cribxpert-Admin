@@ -3,6 +3,7 @@ import { apiSlice } from "@/api/apiSlice";
 // Types for admin listing management responses
 export interface ApiListing {
   _id: string;
+  propertyId?: string;
   name: string;
   description?: string;
   userId: {

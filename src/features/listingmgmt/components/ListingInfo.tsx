@@ -38,9 +38,9 @@ export const ListingInfo = ({
       >
         {title}
       </h3>
-            {/* Add this below the title */}
-            {propertyId && (
-        <p className='text-xs text-gray-400 mb-2 font-mono'>{propertyId}</p>
+      {/* Add this below the title */}
+      {propertyId && (
+        <p className='text-base mb-2 font-mono'><b>Property ID: </b>{propertyId}</p>
       )}
 
       <div className='space-y-2 text-sm text-gray-600'>

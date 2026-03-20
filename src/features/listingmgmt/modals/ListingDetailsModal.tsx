@@ -41,6 +41,11 @@ export function ListingDetailsModal({
             imageAlt={listing.title}
             className='mb-6'
           />
+          {listing.propertyId && (
+            <p className='text-base  font-semibold font-mono mb-4'>
+              Property ID: <span className='font-semibold text-gray-600'>{listing.propertyId}</span>
+            </p>
+          )}
 
           {/* Main Content - Two Column Layout */}
           <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
