@@ -1,17 +1,36 @@
 import { Search, Bell, Menu } from "lucide-react";
-import { memo, useCallback } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { memo, useCallback, useState } from "react";
 import { Button } from "../ui/button";
+import UserProfileDropdown from "./UserProfileDropdown";
 
 interface TopbarProps {
   onMenuClick?: () => void;
 }
 
+// Mock user data - replace with actual user from Redux/context
+const mockUser = {
+  _id: "1",
+  email: "jasmine.d@example.com",
+  fullName: "Jasmine D.",
+  profileImage: "/api/placeholder/32/32",
+  role: "super_admin"
+};
+
 export const Topbar = memo(function Topbar({ onMenuClick }: TopbarProps) {
-  // Memoize the menu click handler
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+
   const handleMenuClick = useCallback(() => {
     onMenuClick?.();
   }, [onMenuClick]);
+
+  const toggleProfileMenu = useCallback(() => {
+    setShowProfileMenu(prev => !prev);
+  }, []);
+
+  const closeProfileMenu = useCallback(() => {
+    setShowProfileMenu(false);
+  }, []);
+
   return (
     <header className='bg-white border-b border-gray-200 px-4 py-4 sm:px-6'>
       <div className='flex items-center justify-between'>
@@ -51,17 +70,14 @@ export const Topbar = memo(function Topbar({ onMenuClick }: TopbarProps) {
             <span className='absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full'></span>
           </Button>
 
-          {/* User Avatar */}
-          <div className='flex items-center space-x-2 sm:space-x-3'>
-            <Avatar className='w-8 h-8'>
-              <AvatarImage src='/api/placeholder/32/32' alt='Jasmine D.' />
-              <AvatarFallback>JD</AvatarFallback>
-            </Avatar>
-            <div className='hidden sm:block text-sm'>
-              <div className='font-medium text-gray-900'>Jasmine D.</div>
-              <div className='text-gray-500'>Super Admin</div>
-            </div>
-          </div>
+          {/* User Profile Dropdown */}
+          <UserProfileDropdown
+            user={mockUser}
+            showProfileMenu={showProfileMenu}
+            onToggleMenu={toggleProfileMenu}
+            onCloseMenu={closeProfileMenu}
+            isMobile={false}
+          />
         </div>
       </div>
     </header>
