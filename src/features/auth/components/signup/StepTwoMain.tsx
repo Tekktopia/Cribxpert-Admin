@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import OTPInput from './OTPInput';
 import StepTwoResendButton from './StepTwoResendButton';
-import { setIsAuthenticated } from '@/features/auth/authSlice';
+import { setUser } from '@/features/auth/authSlice';
 import { useVerifyOtpMutation } from '@/features/auth/authService';
 
 type StepTwoMainProps = {
@@ -39,7 +39,7 @@ const StepTwoMain: React.FC<StepTwoMainProps> = ({
 
         if (response.success) {
           // Update auth state
-          dispatch(setIsAuthenticated(true));
+          dispatch(setUser(response.user ?? null));
 
           // If we receive a token, store it
           if (response.token) {
