@@ -36,6 +36,7 @@ export const ListingCard = React.memo<ListingCardProps>(
       <div className='py-2 space-y-3'>
         <ListingInfo
           id={listing.id}
+          propertyId={listing.propertyId} 
           title={listing.title}
           hostName={listing.host.name}
           location={listing.location}

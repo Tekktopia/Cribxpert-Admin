@@ -2,6 +2,7 @@ import { MapPin } from "lucide-react";
 
 interface ListingInfoProps {
   id: string;
+  propertyId?: string;
   title: string;
   hostName: string;
   location: string;
@@ -14,6 +15,7 @@ interface ListingInfoProps {
 
 export const ListingInfo = ({
   id,
+  propertyId,
   title,
   hostName,
   location,
@@ -36,6 +38,10 @@ export const ListingInfo = ({
       >
         {title}
       </h3>
+            {/* Add this below the title */}
+            {propertyId && (
+        <p className='text-xs text-gray-400 mb-2 font-mono'>{propertyId}</p>
+      )}
 
       <div className='space-y-2 text-sm text-gray-600'>
         <p>

@@ -1,5 +1,5 @@
 import { InfoSection } from "@/components/layout/InfoSection";
-import { Mail } from "lucide-react";
+import { Mail, User } from "lucide-react";
 import type { ListingRecord } from "@/data/listingMgmtData";
 
 interface HostInformationProps {
@@ -16,16 +16,27 @@ export function HostInformation({
     <InfoSection
       title='Host Information'
       fields={[
-        { label: "Name:", value: hostName },
-        {
-          label: (
-            <span className='flex items-center gap-2'>
-              <Mail className='w-4 h-4 text-gray-500' />
-              <span>:</span>
-            </span>
-          ),
-          value: hostEmail,
-        },
+
+        { label: (
+          <span className="flex items-center gap-2">
+            <User className="w-4 h-4 text-gray-500" />
+            Name
+            <span>:</span>
+          </span>
+        ),
+        value: hostName
+      },
+      {
+        label: (
+          <span className="flex items-center gap-2">
+            <Mail className="w-4 h-4 text-gray-500" />
+            Email
+            <span>:</span>
+          </span>
+        ),
+        value: hostEmail,
+      },
+    
       ]}
       headerClassName='!text-lg'
       variant='gray'

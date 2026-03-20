@@ -1,5 +1,6 @@
 export interface ListingRecord {
   id: string;
+  propertyId?: string;
   title: string;
   description?: string;
   host: {
