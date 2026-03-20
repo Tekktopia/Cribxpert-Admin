@@ -53,9 +53,8 @@ export const listingSlice = createSlice({
 
       switch (action.payload) {
         case "approved":
-          // Filter for "active" status (which is "approved" in API)
           state.filteredListings = state.listings.filter(
-            (listing) => listing.status === "active"
+            (listing) => listing.status === "active" || listing.status === "approved"
           );
           break;
         case "pending":
@@ -74,7 +73,6 @@ export const listingSlice = createSlice({
           );
           break;
         default:
-          // "all" - show all listings
           state.filteredListings = state.listings;
       }
     },
@@ -123,7 +121,7 @@ export const listingSlice = createSlice({
     approveListing: (state, action: PayloadAction<string>) => {
       const listing = state.listings.find((l) => l.id === action.payload);
       if (listing) {
-        listing.status = "approved" as ListingRecord["status"];
+        listing.status = "approved" as ListingRecord["status"];  // was "active"
       }
       if (state.activeTab !== "all") {
         listingSlice.caseReducers.setActiveTab(state, {
