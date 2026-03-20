@@ -1,7 +1,8 @@
-import React, { FormEvent, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCompleteRegistrationMutation } from '@/features/auth/authService';
 import { Eye, EyeOff } from 'lucide-react';
+import type { FormEvent } from 'react';
 
 type FormData = {
   id: string;
