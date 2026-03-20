@@ -12,7 +12,7 @@ export interface ListingRecord {
   basePrice?: number;
   cleaningFee?: number;
   securityDeposit?: number;
-  status: "pending" | "active" | "flagged" | "rejected";
+  status: "pending" | "active" | "approved" | "flagged" | "rejected";
   created: string;
   image: string;
   listingImg?: Array<{

@@ -23,7 +23,13 @@ export const ListingCard = React.memo<ListingCardProps>(
       <ListingImage
         src={listing.image}
         alt={listing.title}
-        status={listing.status}
+        // Type error: ListingImage expects status to not include "approved"
+        // Solution: Map "approved" to "active" for ListingImage
+        status={
+          listing.status === "approved"
+            ? "active"
+            : listing.status
+        }
         priority={index < 6}
       />
 
@@ -34,6 +40,8 @@ export const ListingCard = React.memo<ListingCardProps>(
           hostName={listing.host.name}
           location={listing.location}
           price={listing.price}
+          basePrice={listing.basePrice}
+          cleaningFee={listing.cleaningFee}
           created={listing.created}
           onHostClick={onHostClick ? () => onHostClick(listing) : undefined}
         />

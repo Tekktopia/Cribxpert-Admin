@@ -123,9 +123,8 @@ export const listingSlice = createSlice({
     approveListing: (state, action: PayloadAction<string>) => {
       const listing = state.listings.find((l) => l.id === action.payload);
       if (listing) {
-        listing.status = "active";
+        listing.status = "approved" as ListingRecord["status"];
       }
-      // Update filtered listings if needed
       if (state.activeTab !== "all") {
         listingSlice.caseReducers.setActiveTab(state, {
           payload: state.activeTab,
