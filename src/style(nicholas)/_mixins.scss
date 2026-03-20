@@ -1,0 +1,105 @@
+@use 'variables';
+@use 'sass:color';
+@use 'sass:map';
+
+
+@mixin flexer{
+      display: flex;
+      align-items: center;
+      justify-content: center;
+}
+
+@mixin flexerJustEnd{
+      @include flexer;
+      justify-content: flex-end;
+}
+
+@mixin flexerEnd{
+      @include flexer;
+      align-items: flex-end;
+}
+
+@mixin flexCol{
+      @include flexer;
+      flex-direction: column;
+}
+
+@mixin flexColJust{
+      @include flexCol;
+      justify-items: center;
+}
+
+
+
+@mixin flexBet{
+      @include flexer;
+      justify-content: space-between;
+}
+
+@mixin flexEven{
+      @include flexer;
+      justify-content: space-evenly;
+}
+
+@mixin flexColEven{
+      @include flexCol;
+      justify-content: space-evenly;
+}
+
+@mixin flexerStart{
+      @include flexer;
+      align-items: flex-start;
+}
+    
+@mixin flexColStart{
+      @include flexCol;
+      align-items: flex-start;
+}
+
+@mixin of-type($num){
+      @if $num == 1{
+            &:nth-of-type(1){
+            @content;
+            }
+      }
+
+      @else if $num == 2{
+            &:nth-of-type(2){
+            @content;
+            }
+      }
+
+      @else if $num == 3{
+            &:nth-of-type(3){
+            @content;
+            }
+      }
+}
+
+@mixin nthChild($num){
+      &:nth-child(#{$num}) {
+            @content;
+      }
+}
+
+
+@mixin btnAll(){
+      padding: 10px;
+      background-color: #fff;
+      color: map.get(variables.$colors, primary);
+      border: 1px solid #BCC3CA;
+      font-size: 14px;
+      line-height: 20px;
+      letter-spacing: 0%;
+      font-weight: 400;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      width: 242px;
+      border-radius: 8px;
+
+
+      &:hover {
+            background-color: color.adjust(map.get(variables.$colors, primary), $lightness: -10%);
+            color: #fff;
+      }
+}

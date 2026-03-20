@@ -5,6 +5,7 @@ import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { fileURLToPath, URL } from "node:url";
+import path from "node:path";
 
 function devPlaceholderPlugin(): Plugin {
   return {
@@ -40,6 +41,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
+      '@public': path.resolve(__dirname, './public'),
     },
   },
 });
