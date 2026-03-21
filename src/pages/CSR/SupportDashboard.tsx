@@ -114,7 +114,8 @@ const SupportDashboard = () => {
       created: new Date(t.createdAt).toLocaleDateString(),
       dueDate: new Date(t.updatedAt).toLocaleDateString(),
       assignedTo: t.assignedTo,
-      message: t.message,           // <-- add this
+      message: t.message,
+      notes: t.notes,
     }));
   }, [data]);
 
@@ -145,7 +146,6 @@ const SupportDashboard = () => {
   }, [filteredTickets, showAllTickets]);
 
   const handleTicketClick = (ticket: TicketType) => {
-    console.log('Selected ticket:', ticket);
     setSelectedTicket(ticket);
     setIsDrawerOpen(true);
   };
@@ -153,6 +153,14 @@ const SupportDashboard = () => {
   const handleCloseDrawer = () => {
     setIsDrawerOpen(false);
     setSelectedTicket(null);
+  };
+
+  const refreshSelectedTicket = async () => {
+    await refetch();
+    if (selectedTicket) {
+      const updatedTicket = ticketsData.find(t => t.id === selectedTicket.id);
+      if (updatedTicket) setSelectedTicket(updatedTicket);
+    }
   };
 
   const handleCheckboxChange = (ticketId: string, e: React.MouseEvent) => {
@@ -482,12 +490,11 @@ const SupportDashboard = () => {
         </section>
       </div>
 
-      {/* Ticket Details Drawer */}
       <TicketDetailsDrawer
         isOpen={isDrawerOpen}
         onClose={handleCloseDrawer}
         ticket={selectedTicket}
-        onUpdate={refetch}
+        onUpdate={refreshSelectedTicket}
       />
     </div>
   );

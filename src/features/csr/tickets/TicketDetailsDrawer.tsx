@@ -1,3 +1,4 @@
+// src/features/csr/tickets/TicketDetailsDrawer.tsx
 import { X, Send, Save, Calendar, Clock, CheckCircle, XCircle, MessageSquare, FileText } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import emailjs from '@emailjs/browser';
@@ -8,14 +9,7 @@ interface TicketDetailsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   ticket: Ticket | null;
-  onUpdate?: () => void;
-}
-
-interface ExtendedNote {
-  message: string;
-  addedBy: string;
-  createdAt: string;
-  type?: 'reply' | 'note';
+  onUpdate?: () => void; // callback to refresh parent data
 }
 
 export function TicketDetailsDrawer({ isOpen, onClose, ticket, onUpdate }: TicketDetailsDrawerProps) {
@@ -40,10 +34,15 @@ export function TicketDetailsDrawer({ isOpen, onClose, ticket, onUpdate }: Ticke
 
   const handleSendReply = async () => {
     if (!reply.trim()) return;
+    if (!ticket.email) {
+      alert('Customer email missing – cannot send reply.');
+      return;
+    }
     setAddingReply(true);
 
     try {
       await addNote({ id: ticket.id, message: reply, type: 'reply' } as any).unwrap();
+      onUpdate?.(); // refresh parent data
 
       const templateParams = {
         to_email: ticket.email,
@@ -56,7 +55,7 @@ export function TicketDetailsDrawer({ isOpen, onClose, ticket, onUpdate }: Ticke
 
       await emailjs.send(
         import.meta.env.VITE_EMAILJS_SERVICE_ID,
-        import.meta.env.VITE_EMAILJS_TEMPLATE_ID, // Use your existing template
+        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
         templateParams,
         import.meta.env.VITE_EMAILJS_PUBLIC_KEY
       );
@@ -65,7 +64,6 @@ export function TicketDetailsDrawer({ isOpen, onClose, ticket, onUpdate }: Ticke
       localStorage.removeItem(`draft_${ticket.ticketId}`);
       setShowSuccessModal(true);
       setTimeout(() => setShowSuccessModal(false), 3000);
-      onUpdate?.();
     } catch (error) {
       console.error('Failed to send reply', error);
       setShowErrorModal(true);
@@ -86,10 +84,10 @@ export function TicketDetailsDrawer({ isOpen, onClose, ticket, onUpdate }: Ticke
 
     try {
       await addNote({ id: ticket.id, message: internalNote, type: 'note' } as any).unwrap();
+      onUpdate?.();
       setInternalNote('');
       setShowSuccessModal(true);
       setTimeout(() => setShowSuccessModal(false), 3000);
-      onUpdate?.();
     } catch (error) {
       console.error('Failed to add internal note', error);
       setShowErrorModal(true);
@@ -127,9 +125,10 @@ export function TicketDetailsDrawer({ isOpen, onClose, ticket, onUpdate }: Ticke
     }
   };
 
-  const notes = (ticket.notes as ExtendedNote[]) || [];
-  const messages = notes.filter(n => (n.type === 'reply') || (!n.type && true));
-  const internalNotes = notes.filter(n => n.type === 'note');
+  const notes = ticket.notes || [];
+  // Notes do not have a "type" field; so treat ALL as messages, none as internal notes.
+  const messages = notes;
+  const internalNotes: typeof notes = [];
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
@@ -158,62 +157,26 @@ export function TicketDetailsDrawer({ isOpen, onClose, ticket, onUpdate }: Ticke
         <div className="p-6">
           {/* Customer Information */}
           <div className="mb-6 grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-xs text-gray-500">Customer</p>
-              <p className="text-sm font-medium">{ticket.user}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Email</p>
-              <p className="text-sm break-all">{ticket.email}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Created</p>
-              <p className="text-sm">{ticket.created}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Category</p>
-              <p className="text-sm">{ticket.category}</p>
-            </div>
+            <div><p className="text-xs text-gray-500">Customer</p><p className="text-sm font-medium">{ticket.user}</p></div>
+            <div><p className="text-xs text-gray-500">Email</p><p className="text-sm break-all">{ticket.email}</p></div>
+            <div><p className="text-xs text-gray-500">Created</p><p className="text-sm">{ticket.created}</p></div>
+            <div><p className="text-xs text-gray-500">Category</p><p className="text-sm">{ticket.category}</p></div>
           </div>
 
-          {/* Date/Time row */}
+          {/* Dates */}
           <div className="mb-6 bg-gray-50 rounded-lg p-3 flex gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-gray-400" />
-              <span>Created: {ticket.created}</span>
-            </div>
-            {ticket.dueDate && (
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-gray-400" />
-                <span>Due: {ticket.dueDate}</span>
-              </div>
-            )}
+            <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-gray-400" /><span>Created: {ticket.created}</span></div>
+            {ticket.dueDate && <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-gray-400" /><span>Due: {ticket.dueDate}</span></div>}
           </div>
 
           {/* Tabs */}
           <div className="border-b border-gray-200 mb-6">
             <div className="flex gap-6">
-              <button
-                onClick={() => setActiveTab('messages')}
-                className={`pb-3 text-sm font-medium transition-colors relative ${
-                  activeTab === 'messages'
-                    ? 'text-teal-600 border-b-2 border-teal-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <MessageSquare className="w-4 h-4 inline mr-2" />
-                Messages
+              <button onClick={() => setActiveTab('messages')} className={`pb-3 text-sm font-medium transition-colors relative ${activeTab === 'messages' ? 'text-teal-600 border-b-2 border-teal-600' : 'text-gray-500 hover:text-gray-700'}`}>
+                <MessageSquare className="w-4 h-4 inline mr-2" /> Messages
               </button>
-              <button
-                onClick={() => setActiveTab('notes')}
-                className={`pb-3 text-sm font-medium transition-colors relative ${
-                  activeTab === 'notes'
-                    ? 'text-teal-600 border-b-2 border-teal-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <FileText className="w-4 h-4 inline mr-2" />
-                Internal Notes
+              <button onClick={() => setActiveTab('notes')} className={`pb-3 text-sm font-medium transition-colors relative ${activeTab === 'notes' ? 'text-teal-600 border-b-2 border-teal-600' : 'text-gray-500 hover:text-gray-700'}`}>
+                <FileText className="w-4 h-4 inline mr-2" /> Internal Notes
               </button>
             </div>
           </div>
@@ -231,7 +194,7 @@ export function TicketDetailsDrawer({ isOpen, onClose, ticket, onUpdate }: Ticke
                   <p className="text-sm text-gray-700 whitespace-pre-wrap">{ticket.subject}</p>
                 </div>
 
-                {/* Replies (messages) */}
+                {/* Replies */}
                 {messages.map((note, idx) => (
                   <div key={idx} className="bg-blue-50 rounded-lg p-4">
                     <div className="flex justify-between items-center mb-2">
@@ -246,28 +209,13 @@ export function TicketDetailsDrawer({ isOpen, onClose, ticket, onUpdate }: Ticke
               {/* Reply box */}
               <div>
                 <h4 className="font-medium text-gray-900 mb-4">Reply to customer</h4>
-                <textarea
-                  value={reply}
-                  onChange={(e) => setReply(e.target.value)}
-                  placeholder="Type your response here. This will be sent to the customer's email and recorded in the conversation."
-                  rows={4}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
-                />
-                <div className="flex items-center justify-end space-x-3 mt-4">
-                  <button
-                    onClick={handleSaveDraft}
-                    className="px-4 py-2 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 flex items-center space-x-2"
-                  >
-                    <Save className="w-4 h-4" />
-                    <span>Save Draft</span>
+                <textarea value={reply} onChange={(e) => setReply(e.target.value)} rows={4} className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none" />
+                <div className="flex justify-end space-x-3 mt-4">
+                  <button onClick={handleSaveDraft} className="px-4 py-2 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 flex items-center gap-2">
+                    <Save className="w-4 h-4" /> Save Draft
                   </button>
-                  <button
-                    onClick={handleSendReply}
-                    disabled={!reply.trim() || addingReply}
-                    className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                  >
-                    <Send className="w-4 h-4" />
-                    <span>{addingReply ? 'Sending...' : 'Send Reply'}</span>
+                  <button onClick={handleSendReply} disabled={!reply.trim() || addingReply} className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 flex items-center gap-2">
+                    <Send className="w-4 h-4" /> {addingReply ? 'Sending...' : 'Send Reply'}
                   </button>
                 </div>
               </div>
@@ -295,19 +243,9 @@ export function TicketDetailsDrawer({ isOpen, onClose, ticket, onUpdate }: Ticke
 
               <div>
                 <h4 className="font-medium text-gray-900 mb-4">Add internal note</h4>
-                <textarea
-                  value={internalNote}
-                  onChange={(e) => setInternalNote(e.target.value)}
-                  placeholder="Add a note for internal reference (only visible to CSR)."
-                  rows={3}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
-                />
+                <textarea value={internalNote} onChange={(e) => setInternalNote(e.target.value)} rows={3} className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none" />
                 <div className="flex justify-end mt-4">
-                  <button
-                    onClick={handleAddInternalNote}
-                    disabled={!internalNote.trim() || addingNote}
-                    className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
+                  <button onClick={handleAddInternalNote} disabled={!internalNote.trim() || addingNote} className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50">
                     {addingNote ? 'Adding...' : 'Add Note'}
                   </button>
                 </div>
@@ -317,34 +255,19 @@ export function TicketDetailsDrawer({ isOpen, onClose, ticket, onUpdate }: Ticke
 
           {/* Quick Actions */}
           <div className="flex justify-end gap-3 pt-6 mt-6 border-t border-gray-200">
-            <button
-              onClick={() => handleStatusUpdate('in-progress')}
-              className="px-4 py-2 text-sm text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50"
-            >
-              Mark In Progress
-            </button>
-            <button
-              onClick={() => handleStatusUpdate('resolved')}
-              className="px-4 py-2 text-sm text-green-600 border border-green-200 rounded-lg hover:bg-green-50"
-            >
-              Mark Resolved
-            </button>
-            <button
-              onClick={() => handleStatusUpdate('closed')}
-              className="px-4 py-2 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50"
-            >
-              Close Ticket
-            </button>
+            <button onClick={() => handleStatusUpdate('in-progress')} className="px-4 py-2 text-sm text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50">Mark In Progress</button>
+            <button onClick={() => handleStatusUpdate('resolved')} className="px-4 py-2 text-sm text-green-600 border border-green-200 rounded-lg hover:bg-green-50">Mark Resolved</button>
+            <button onClick={() => handleStatusUpdate('closed')} className="px-4 py-2 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50">Close Ticket</button>
           </div>
         </div>
       </div>
 
-      {/* Success/Error Modals */}
+      {/* Success/Error toasts */}
       {showSuccessModal && (
         <div className="fixed bottom-4 right-4 z-50 animate-slide-up">
           <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3 shadow-lg">
             <CheckCircle className="w-5 h-5 text-green-600" />
-            <p className="text-green-800">Message sent successfully to {ticket.email}</p>
+            <p className="text-green-800">Reply sent successfully to {ticket.email}</p>
           </div>
         </div>
       )}
