@@ -97,23 +97,26 @@ export const Sidebar = memo(function Sidebar({
   // Memoize navigation items rendering
   const navigationLinks = useMemo(() => {
     // return navigationItems.map((item) => {
-      return items.map((item) => {
+    return items.map((item) => {
       // Use path matching for better sub-page detection
       const isActive =
         item.href === "/log-out"
           ? location.pathname === item.href
           : location.pathname.startsWith(item.href);
+      const isLogout = item.label === "Logout";
 
       return (
         <Link
           key={item.href}
           to={item.href}
-          onClick={handleClose} // Close mobile sidebar when navigating
+          onClick={handleClose}
           className={cn(
             "flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors",
-            isActive
-              ? "bg-primary-600 text-white shadow-sm"
-              : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+            isLogout && !isActive
+              ? "text-red-600 hover:bg-red-50 hover:text-red-700"
+              : isActive
+                ? "bg-primary-600 text-white shadow-sm"
+                : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
           )}
         >
           <SvgIcon
@@ -121,7 +124,7 @@ export const Sidebar = memo(function Sidebar({
             width={20}
             height={20}
             className='mr-3'
-            color={isActive ? "#ffffff" : "#6b7280"}
+            color={isLogout && !isActive ? "#dc2626" : isActive ? "#ffffff" : "#6b7280"}
             alt={`${item.label} icon`}
           />
           {item.label}
@@ -142,7 +145,7 @@ export const Sidebar = memo(function Sidebar({
       {/* Mobile close button */}
       <div className='lg:hidden flex justify-between p-4 flex-shrink-0'>
         <div className='flex items-center space-x-3'>
-        <SvgIcon
+          <SvgIcon
             src="/CribXpert.svg"
             width={20}
             height={20}
@@ -163,7 +166,7 @@ export const Sidebar = memo(function Sidebar({
       {/* Logo */}
       <div className='hidden lg:flex px-6 py-6 lg:py-6 flex-shrink-0'>
         <div className='flex items-center space-x-3'>
-        <SvgIcon
+          <SvgIcon
             src="/CribXpert.svg"
             width={30}
             height={30}
