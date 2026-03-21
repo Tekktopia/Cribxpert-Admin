@@ -142,9 +142,14 @@ export const Sidebar = memo(function Sidebar({
       {/* Mobile close button */}
       <div className='lg:hidden flex justify-between p-4 flex-shrink-0'>
         <div className='flex items-center space-x-3'>
-          <span className='text-xl font-bold text-[25px] text-primary-600'>
-            Cribxpert
-          </span>
+        <SvgIcon
+            src="/CribXpert.svg"
+            width={20}
+            height={20}
+            className='mr-3'
+            color=""
+            alt=""
+          />
         </div>
 
         <button
@@ -158,6 +163,14 @@ export const Sidebar = memo(function Sidebar({
       {/* Logo */}
       <div className='hidden lg:flex px-6 py-6 lg:py-6 flex-shrink-0'>
         <div className='flex items-center space-x-3'>
+        <SvgIcon
+            src="/CribXpert.svg"
+            width={30}
+            height={30}
+            className='mr-3'
+            color=""
+            alt=""
+          />
           <span className='text-xl font-bold text-[25px] text-primary-600'>
             Cribxpert
           </span>
