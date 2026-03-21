@@ -188,6 +188,7 @@ class CSPManager {
         "ws:",
         "wss:",
         "https://cribxpert-backend.onrender.com",
+        "https://api.emailjs.com",
       ],
       "font-src": ["'self'", "https://fonts.gstatic.com", "data:"],
       "object-src": ["'none'"],

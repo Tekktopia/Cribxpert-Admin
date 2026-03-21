@@ -24,7 +24,7 @@ export const BACKEND_ORIGIN: string =
  * Optional: any other external origins your app legitimately connects to.
  * Add only what you need.
  */
-const EXTRA_CONNECT_ORIGINS: string[] = [];
+const EXTRA_CONNECT_ORIGINS: string[] = ["https://api.emailjs.com"];
 
 /**
  * Content Security Policy used in production.
