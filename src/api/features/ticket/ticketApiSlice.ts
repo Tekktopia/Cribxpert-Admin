@@ -90,11 +90,11 @@ export const ticketApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: (_result, _error, { id }) => [{ type: 'Ticket', id }],
     }),
-    addTicketNote: builder.mutation<Ticket, { id: string; message: string }>({
-      query: ({ id, message }) => ({
-        url: `/api/tickets/${id}/notes`,
+    addTicketNote: builder.mutation<Ticket, { id: string; message: string; type?: string }>({
+      query: ({ id, message, type }) => ({
+        url: `/tickets/${id}/notes`,
         method: 'POST',
-        body: { message },
+        body: { message, type },
       }),
       invalidatesTags: (_result, _error, { id }) => [{ type: 'Ticket', id }],
     }),

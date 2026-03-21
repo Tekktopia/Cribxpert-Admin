@@ -9,6 +9,8 @@ import { csrNavigationItems } from "@/components/layout/csrSidebar";
 import { useGetTicketsQuery } from "@/api/features/ticket/ticketApiSlice";
 import { connectSocket } from "@/services/socket";
 import { useAppSelector } from "@/store/hooks";
+import { TicketDetailsDrawer } from "@/features/csr/tickets/TicketDetailsDrawer";
+import { type Ticket as TicketType } from "@/features/csr/tickets/types";
 import arrow from "/svg/arrow-up.svg";
 import plus from "/svg/plus.svg";
 import ticketIcon from "/svg/tickets.svg";
@@ -23,27 +25,14 @@ const RecentActivityPlaceholder = () => (
   </div>
 );
 
-interface Ticket {
-  id: string;
-  ticketId: string;
-  user: string;
-  email: string;
-  subject: string;
-  category: string;
-  priority: "High" | "Medium" | "Low";
-  status: "Open" | "Resolved" | "Escalated" | "Pending";
-  created: string;
-  dueDate: string;
-  assignedTo?: string;
-}
-
 interface ticketFilter {
   category: string;
   priority: string;
   status: string;
 }
 
-const mapStatus = (backendStatus: string): Ticket['status'] => {
+// Map backend status to UI status
+const mapStatus = (backendStatus: string): TicketType['status'] => {
   switch (backendStatus) {
     case 'pending':
     case 'in-progress':
@@ -51,13 +40,14 @@ const mapStatus = (backendStatus: string): Ticket['status'] => {
     case 'resolved':
       return 'Resolved';
     case 'closed':
-      return 'Resolved';
+      return 'Closed';
     default:
       return 'Pending';
   }
 };
 
-const mapPriority = (backendPriority: string): Ticket['priority'] => {
+// Map backend priority to UI priority
+const mapPriority = (backendPriority: string): TicketType['priority'] => {
   switch (backendPriority) {
     case 'urgent':
     case 'high':
@@ -82,53 +72,35 @@ const SupportDashboard = () => {
     status: ''
   });
   const [showAllTickets, setShowAllTickets] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<TicketType | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // Fetch tickets from backend
   const { data, isLoading, isError, refetch } = useGetTicketsQuery({ limit: 100 });
-  // Optional: fallback polling every 10 seconds if needed – uncomment if socket fails
-  // const { data, isLoading, isError, refetch } = useGetTicketsQuery(
-  //   { limit: 100 },
-  //   { pollingInterval: 10000 }
-  // );
 
   // Socket for real‑time updates
   useEffect(() => {
     const token = sessionStorage.getItem('accessToken');
-    if (!token) {
-      console.log('No token, skipping socket connection');
-      return;
-    }
+    if (!token) return;
 
     const socket = connectSocket(token);
-    if (!socket) {
-      console.log('Failed to connect socket');
-      return;
-    }
+    if (!socket) return;
 
-    console.log('Socket connected, joining admin-tickets room');
-
-    const handleNewTicket = () => {
-      console.log('🆕 New ticket event received, refetching...');
-      refetch();
-    };
-    const handleTicketUpdated = () => {
-      console.log('🔄 Ticket updated event received, refetching...');
-      refetch();
-    };
+    const handleNewTicket = () => refetch();
+    const handleTicketUpdated = () => refetch();
 
     socket.on('new-ticket', handleNewTicket);
     socket.on('ticket-updated', handleTicketUpdated);
     socket.emit('join-admin-tickets');
 
     return () => {
-      console.log('Cleaning up socket listeners');
       socket.off('new-ticket', handleNewTicket);
       socket.off('ticket-updated', handleTicketUpdated);
     };
   }, [refetch]);
 
   // Transform backend tickets to UI format
-  const ticketsData = useMemo((): Ticket[] => {
+  const ticketsData = useMemo((): TicketType[] => {
     if (!data?.data.tickets) return [];
     return data.data.tickets.map(t => ({
       id: t._id,
@@ -142,6 +114,7 @@ const SupportDashboard = () => {
       created: new Date(t.createdAt).toLocaleDateString(),
       dueDate: new Date(t.updatedAt).toLocaleDateString(),
       assignedTo: t.assignedTo,
+      message: t.message,           // <-- add this
     }));
   }, [data]);
 
@@ -167,15 +140,18 @@ const SupportDashboard = () => {
   }, [ticketsData, filters]);
 
   const displayedTickets = useMemo(() => {
-    if (showAllTickets) {
-      return filteredTickets;
-    } else {
-      return filteredTickets.slice(0, 3);
-    }
+    if (showAllTickets) return filteredTickets;
+    return filteredTickets.slice(0, 3);
   }, [filteredTickets, showAllTickets]);
 
-  const handleTicketClick = (ticket: Ticket) => {
-    navigate(`/csr/tickets/${ticket.ticketId}`);
+  const handleTicketClick = (ticket: TicketType) => {
+    setSelectedTicket(ticket);
+    setIsDrawerOpen(true);
+  };
+
+  const handleCloseDrawer = () => {
+    setIsDrawerOpen(false);
+    setSelectedTicket(null);
   };
 
   const handleCheckboxChange = (ticketId: string, e: React.MouseEvent) => {
@@ -229,6 +205,7 @@ const SupportDashboard = () => {
       default: return 'badge';
     }
   };
+
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case 'Open': return 'badge badge-open';
@@ -283,7 +260,7 @@ const SupportDashboard = () => {
               <h1>Support Dashboard</h1>
               <p>Track your workload and manage assigned tickets</p>
             </span>
-            <button>
+            <button onClick={() => navigate('/csr/tickets/new')}>
               <img src={plus} alt="plus" /> Create Ticket
             </button>
           </div>
@@ -423,7 +400,7 @@ const SupportDashboard = () => {
                                 type="checkbox"
                                 checked={selectedTickets.has(ticket.ticketId)}
                                 onClick={(e) => handleCheckboxChange(ticket.ticketId, e)}
-                                onChange={() => {}}
+                                onChange={() => { }}
                                 className="ticketCheckbox"
                               />
                               <span className="ticketId">{ticket.ticketId}</span>
@@ -503,6 +480,14 @@ const SupportDashboard = () => {
           </footer>
         </section>
       </div>
+
+      {/* Ticket Details Drawer */}
+      <TicketDetailsDrawer
+        isOpen={isDrawerOpen}
+        onClose={handleCloseDrawer}
+        ticket={selectedTicket}
+        onUpdate={refetch}
+      />
     </div>
   );
 };

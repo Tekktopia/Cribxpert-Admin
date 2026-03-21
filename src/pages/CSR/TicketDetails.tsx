@@ -1,6 +1,7 @@
 // pages/CSR/TicketDetails.tsx
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import emailjs from '@emailjs/browser';
 import { Sidebar } from "@/components/layout";
 import { Topbar } from "@/components/layout";
 import { csrNavigationItems } from "@/components/layout/csrSidebar";
@@ -13,6 +14,8 @@ import {
   Calendar,
   Phone,
   Mail,
+  CheckCircle,
+  XCircle,
 } from 'lucide-react';
 import {
   useGetTicketByIdQuery,
@@ -26,6 +29,8 @@ export default function TicketDetails() {
   const [reply, setReply] = useState('');
   const [loading, setLoading] = useState(true);
   const [addingNote, setAddingNote] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
 
   const { data: ticket, isLoading, isError, refetch } = useGetTicketByIdQuery(ticketId || '');
   const [addNote] = useAddTicketNoteMutation();
@@ -38,25 +43,56 @@ export default function TicketDetails() {
   }, [isLoading, isError]);
 
   const handleSendReply = async () => {
-    if (!reply.trim()) return;
+    if (!reply.trim() || !ticket) return;
     setAddingNote(true);
+
     try {
+      // 1. Add note to ticket (internal record)
       await addNote({ id: ticketId!, message: reply }).unwrap();
+
+      // 2. Send email to the user via EmailJS
+      const templateParams = {
+        to_email: ticket.email,
+        from_name: 'Cribxpert Support',
+        reply_message: reply,
+        ticket_id: ticket.ticketId,
+        subject: ticket.subject,
+        user_name: `${ticket.firstName} ${ticket.lastName}`,
+      };
+
+      await emailjs.send(
+        import.meta.env.VITE_EMAILJS_SERVICE_ID,
+        import.meta.env.VITE_EMAILJS_REPLY_TEMPLATE_ID,
+        templateParams,
+        import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+      );
+
       setReply('');
       refetch(); // refresh ticket data
+      setShowSuccessModal(true);
+      setTimeout(() => setShowSuccessModal(false), 3000);
     } catch (error) {
-      console.error('Failed to add note', error);
+      console.error('Failed to send reply', error);
+      setShowErrorModal(true);
+      setTimeout(() => setShowErrorModal(false), 3000);
     } finally {
       setAddingNote(false);
     }
   };
 
   const handleSaveDraft = () => {
-    // Optionally save to localStorage
-    console.log('Saving draft:', reply);
+    localStorage.setItem(`draft_${ticketId}`, reply);
+    alert('Draft saved');
   };
 
+  useEffect(() => {
+    // Load draft from localStorage if exists
+    const draft = localStorage.getItem(`draft_${ticketId}`);
+    if (draft) setReply(draft);
+  }, [ticketId]);
+
   const handleStatusUpdate = async (newStatus: string) => {
+    if (!ticketId) return;
     try {
       await updateStatus({ id: ticketId!, status: newStatus }).unwrap();
       refetch();
@@ -65,14 +101,14 @@ export default function TicketDetails() {
     }
   };
 
-  const priorityColors = {
+  const priorityColors: Record<string, string> = {
     high: 'text-red-700 bg-red-50',
     medium: 'text-yellow-700 bg-yellow-50',
     low: 'text-green-700 bg-green-50',
-    urgent: 'text-red-700 bg-red-50', // map urgent to high style
+    urgent: 'text-red-700 bg-red-50',
   };
 
-  const statusColors = {
+  const statusColors: Record<string, string> = {
     pending: 'text-blue-700 bg-blue-50',
     'in-progress': 'text-blue-700 bg-blue-50',
     resolved: 'text-green-700 bg-green-50',
@@ -83,7 +119,7 @@ export default function TicketDetails() {
     return (
       <div className="flex min-h-screen bg-gray-50">
         <Sidebar navigationItems={csrNavigationItems} />
-        <div>
+        <div className="flex-1">
           <Topbar />
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
@@ -97,7 +133,7 @@ export default function TicketDetails() {
     return (
       <div className="flex min-h-screen bg-gray-50">
         <Sidebar navigationItems={csrNavigationItems} />
-        <div>
+        <div className="flex-1">
           <Topbar />
           <div className="text-center py-12">
             <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -119,7 +155,7 @@ export default function TicketDetails() {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar navigationItems={csrNavigationItems} />
-      <div>
+      <div className="flex-1">
         <Topbar />
 
         <div className="p-8">
@@ -156,12 +192,12 @@ export default function TicketDetails() {
                   <div className="flex items-center space-x-2">
                     <Calendar className="w-4 h-4 text-gray-400" />
                     <span className="text-gray-600">Created:</span>
-                    <span className="font-medium">{new Date(ticket.createdAt).toLocaleDateString()}</span>
+                    <span className="font-medium">{new Date(ticket.createdAt).toLocaleString()}</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Clock className="w-4 h-4 text-gray-400" />
                     <span className="text-gray-600">Last updated:</span>
-                    <span className="font-medium">{new Date(ticket.updatedAt).toLocaleDateString()}</span>
+                    <span className="font-medium">{new Date(ticket.updatedAt).toLocaleString()}</span>
                   </div>
                 </div>
               </div>
@@ -170,8 +206,8 @@ export default function TicketDetails() {
               <div className="bg-white rounded-lg border border-gray-200 p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-6">Conversation</h3>
 
-                <div className="space-y-6">
-                  {/* Initial message */}
+                <div className="space-y-4">
+                  {/* Initial message from customer */}
                   <div className="flex justify-start">
                     <div className="max-w-[80%] bg-gray-50 rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
@@ -180,22 +216,27 @@ export default function TicketDetails() {
                         </span>
                         <span className="text-xs text-gray-500">{new Date(ticket.createdAt).toLocaleString()}</span>
                       </div>
-                      <p className="text-gray-700">{ticket.message}</p>
+                      <p className="text-gray-700 whitespace-pre-wrap">{ticket.message}</p>
                     </div>
                   </div>
 
-                  {/* Notes */}
-                  {ticket.notes?.map((note, idx) => (
-                    <div key={idx} className="flex justify-start">
-                      <div className="max-w-[80%] bg-gray-50 rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="font-medium text-gray-900">{note.addedBy}</span>
-                          <span className="text-xs text-gray-500">{new Date(note.createdAt).toLocaleString()}</span>
+                  {/* Notes / Replies */}
+                  {ticket.notes && ticket.notes.length > 0 && (
+                    <div className="border-t border-gray-200 pt-4 mt-4">
+                      <h4 className="text-sm font-medium text-gray-700 mb-3">Replies</h4>
+                      {ticket.notes.map((note, idx) => (
+                        <div key={idx} className="flex justify-start mb-4">
+                          <div className="max-w-[80%] bg-blue-50 rounded-lg p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-medium text-blue-900">{note.addedBy}</span>
+                              <span className="text-xs text-blue-600">{new Date(note.createdAt).toLocaleString()}</span>
+                            </div>
+                            <p className="text-gray-700 whitespace-pre-wrap">{note.message}</p>
+                          </div>
                         </div>
-                        <p className="text-gray-700">{note.message}</p>
-                      </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
 
                 {/* Reply Box */}
@@ -204,7 +245,7 @@ export default function TicketDetails() {
                   <textarea
                     value={reply}
                     onChange={(e) => setReply(e.target.value)}
-                    placeholder="Type your response here..."
+                    placeholder="Type your response here. This will be sent to the customer's email and recorded in the ticket."
                     rows={4}
                     className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
                   />
@@ -233,7 +274,6 @@ export default function TicketDetails() {
             <div className="space-y-6">
               <div className="bg-white rounded-lg border border-gray-200 p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Requester Information</h3>
-
                 <div className="space-y-4">
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center">
@@ -250,9 +290,8 @@ export default function TicketDetails() {
                   <div className="space-y-3 pt-2">
                     <div className="flex items-center space-x-3 text-sm">
                       <Mail className="w-4 h-4 text-gray-400" />
-                      <span className="text-gray-600">{ticket.email}</span>
+                      <span className="text-gray-600 break-all">{ticket.email}</span>
                     </div>
-
                     {ticket.phone && (
                       <div className="flex items-center space-x-3 text-sm">
                         <Phone className="w-4 h-4 text-gray-400" />
@@ -291,6 +330,26 @@ export default function TicketDetails() {
           </div>
         </div>
       </div>
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed bottom-4 right-4 z-50 animate-slide-up">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3 shadow-lg">
+            <CheckCircle className="w-5 h-5 text-green-600" />
+            <p className="text-green-800">Reply sent successfully to {ticket.email}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Error Modal */}
+      {showErrorModal && (
+        <div className="fixed bottom-4 right-4 z-50 animate-slide-up">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3 shadow-lg">
+            <XCircle className="w-5 h-5 text-red-600" />
+            <p className="text-red-800">Failed to send reply. Please try again.</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
