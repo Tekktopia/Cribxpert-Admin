@@ -1,37 +1,62 @@
-import type { ReactNode } from "react";
 import { useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
+import { useAppSelector } from "@/store/hooks";
+import { adminNavigationItems } from "./Sidebar";           // adjust import path
+import { csrNavigationItems } from "./csrSidebar";         // adjust import path
+import { financeAdminNavigationItems } from "./FinanceSidebar"; // adjust import path
 
-interface MainLayoutProps {
-  children: ReactNode;
-}
-
-export function MainLayout({ children }: MainLayoutProps) {
+export function MainLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const role = useAppSelector(state => state.auth.user?.role);
+
+  const getSidebarItems = () => {
+    switch (role) {
+      case "FinanceAdmin":
+        return financeAdminNavigationItems;
+      case "CSR":
+      case "CSRAdmin":          // if your backend returns CSRAdmin
+        return csrNavigationItems;
+      default:
+        return adminNavigationItems;   // Admin, SuperAdmin
+    }
+  };
 
   return (
-    <div className='flex min-h-screen bg-[FEFEFF]'>
-      {/* Mobile sidebar backdrop */}
+    <div className="flex min-h-screen bg-[FEFEFF]">
+      {/* Mobile backdrop */}
       {sidebarOpen && (
         <div
-          className='fixed inset-0 z-40 bg-black/65 bg-opacity-50 lg:hidden'
+          className="fixed inset-0 z-40 bg-black/65 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <Sidebar
+        navigationItems={getSidebarItems().map(item => {
+          // Ensure iconSrc exists for each item (for type safety)
+          if ('iconSrc' in item) {
+            return item;
+          } else if ('icon' in item) {
+            // Convert icon to iconSrc if required by Sidebar's prop type
+            return {
+              ...item,
+              iconSrc: "", // Provide a fallback src or handle this accordingly
+            };
+          }
+          return item;
+        })}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
-        className='fixed inset-y-0 left-0 z-50 lg:static lg:z-auto'
+        className="fixed inset-y-0 left-0 z-50 lg:static lg:z-auto"
       />
 
       {/* Main content */}
-      <div className='flex-1 flex flex-col min-w-0 lg:ml-0 h-screen'>
+      <div className="flex-1 flex flex-col min-w-0 lg:ml-0 h-screen">
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
-        <main className='flex-1 overflow-y-auto'>
-          <div className='w-full max-w-[1440px] mx-auto px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8'>
+        <main className="flex-1 overflow-y-auto">
+          <div className="w-full max-w-[1440px] mx-auto px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
             {children}
           </div>
         </main>

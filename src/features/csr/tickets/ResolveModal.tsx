@@ -1,13 +1,30 @@
 // pages/CSR/tickets/components/ResolveModal.tsx
-import { X, CheckCircle } from 'lucide-react';
+import { X, CheckCircle, Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import { useUpdateTicketStatusMutation } from '@/api/features/ticket/ticketApiSlice';
 import { type Ticket } from '@/features/csr/tickets/types';
+
 interface ResolveModalProps {
   isOpen: boolean;
   onClose: () => void;
-  ticket: Ticket; // Replace 'any' with your Ticket type
+  ticket: Ticket;
 }
 
 export function ResolveModal({ isOpen, onClose, ticket }: ResolveModalProps) {
+  const [updateStatus, { isLoading }] = useUpdateTicketStatusMutation();
+  const [resolutionNote, setResolutionNote] = useState('');
+
+  const handleResolve = async () => {
+    try {
+      await updateStatus({ id: ticket.id, status: 'resolved' }).unwrap();
+      // Optionally, add a note with the resolution message
+      // You could call addTicketNote here if you want to attach the note.
+      onClose();
+    } catch (error) {
+      console.error('Failed to resolve ticket', error);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -22,58 +39,36 @@ export function ResolveModal({ isOpen, onClose, ticket }: ResolveModalProps) {
 
         <div className="p-6 space-y-4">
           <p className="text-sm text-gray-500">Ticket ID: {ticket.ticketId}</p>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Resolution Type
+              Resolution Notes (optional)
             </label>
-            <select className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-              <option>Select resolution type</option>
-              <option>Issue Fixed</option>
-              <option>Customer Satisfied</option>
-              <option>Refund Processed</option>
-              <option>Information Provided</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Resolution Notes
-            </label>
-            <textarea 
-              rows={4}
+            <textarea
+              rows={3}
+              value={resolutionNote}
+              onChange={(e) => setResolutionNote(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              placeholder="Provide detailed explanation of how the issue was resolved..."
+              placeholder="Add a note about how this was resolved..."
             />
           </div>
-
-          <div className="space-y-2">
-            <label className="flex items-center gap-2">
-              <input type="checkbox" className="rounded" />
-              <span className="text-sm text-gray-700">Notify customer about resolution</span>
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="checkbox" className="rounded" />
-              <span className="text-sm text-gray-700">Schedule follow-up with customer</span>
-            </label>
-          </div>
-
           <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex gap-3">
-            <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+            <CheckCircle className="w-5 h-5 text-green-600" />
             <p className="text-sm text-green-800">
-              This ticket will be marked as resolved and moved to the resolved queue. The customer will be automatically notified.
+              This ticket will be marked as resolved. The customer will be notified.
             </p>
           </div>
         </div>
 
         <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
-          <button 
-            onClick={onClose}
-            className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100"
-          >
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100">
             Cancel
           </button>
-          <button className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700">
+          <button
+            onClick={handleResolve}
+            disabled={isLoading}
+            className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+          >
+            {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
             Mark as Resolved
           </button>
         </div>

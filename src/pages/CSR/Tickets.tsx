@@ -1,4 +1,3 @@
-// pages/CSR/tickets/Tickets.tsx
 import { useState, useRef, useEffect } from "react";
 import { Sidebar } from "@/components/layout";
 import { Topbar } from "@/components/layout";
@@ -13,6 +12,8 @@ import {
   AlertCircle,
   CheckCircle,
 } from "lucide-react";
+import type { Ticket } from "@/features/csr/tickets/types"; // use the actual Ticket type
+ // use the actual Ticket type
 
 import { EscalateModal } from "@/features/csr/tickets/EscalateModal";
 import { ResolveModal } from "@/features/csr/tickets/ResolveModal";
@@ -20,17 +21,42 @@ import { EditTicketModal } from "@/features/csr/tickets/EditTicketModal";
 import { CreateTicketModal } from "@/features/csr/tickets/CreateTicketModal";
 import { TicketDetailsDrawer } from '@/features/csr/tickets/TicketDetailsDrawer';
 
-interface Ticket {
-  id: string;
-  ticketId: string;
-  user: string;
-  subject: string;
-  category: string;
-  priority: "High" | "Medium" | "Low";
-  status: "Open" | "Resolved" | "Escalated" | "Closed";
-  created: string;
-  assignedTo?: string;
-}
+import {
+  useGetTicketsQuery,
+  useUpdateTicketStatusMutation,
+} from "@/api/features/ticket/ticketApiSlice";
+import { connectSocket } from "@/services/socket";
+
+// Helper to map backend status to UI status
+const mapStatus = (backendStatus: string): Ticket['status'] => {
+  switch (backendStatus) {
+    case 'pending':
+    case 'in-progress':
+      return 'Open';
+    case 'resolved':
+      return 'Resolved';
+    case 'closed':
+      return 'Closed';
+    default:
+      return 'Open';
+  }
+};
+
+// Helper to map backend priority to UI priority
+const mapPriority = (backendPriority: string): Ticket['priority'] => {
+  switch (backendPriority) {
+    case 'urgent':
+      return 'High';
+    case 'high':
+      return 'High';
+    case 'medium':
+      return 'Medium';
+    case 'low':
+      return 'Low';
+    default:
+      return 'Medium';
+  }
+};
 
 // Dropdown Component
 function TicketActionsDropdown({ ticket, onAction }: { ticket: Ticket; onAction: (ticket: Ticket, action: string) => void }) {
@@ -114,96 +140,57 @@ export default function Tickets() {
     category: "",
     priority: "",
     status: "",
+    search: "",
   });
 
-  const tickets: Ticket[] = [
-    {
-      id: "1",
-      ticketId: "100012",
-      user: "Tope Akinola",
-      subject: "Payment not processed for booking",
-      category: "Payment",
-      priority: "High",
-      status: "Open",
-      created: "2025-02-12",
-    },
-    {
-      id: "2",
-      ticketId: "100022",
-      user: "Tope Akinola",
-      subject: "Unable to cancel reservation",
-      category: "Booking",
-      priority: "Medium",
-      status: "Open",
-      created: "2025-02-12",
-    },
-    {
-      id: "3",
-      ticketId: "100023",
-      user: "Tope Akinola",
-      subject: "Host not responding to messages",
-      category: "Abuse",
-      priority: "Low",
-      status: "Open",
-      created: "2025-02-12",
-    },
-    {
-      id: "4",
-      ticketId: "100024",
-      user: "Tope Akinola",
-      subject: "App crashes on iOS device",
-      category: "Tech",
-      priority: "Low",
-      status: "Resolved",
-      created: "2025-02-12",
-    },
-    {
-      id: "5",
-      ticketId: "100025",
-      user: "Tope Akinola",
-      subject: "Refund request for cancelled booking",
-      category: "Payment",
-      priority: "Low",
-      status: "Resolved",
-      created: "2025-02-12",
-    },
-    {
-      id: "6",
-      ticketId: "100026",
-      user: "Tope Akinola",
-      subject: "Inappropriate host behavior",
-      category: "Abuse",
-      priority: "Low",
-      status: "Resolved",
-      created: "2025-02-12",
-    },
-    {
-      id: "7",
-      ticketId: "100027",
-      user: "Tope Akinola",
-      subject: "Property not as described",
-      category: "Booking",
-      priority: "Low",
-      status: "Escalated",
-      created: "2025-02-12",
-    },
-    {
-      id: "8",
-      ticketId: "100028",
-      user: "Tope Akinola",
-      subject: "Double charge on credit card",
-      category: "Payment",
-      priority: "High",
-      status: "Escalated",
-      created: "2025-02-12",
-    },
-  ];
+  // Build query params
+  const queryParams = {
+    page: currentPage,
+    limit: rowsPerPage,
+    search: filters.search || undefined,
+    priority: filters.priority || undefined,
+    status: filters.status ? (filters.status === 'Open' ? 'pending,in-progress' : filters.status.toLowerCase()) : undefined,
+  };
 
-  const totalItems = tickets.length;
-  const totalPages = Math.ceil(totalItems / rowsPerPage);
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const endIndex = Math.min(startIndex + rowsPerPage, totalItems);
-  const currentTickets = tickets.slice(startIndex, endIndex);
+  // Fetch tickets from backend
+  const { data, isLoading, isError, refetch } = useGetTicketsQuery(queryParams);
+  const [] = useUpdateTicketStatusMutation(); // will be used in modals
+
+  // Socket connection for real-time updates
+  useEffect(() => {
+    const token = sessionStorage.getItem('accessToken');
+    if (token) {
+      const socket = connectSocket(token);
+      socket.on('new-ticket', () => {
+        refetch(); // refresh list
+      });
+      socket.on('ticket-updated', () => {
+        refetch(); // refresh list
+      });
+      socket.emit('join-admin-tickets'); // join room
+      return () => {
+        socket.off('new-ticket');
+        socket.off('ticket-updated');
+      };
+    }
+  }, [refetch]);
+
+  // Transform backend tickets to UI format
+  const tickets: Ticket[] = data?.data.tickets.map(t => ({
+    id: t._id,
+    ticketId: t.ticketId,
+    user: `${t.firstName} ${t.lastName}`,
+    email: t.email,
+    subject: t.subject,
+    category: t.subject, // you can add a separate category field in backend if needed
+    priority: mapPriority(t.priority),
+    status: mapStatus(t.status),
+    created: new Date(t.createdAt).toLocaleDateString(),
+    assignedTo: t.assignedTo,
+  })) || [];
+
+  const totalItems = data?.data.pagination.total || 0;
+  const totalPages = data?.data.pagination.totalPages || 1;
 
   const getPriorityBadge = (priority: string) => {
     const colors = {
@@ -242,14 +229,8 @@ export default function Tickets() {
     }
   };
 
-  const handlePrevPage = () => {
-    setCurrentPage(prev => Math.max(1, prev - 1));
-  };
-
-  const handleNextPage = () => {
-    setCurrentPage(prev => Math.min(totalPages, prev + 1));
-  };
-
+  const handlePrevPage = () => setCurrentPage(prev => Math.max(1, prev - 1));
+  const handleNextPage = () => setCurrentPage(prev => Math.min(totalPages, prev + 1));
   const handleGoToPage = () => {
     const pageNum = parseInt(goToPage);
     if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= totalPages) {
@@ -320,6 +301,8 @@ export default function Tickets() {
               <input
                 type="text"
                 placeholder="Search tickets..."
+                value={filters.search}
+                onChange={(e) => setFilters({...filters, search: e.target.value})}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
             </div>
@@ -327,107 +310,115 @@ export default function Tickets() {
 
           {/* Tickets Table */}
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ticket ID</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Priority</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {currentTickets.map((ticket) => (
-                    <tr key={ticket.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 text-sm font-medium text-gray-900">{ticket.ticketId}</td>
-                      <td className="px-6 py-4 text-sm text-gray-700">{ticket.user}</td>
-                      <td className="px-6 py-4 text-sm text-gray-700 max-w-xs truncate">{ticket.subject}</td>
-                      <td className="px-6 py-4 text-sm text-gray-700">{ticket.category}</td>
-                      <td className="px-6 py-4">
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPriorityBadge(ticket.priority)}`}>
-                          {ticket.priority}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadge(ticket.status)}`}>
-                          {ticket.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-700">{ticket.created}</td>
-                      <td className="px-6 py-4">
-                        <TicketActionsDropdown ticket={ticket} onAction={handleTicketAction} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            {isLoading ? (
+              <div className="text-center py-8">Loading tickets...</div>
+            ) : isError ? (
+              <div className="text-center py-8 text-red-600">Failed to load tickets</div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ticket ID</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Priority</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {tickets.map((ticket) => (
+                        <tr key={ticket.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-4 text-sm font-medium text-gray-900">{ticket.ticketId}</td>
+                          <td className="px-6 py-4 text-sm text-gray-700">{ticket.user}</td>
+                          <td className="px-6 py-4 text-sm text-gray-700 max-w-xs truncate">{ticket.subject}</td>
+                          <td className="px-6 py-4 text-sm text-gray-700">{ticket.category}</td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPriorityBadge(ticket.priority)}`}>
+                              {ticket.priority}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadge(ticket.status)}`}>
+                              {ticket.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-700">{ticket.created}</td>
+                          <td className="px-6 py-4">
+                            <TicketActionsDropdown ticket={ticket} onAction={handleTicketAction} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
 
-            {/* Pagination */}
-            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-700">Rows per page:</span>
-                <select
-                  value={rowsPerPage}
-                  onChange={(e) => {
-                    setRowsPerPage(Number(e.target.value));
-                    setCurrentPage(1);
-                  }}
-                  className="px-2 py-1 border border-gray-300 rounded text-sm"
-                >
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                </select>
-              </div>
+                {/* Pagination */}
+                <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-700">Rows per page:</span>
+                    <select
+                      value={rowsPerPage}
+                      onChange={(e) => {
+                        setRowsPerPage(Number(e.target.value));
+                        setCurrentPage(1);
+                      }}
+                      className="px-2 py-1 border border-gray-300 rounded text-sm"
+                    >
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                      <option value={50}>50</option>
+                    </select>
+                  </div>
 
-              <div className="flex items-center gap-2">
-                <button 
-                  onClick={handlePrevPage}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1 text-sm text-gray-700 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <span className="text-sm text-gray-700">
-                  Page {currentPage} of {totalPages}
-                </span>
-                <button 
-                  onClick={handleNextPage}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1 text-sm text-gray-700 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={handlePrevPage}
+                      disabled={currentPage === 1}
+                      className="px-3 py-1 text-sm text-gray-700 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <span className="text-sm text-gray-700">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <button 
+                      onClick={handleNextPage}
+                      disabled={currentPage === totalPages}
+                      className="px-3 py-1 text-sm text-gray-700 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
 
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-700">Go to Page:</span>
-                <input
-                  type="text"
-                  value={goToPage}
-                  onChange={(e) => setGoToPage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleGoToPage()}
-                  className="w-16 px-2 py-1 border border-gray-300 rounded text-sm text-center"
-                  placeholder="1"
-                />
-                <button 
-                  onClick={handleGoToPage}
-                  className="px-3 py-1 bg-teal-600 text-white text-sm rounded hover:bg-teal-700"
-                >
-                  Go
-                </button>
-              </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-700">Go to Page:</span>
+                    <input
+                      type="text"
+                      value={goToPage}
+                      onChange={(e) => setGoToPage(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleGoToPage()}
+                      className="w-16 px-2 py-1 border border-gray-300 rounded text-sm text-center"
+                      placeholder="1"
+                    />
+                    <button 
+                      onClick={handleGoToPage}
+                      className="px-3 py-1 bg-teal-600 text-white text-sm rounded hover:bg-teal-700"
+                    >
+                      Go
+                    </button>
+                  </div>
 
-              <div className="text-sm text-gray-700">
-                Showing {startIndex + 1} - {endIndex} of {totalItems}
-              </div>
-            </div>
+                  <div className="text-sm text-gray-700">
+                    Showing {(currentPage-1)*rowsPerPage+1} - {Math.min(currentPage*rowsPerPage, totalItems)} of {totalItems}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

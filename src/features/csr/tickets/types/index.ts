@@ -20,6 +20,12 @@ export interface Ticket {
     timeRemaining: string;
     percentageUsed: number;
   };
+  // Add notes field to match backend response
+  notes?: Array<{
+    message: string;
+    addedBy: string;
+    createdAt: string;
+  }>;
 }
 
 export interface TicketComment {

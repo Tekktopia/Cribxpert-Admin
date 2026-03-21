@@ -1,14 +1,34 @@
 // pages/CSR/tickets/components/EditTicketModal.tsx
-import { X } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import { useUpdateTicketStatusMutation } from '@/api/features/ticket/ticketApiSlice';
 import { type Ticket } from '@/features/csr/tickets/types';
 
 interface EditTicketModalProps {
   isOpen: boolean;
   onClose: () => void;
-  ticket: Ticket; // Replace 'any' with your Ticket type
+  ticket: Ticket;
 }
 
 export function EditTicketModal({ isOpen, onClose, ticket }: EditTicketModalProps) {
+  const [updateStatus, { isLoading }] = useUpdateTicketStatusMutation();
+  const [priority, setPriority] = useState(ticket.priority);
+  const [status, setStatus] = useState(ticket.status);
+
+  const handleSave = async () => {
+    try {
+      await updateStatus({
+        id: ticket.id,
+        status: status.toLowerCase(),
+        // Note: priority mapping from UI to backend needs translation
+        // For now, we only update status. Extend as needed.
+      }).unwrap();
+      onClose();
+    } catch (error) {
+      console.error('Failed to update ticket', error);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -26,81 +46,63 @@ export function EditTicketModal({ isOpen, onClose, ticket }: EditTicketModalProp
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               defaultValue={ticket.subject}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
+              disabled
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-              <select defaultValue={ticket.category} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                <option>Select Category</option>
-                <option>Payment</option>
-                <option>Booking</option>
-                <option>Abuse</option>
-                <option>Tech</option>
-              </select>
-            </div>
-            <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
-              <select defaultValue={ticket.priority} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                <option>High</option>
-                <option>Medium</option>
-                <option>Low</option>
+              <select
+                value={priority}
+                onChange={(e) => setPriority(e.target.value as Ticket['priority'])}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              >
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
               </select>
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-              <select defaultValue={ticket.status} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                <option>Open</option>
-                <option>Resolved</option>
-                <option>Escalated</option>
-                <option>Closed</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Assigned To</label>
-              <select className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                <option>Unassigned</option>
-                <option>Sarah Johnson</option>
-                <option>Mike Afolabi</option>
-                <option>Irie Adewale</option>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as Ticket['status'])}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              >
+                <option value="Open">Open</option>
+                <option value="Resolved">Resolved</option>
+                <option value="Escalated">Escalated</option>
+                <option value="Closed">Closed</option>
               </select>
             </div>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-            <textarea 
+            <textarea
               rows={4}
               defaultValue={ticket.subject}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              placeholder="Provide details of the issue."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
+              disabled
             />
-          </div>
-
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-800">
-              Changes will be saved and a notification will be added to the ticket activity log. 
-              The customer will be notified if there are significant changes to priority or status.
-            </p>
           </div>
         </div>
 
         <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
-          <button 
-            onClick={onClose}
-            className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100"
-          >
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100">
             Cancel
           </button>
-          <button className="px-4 py-2 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700">
+          <button
+            onClick={handleSave}
+            disabled={isLoading}
+            className="px-4 py-2 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 flex items-center gap-2"
+          >
+            {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
             Save Changes
           </button>
         </div>

@@ -8,77 +8,27 @@ interface SidebarProps {
   className?: string;
   isOpen?: boolean;
   onClose?: () => void;
-  navigationItems?: Array<{ readonly label: string; readonly iconSrc: string; readonly href: string }>; // modification for csr unique sidebar
+  navigationItems?: Array<{ readonly label: string; readonly iconSrc: string; readonly href: string }>;
 }
 
-// Move navigation items outside component to prevent recreation on every render
-const navigationItems = [
-  {
-    label: "Dashboard",
-    iconSrc: "/sidebar/dashboard-square-remove.svg",
-    href: "/dashboard",
-  },
-  {
-    label: "Users",
-    iconSrc: "/sidebar/user-multiple-02.svg",
-    href: "/users",
-  },
-  {
-    label: "Listings",
-    iconSrc: "/sidebar/list-setting.svg",
-    href: "/listings",
-  },
-  {
-    label: "Bookings",
-    iconSrc: "/sidebar/calendar-edit.svg",
-    href: "/bookings",
-  },
-  {
-    label: "KYC",
-    iconSrc: "/sidebar/card-tick.svg",
-    href: "/kyc",
-  },
-  {
-    label: "Messaging",
-    iconSrc: "/sidebar/mail-01.svg",
-    href: "/messaging",
-  },
-  {
-    label: "Booking Metrics",
-    iconSrc: "/sidebar/pixel_analytics.svg",
-    href: "/booking-metrics",
-  },
-  {
-    label: "Analytics",
-    iconSrc: "/sidebar/material-symbols_analytics-outline.svg",
-    href: "/analytics",
-  },
-  {
-    label: "Financials",
-    iconSrc: "/sidebar/fluent-mdl2_financial.svg",
-    href: "/financials",
-  },
-  {
-    label: "Notification",
-    iconSrc: "/sidebar/notification-block-03.svg",
-    href: "/notifications",
-  },
-  {
-    label: "Settings",
-    iconSrc: "/sidebar/setting-2.svg",
-    href: "/settings",
-  },
-  {
-    label: "Admin Roles",
-    iconSrc: "/sidebar/carbon_user-role.svg",
-    href: "/admin-roles",
-  },
-  {
-    label: "Logout",
-    iconSrc: "/sidebar/logout-01.svg", // Using the exit SVG from the main svg folder
-    href: "/log-out",
-  },
-] as const;
+const navigationItems = [ 
+  { label: "Dashboard", iconSrc: "/sidebar/dashboard-square-remove.svg", href: "/dashboard" },
+  { label: "Users", iconSrc: "/sidebar/user-multiple-02.svg", href: "/users" },
+  { label: "Listings", iconSrc: "/sidebar/list-setting.svg", href: "/listings" },
+  { label: "Bookings", iconSrc: "/sidebar/calendar-edit.svg", href: "/bookings" },
+  { label: "KYC", iconSrc: "/sidebar/card-tick.svg", href: "/kyc" },
+  { label: "Messaging", iconSrc: "/sidebar/mail-01.svg", href: "/messaging" },
+  { label: "Booking Metrics", iconSrc: "/sidebar/pixel_analytics.svg", href: "/booking-metrics" },
+  { label: "Analytics", iconSrc: "/sidebar/material-symbols_analytics-outline.svg", href: "/analytics" },
+  { label: "Financials", iconSrc: "/sidebar/fluent-mdl2_financial.svg", href: "/financials" },
+  { label: "Notification", iconSrc: "/sidebar/notification-block-03.svg", href: "/notifications" },
+  { label: "Settings", iconSrc: "/sidebar/setting-2.svg", href: "/settings" },
+  { label: "Admin Roles", iconSrc: "/sidebar/carbon_user-role.svg", href: "/admin-roles" },
+  { label: "CSR Tickets", iconSrc: "/sidebar/ticket.svg", href: "/csr/dashboard" },
+  { label: "Logout", iconSrc: "/sidebar/logout-01.svg", href: "/log-out" },
+];
+
+export const adminNavigationItems = navigationItems;
 
 export const Sidebar = memo(function Sidebar({
   className,

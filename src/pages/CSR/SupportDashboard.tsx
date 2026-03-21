@@ -1,28 +1,40 @@
-// pages/CSR/support/SupportDashboard.tsx
-import { Sidebar } from "@/components/layout";
-import { Topbar } from "@/components/layout";
-import { csrNavigationItems } from "@/components/layout/csrSidebar";
-import { useNavigate } from "react-router-dom"; 
-import arrow from "@public/svg/arrow-up.svg";
-import plus from "@public/svg/plus.svg";
-import ticket from "@public/svg/tickets.svg";
-import assign from "@public/svg/assigned.svg";
-import resolve from "@public/svg/resolved.svg";
-import escalate from "@public/svg/escalate.svg";
-import { RecentActivity } from "@/features/dashboard/RecentActivity";
+// pages/CSR/SupportDashboard.tsx
+import "@/style(nicholas)/style.scss";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { Topbar } from "@/components/layout/Topbar";
+import { csrNavigationItems } from "@/components/layout/csrSidebar";
+import { useGetTicketsQuery } from "@/api/features/ticket/ticketApiSlice";
+import { connectSocket } from "@/services/socket";
+import { useAppSelector } from "@/store/hooks";
+import arrow from "/svg/arrow-up.svg";
+import plus from "/svg/plus.svg";
+import ticketIcon from "/svg/tickets.svg";
+import assign from "/svg/assigned.svg";
+import resolve from "/svg/resolved.svg";
+import escalate from "/svg/escalate.svg";
+
+// Placeholder for RecentActivity
+const RecentActivityPlaceholder = () => (
+  <div className="bg-white rounded-lg p-4">
+    <p className="text-gray-500">Recent activity will appear here.</p>
+  </div>
+);
 
 interface Ticket {
   id: string;
   ticketId: string;
   user: string;
+  email: string;
   subject: string;
   category: string;
   priority: "High" | "Medium" | "Low";
   status: "Open" | "Resolved" | "Escalated" | "Pending";
   created: string;
   dueDate: string;
+  assignedTo?: string;
 }
 
 interface ticketFilter {
@@ -31,130 +43,125 @@ interface ticketFilter {
   status: string;
 }
 
-interface ActivityItem {
-  id: string;
-  type: "user_verification" | "listing_flagged" | "payout_processed";
-  title: string;
-  description: string;
-  timestamp: string;
-  status: "pending" | "completed" | "failed";
-}
+const mapStatus = (backendStatus: string): Ticket['status'] => {
+  switch (backendStatus) {
+    case 'pending':
+    case 'in-progress':
+      return 'Open';
+    case 'resolved':
+      return 'Resolved';
+    case 'closed':
+      return 'Resolved';
+    default:
+      return 'Pending';
+  }
+};
 
-const SupportDash = () => {
-  const navigate = useNavigate(); // Add this
+const mapPriority = (backendPriority: string): Ticket['priority'] => {
+  switch (backendPriority) {
+    case 'urgent':
+    case 'high':
+      return 'High';
+    case 'medium':
+      return 'Medium';
+    case 'low':
+      return 'Low';
+    default:
+      return 'Medium';
+  }
+};
 
-  // Remove these state variables
-  // const [selectedComplaintId, setSelectedComplaintId] = useState<string | undefined>();
-  // const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-
+const SupportDashboard = () => {
+  const navigate = useNavigate();
+  const currentUser = useAppSelector(state => state.auth.user);
   const [selectedTickets, setSelectedTickets] = useState<Set<string>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
-
   const [filters, setFilters] = useState<ticketFilter>({
     category: '',
     priority: '',
     status: ''
   });
-
   const [showAllTickets, setShowAllTickets] = useState(false);
 
-  const isFilterActive = useMemo(() => {
-    return filters.category !== '' || filters.priority !== '' || filters.status !== '';
-  }, [filters]);
+  // Fetch tickets from backend
+  const { data, isLoading, isError, refetch } = useGetTicketsQuery({ limit: 100 });
+  // Optional: fallback polling every 10 seconds if needed – uncomment if socket fails
+  // const { data, isLoading, isError, refetch } = useGetTicketsQuery(
+  //   { limit: 100 },
+  //   { pollingInterval: 10000 }
+  // );
 
-  const ticketsData = useMemo((): Ticket[] => {
-    return [
-      {
-        id: "1",
-        ticketId: "100012",
-        user: "Tope Akinola",
-        subject: "payment failed for booking",
-        category: "Payment",
-        priority: "High",
-        status: "Open",
-        created: "2025-02-12",
-        dueDate: "2025-02-12",
-      },
-      {
-        id: "2",
-        ticketId: "100022",
-        user: "Tope Akinola",
-        subject: "topsky@gmail.com",
-        category: "Booking",
-        priority: "Medium",
-        status: "Resolved",
-        created: "2025-02-12",
-        dueDate: "2025-02-12",
-      },
-      {
-        id: "3",
-        ticketId: "100023",
-        user: "Tope Akinola",
-        subject: "topsky@gmail.com",
-        category: "Abuse",
-        priority: "Low",
-        status: "Escalated",
-        created: "2025-02-12",
-        dueDate: "2025-02-12",
-      },
-      {
-        id: "4",
-        ticketId: "100024",
-        user: "Ada Johnson",
-        subject: "WiFi not working",
-        category: "Property Issue",
-        priority: "Medium",
-        status: "Pending",
-        created: "2025-02-13",
-        dueDate: "2025-02-15",
-      },
-      {
-        id: "5",
-        ticketId: "100025",
-        user: "Mike Smith",
-        subject: "Late check-in",
-        category: "Booking",
-        priority: "Low",
-        status: "Open",
-        created: "2025-02-13",
-        dueDate: "2025-02-14",
-      },
-    ];
-  }, []);
-
-  const activitiesData: ActivityItem[] = useMemo(() => [
-    {
-      id: "1",
-      type: "user_verification",
-      title: "New Ticket #4523 Assigned To You",
-      description: "Payment Issue - Requires immediate attention",
-      timestamp: "2 minutes ago",
-      status: "pending"
-    },
-    {
-      id: "2",
-      type: "listing_flagged",
-      title: "Guest Ada Replied To Ticket",
-      description: "Ticket #4488 - Guest responded to your query",
-      timestamp: "2 minutes ago",
-      status: "completed"
-    },
-    {
-      id: "3",
-      type: "payout_processed",
-      title: "Ticket #4487 Resolved",
-      description: "Issue marked as resolved successfully",
-      timestamp: "2 minutes ago",
-      status: "completed"
+  // Socket for real‑time updates
+  useEffect(() => {
+    const token = sessionStorage.getItem('accessToken');
+    if (!token) {
+      console.log('No token, skipping socket connection');
+      return;
     }
-  ], []);
 
+    const socket = connectSocket(token);
+    if (!socket) {
+      console.log('Failed to connect socket');
+      return;
+    }
+
+    console.log('Socket connected, joining admin-tickets room');
+
+    const handleNewTicket = () => {
+      console.log('🆕 New ticket event received, refetching...');
+      refetch();
+    };
+    const handleTicketUpdated = () => {
+      console.log('🔄 Ticket updated event received, refetching...');
+      refetch();
+    };
+
+    socket.on('new-ticket', handleNewTicket);
+    socket.on('ticket-updated', handleTicketUpdated);
+    socket.emit('join-admin-tickets');
+
+    return () => {
+      console.log('Cleaning up socket listeners');
+      socket.off('new-ticket', handleNewTicket);
+      socket.off('ticket-updated', handleTicketUpdated);
+    };
+  }, [refetch]);
+
+  // Transform backend tickets to UI format
+  const ticketsData = useMemo((): Ticket[] => {
+    if (!data?.data.tickets) return [];
+    return data.data.tickets.map(t => ({
+      id: t._id,
+      ticketId: t.ticketId,
+      user: `${t.firstName} ${t.lastName}`,
+      email: t.email,
+      subject: t.subject,
+      category: t.subject,
+      priority: mapPriority(t.priority),
+      status: mapStatus(t.status),
+      created: new Date(t.createdAt).toLocaleDateString(),
+      dueDate: new Date(t.updatedAt).toLocaleDateString(),
+      assignedTo: t.assignedTo,
+    }));
+  }, [data]);
+
+  // Compute metrics
+  const openTickets = ticketsData.filter(t => t.status === 'Open').length;
+  const assignedToMe = ticketsData.filter(t => t.assignedTo === currentUser?.id).length;
+  const resolvedToday = ticketsData.filter(t => {
+    if (t.status !== 'Resolved') return false;
+    const today = new Date().toLocaleDateString();
+    return t.created === today;
+  }).length;
+  const escalationsPending = ticketsData.filter(t => t.status === 'Escalated').length;
+
+  // Filter logic
   const filteredTickets = useMemo(() => {
     return ticketsData.filter(ticket => {
       return (
         (filters.category === '' || ticket.category.toLowerCase().includes(filters.category.toLowerCase())) &&
-        (filters.priority === '' || ticket.priority.toLowerCase() === filters.priority.toLowerCase()) &&
-        (filters.status === '' || ticket.status.toLowerCase() === filters.status.toLowerCase())
+        (filters.priority === '' || ticket.priority === filters.priority) &&
+        (filters.status === '' || ticket.status === filters.status)
       );
     });
   }, [ticketsData, filters]);
@@ -167,39 +174,24 @@ const SupportDash = () => {
     }
   }, [filteredTickets, showAllTickets]);
 
-  // Update handleTicketClick to navigate
   const handleTicketClick = (ticket: Ticket) => {
     navigate(`/csr/tickets/${ticket.ticketId}`);
   };
 
-  // Remove handleCloseDrawer
-  // const handleCloseDrawer = () => {
-  //   setIsDrawerOpen(false);
-  //   setSelectedComplaintId(undefined);
-  // };
-
   const handleCheckboxChange = (ticketId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    
     setSelectedTickets(prev => {
       const newSelected = new Set(prev);
-      if (newSelected.has(ticketId)) {
-        newSelected.delete(ticketId);
-      } else {
-        newSelected.add(ticketId);
-      }
+      if (newSelected.has(ticketId)) newSelected.delete(ticketId);
+      else newSelected.add(ticketId);
       return newSelected;
     });
   };
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      const ticketsToSelect = showAllTickets 
-        ? filteredTickets
-        : filteredTickets.slice(0, 3);
-
-      const allTicketIds = ticketsToSelect.map(ticket => ticket.ticketId);
-      setSelectedTickets(new Set(allTicketIds));
+      const ids = displayedTickets.map(t => t.ticketId);
+      setSelectedTickets(new Set(ids));
       setSelectAll(true);
     } else {
       setSelectedTickets(new Set());
@@ -208,21 +200,14 @@ const SupportDash = () => {
   };
 
   const handleFilterChange = (field: keyof ticketFilter, value: string) => {
-    setFilters(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFilters(prev => ({ ...prev, [field]: value }));
     setSelectAll(false);
     setSelectedTickets(new Set());
     setShowAllTickets(false);
   };
 
   const clearFilters = () => {
-    setFilters({
-      category: '',
-      priority: '',
-      status: ''
-    });
+    setFilters({ category: '', priority: '', status: '' });
     setSelectedTickets(new Set());
     setSelectAll(false);
     setShowAllTickets(false);
@@ -230,75 +215,97 @@ const SupportDash = () => {
 
   const handleSeeAllClick = () => {
     setShowAllTickets(!showAllTickets);
-    
-    if (!showAllTickets) {
-      const allTicketIds = filteredTickets.map(ticket => ticket.ticketId);
-      const allSelected = allTicketIds.every(id => selectedTickets.has(id));
-      setSelectAll(allSelected);
-    } else {
-      const displayedIds = filteredTickets.slice(0, 3).map(ticket => ticket.ticketId);
-      const allSelected = displayedIds.every(id => selectedTickets.has(id));
-      setSelectAll(allSelected);
-    }
+    setSelectedTickets(new Set());
+    setSelectAll(false);
   };
+
+  const isFilterActive = filters.category !== '' || filters.priority !== '' || filters.status !== '';
 
   const getPriorityBadgeClass = (priority: string) => {
-    switch (priority.toLowerCase()) {
-      case 'high': return 'badge badge-high';
-      case 'medium': return 'badge badge-medium';
-      case 'low': return 'badge badge-low';
+    switch (priority) {
+      case 'High': return 'badge badge-high';
+      case 'Medium': return 'badge badge-medium';
+      case 'Low': return 'badge badge-low';
       default: return 'badge';
     }
   };
-  
   const getStatusBadgeClass = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'open': return 'badge badge-open';
-      case 'resolved': return 'badge badge-resolved';
-      case 'escalated': return 'badge badge-escalated';
-      case 'pending': return 'badge badge-pending';
+    switch (status) {
+      case 'Open': return 'badge badge-open';
+      case 'Resolved': return 'badge badge-resolved';
+      case 'Escalated': return 'badge badge-escalated';
+      case 'Pending': return 'badge badge-pending';
       default: return 'badge';
     }
   };
 
-  const uniqueCategories = [...new Set(ticketsData.map(ticket => ticket.category))];
-  const uniquePriorities = [...new Set(ticketsData.map(ticket => ticket.priority))];
-  const uniqueStatuses = [...new Set(ticketsData.map(ticket => ticket.status))];
+  const uniqueCategories = [...new Set(ticketsData.map(t => t.category))];
+  const uniquePriorities = ['High', 'Medium', 'Low'];
+  const uniqueStatuses = ['Open', 'Resolved', 'Escalated', 'Pending'];
+
+  if (isLoading) {
+    return (
+      <div className="supportDash">
+        <Sidebar navigationItems={csrNavigationItems} />
+        <div className="main">
+          <Topbar />
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="supportDash">
+        <Sidebar navigationItems={csrNavigationItems} />
+        <div className="main">
+          <Topbar />
+          <div className="text-center py-12">
+            <p className="text-red-600">Failed to load tickets. Please try again later.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="supportDash">
       <Sidebar navigationItems={csrNavigationItems} />
       <div className="main">
-        <Topbar/>
+        <Topbar />
 
-        <section className="container">
+        <section className="container px-4 md:px-6">
           <div className="text">
             <span>
               <h1>Support Dashboard</h1>
               <p>Track your workload and manage assigned tickets</p>
             </span>
             <button>
-              <img src={plus}/> Create Ticket
+              <img src={plus} alt="plus" /> Create Ticket
             </button>
           </div>
+
           <div className="top">
             <div className="status">
               <div className="statusItem">
                 <div>
                   <p>Open Tickets</p>
-                  <h4>30</h4>
+                  <h4>{openTickets}</h4>
                   <p id="cent">
                     <span><img src={arrow} alt="arrow up" /> 12%</span> From yesterday
                   </p>
                 </div>
                 <span>
-                  <img src={ticket} alt="ticket icon" />
+                  <img src={ticketIcon} alt="ticket icon" />
                 </span>
               </div>
               <div className="statusItem">
                 <div>
                   <p>Assigned to me</p>
-                  <h4>15</h4>
+                  <h4>{assignedToMe}</h4>
                   <p id="cent">
                     <span><img src={arrow} alt="arrow up" /> 5%</span> From yesterday
                   </p>
@@ -310,7 +317,7 @@ const SupportDash = () => {
               <div className="statusItem">
                 <div>
                   <p>Resolved today</p>
-                  <h4>8</h4>
+                  <h4>{resolvedToday}</h4>
                   <p id="cent">
                     <span><img src={arrow} alt="arrow up" /> 15%</span> From yesterday
                   </p>
@@ -322,7 +329,7 @@ const SupportDash = () => {
               <div className="statusItem">
                 <div>
                   <p>Escalations Pending</p>
-                  <h4>7</h4>
+                  <h4>{escalationsPending}</h4>
                   <p id="cent">
                     <span><img src={arrow} alt="arrow up" /> 12%</span> From yesterday
                   </p>
@@ -332,6 +339,7 @@ const SupportDash = () => {
                 </span>
               </div>
             </div>
+
             <div className="ticket">
               <div className="tableFilters">
                 <div className="filterControls">
@@ -342,8 +350,8 @@ const SupportDash = () => {
                       className="filterSelect"
                     >
                       <option value="">All Categories</option>
-                      {uniqueCategories.map(category => (
-                        <option key={category} value={category}>{category}</option>
+                      {uniqueCategories.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
                       ))}
                     </select>
                   </div>
@@ -354,8 +362,8 @@ const SupportDash = () => {
                       className="filterSelect"
                     >
                       <option value="">All Priorities</option>
-                      {uniquePriorities.map(priority => (
-                        <option key={priority} value={priority}>{priority}</option>
+                      {uniquePriorities.map(p => (
+                        <option key={p} value={p}>{p}</option>
                       ))}
                     </select>
                   </div>
@@ -366,8 +374,8 @@ const SupportDash = () => {
                       className="filterSelect"
                     >
                       <option value="">All Statuses</option>
-                      {uniqueStatuses.map(status => (
-                        <option key={status} value={status}>{status}</option>
+                      {uniqueStatuses.map(s => (
+                        <option key={s} value={s}>{s}</option>
                       ))}
                     </select>
                   </div>
@@ -378,14 +386,15 @@ const SupportDash = () => {
                   )}
                 </div>
               </div>
+
               <div className="ticketsTable">
                 <div className="tableCont">
-                  <table>
+                  <table className="min-w-full">
                     <thead>
                       <tr className="tableHeader">
                         <th className="ticketIdHeader">
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             checked={selectAll}
                             onChange={handleSelectAll}
                             className="selectAllCheckbox"
@@ -404,13 +413,13 @@ const SupportDash = () => {
                     <tbody className="tableBody">
                       {displayedTickets.length > 0 ? (
                         displayedTickets.map((ticket) => (
-                          <tr 
+                          <tr
                             key={ticket.id}
                             onClick={() => handleTicketClick(ticket)}
                             className="tableRow cursor-pointer hover:bg-gray-50"
                           >
                             <td className="ticketIdCell">
-                              <input 
+                              <input
                                 type="checkbox"
                                 checked={selectedTickets.has(ticket.ticketId)}
                                 onClick={(e) => handleCheckboxChange(ticket.ticketId, e)}
@@ -438,9 +447,7 @@ const SupportDash = () => {
                         ))
                       ) : (
                         <tr className="noResults">
-                          <td colSpan={8}>
-                            <span>No tickets found</span>
-                          </td>
+                          <td colSpan={8}>No tickets found</td>
                         </tr>
                       )}
                     </tbody>
@@ -458,33 +465,35 @@ const SupportDash = () => {
                 </div>
               </div>
             </div>
+
             <div className="activity">
               <div className="activities">
-                <RecentActivity activities={activitiesData} />
+                <RecentActivityPlaceholder />
               </div>
               <button className="loadMore">Load More Activity</button>
             </div>
           </div>
+
           <footer className="footer">
             <span>
               <p>Performance Summary</p>
             </span>
             <div className="stats">
               <div className="statItem">
-                <h4>300</h4>
+                <h4>{ticketsData.length}</h4>
                 <p>Total Tickets Handled</p>
               </div>
               <div className="statItem">
                 <h4>94.5%</h4>
-                <p>Resolution Time</p>
+                <p>Resolution Rate</p>
               </div>
               <div className="statItem">
                 <h4>12m</h4>
                 <p>Avg Response Time</p>
               </div>
               <div className="statItem">
-                <h4>245</h4>
-                <p>Disputes Resolved</p>
+                <h4>{escalationsPending}</h4>
+                <p>Pending Escalations</p>
               </div>
               <div className="statItem">
                 <h4>4.8</h4>
@@ -494,15 +503,8 @@ const SupportDash = () => {
           </footer>
         </section>
       </div>
-      
-      {/* Remove ComplaintDetailsDrawer */}
-      {/* <ComplaintDetailsDrawer
-        isOpen={isDrawerOpen}
-        onClose={handleCloseDrawer}
-        complaintId={selectedComplaintId}
-      /> */}
     </div>
   );
 };
 
-export default SupportDash;
+export default SupportDashboard;

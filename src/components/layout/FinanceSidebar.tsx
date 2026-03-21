@@ -38,6 +38,8 @@ const financeNavItems = [
   },
 ];
 
+export const financeAdminNavigationItems = financeNavItems;
+
 export default function FinanceSidebar() {
   const location = useLocation();
 

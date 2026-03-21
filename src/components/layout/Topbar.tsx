@@ -1,6 +1,6 @@
-import { Search, Bell, Menu, ChevronDown, Settings, LogOut } from "lucide-react";
+import { Search, Bell, Menu, ChevronDown, Settings, LogOut, ArrowLeft } from "lucide-react";
 import { memo, useCallback, useMemo, useState, useRef, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Button } from "../ui/button";
@@ -11,7 +11,7 @@ interface TopbarProps {
   onMenuClick?: () => void;
 }
 
-// Helper function to get initials from name
+// Helper functions remain unchanged
 const getInitials = (name: string): string => {
   if (!name) return "U";
   const parts = name.trim().split(" ");
@@ -21,7 +21,6 @@ const getInitials = (name: string): string => {
   return name.substring(0, 2).toUpperCase();
 };
 
-// Format role string for display (e.g. "FinanceAdmin" -> "Finance Admin")
 const formatRoleLabel = (role: string): string => {
   if (!role) return "User";
   const r = role.trim();
@@ -33,7 +32,6 @@ const formatRoleLabel = (role: string): string => {
   return r;
 };
 
-// Derive role from API roles object (priority: SuperAdmin > Admin > FinanceAdmin > CSRAdmin)
 const getRoleDisplay = (roles: unknown): string => {
   if (roles == null) return "User";
   let rolesObj: Record<string, number> | undefined;
@@ -48,7 +46,6 @@ const getRoleDisplay = (roles: unknown): string => {
     }
   }
   if (!rolesObj) return "User";
-  // Check in order of precedence (highest first)
   if (rolesObj.SuperAdmin != null && rolesObj.SuperAdmin !== 0) return "Super Admin";
   if (rolesObj.Admin != null && rolesObj.Admin !== 0) return "Admin";
   if (rolesObj.FinanceAdmin != null && rolesObj.FinanceAdmin !== 0) return "Finance Admin";
@@ -59,6 +56,7 @@ const getRoleDisplay = (roles: unknown): string => {
 export const Topbar = memo(function Topbar({ onMenuClick }: TopbarProps) {
   const dispatch = useDispatch();
   const { user } = useAppSelector((state) => state.auth);
+  const location = useLocation();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -74,7 +72,6 @@ export const Topbar = memo(function Topbar({ onMenuClick }: TopbarProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showProfileMenu]);
 
-  // Memoize the menu click handler
   const handleMenuClick = useCallback(() => {
     onMenuClick?.();
   }, [onMenuClick]);
@@ -93,7 +90,6 @@ export const Topbar = memo(function Topbar({ onMenuClick }: TopbarProps) {
     window.location.href = '/login';
   }, [dispatch, closeProfileMenu]);
 
-  // Get user display information
   const userDisplay = useMemo(() => {
     if (!user) {
       return {
@@ -105,8 +101,6 @@ export const Topbar = memo(function Topbar({ onMenuClick }: TopbarProps) {
     }
 
     const fullName = (user.fullName as string) || (user.name as string) || user.email || "User";
-
-    // Resolve role: prefer string role from API, then derive from roles object
     let role = "User";
     const roleStr = user.role && typeof user.role === "string" ? user.role.trim() : "";
     if (roleStr) {
@@ -125,10 +119,15 @@ export const Topbar = memo(function Topbar({ onMenuClick }: TopbarProps) {
     };
   }, [user]);
 
+  // Determine if we should show the "Back to Main Dashboard" button
+  const isSuperAdmin = userDisplay.role === "Super Admin";
+  const isOnCSRPage = location.pathname.startsWith("/csr");
+  const showBackButton = isSuperAdmin && isOnCSRPage;
+
   return (
     <header className='bg-white border-b border-gray-200 px-4 py-4 sm:px-6'>
       <div className='flex items-center justify-between'>
-        {/* Left Section - Mobile menu + Search */}
+        {/* Left Section - Mobile menu + Search + Back button */}
         <div className='flex items-center space-x-4'>
           {/* Mobile menu button */}
           <Button
@@ -139,6 +138,17 @@ export const Topbar = memo(function Topbar({ onMenuClick }: TopbarProps) {
           >
             <Menu className='w-5 h-5' />
           </Button>
+
+          {/* Back to Main Dashboard button for Super Admin on CSR pages */}
+          {showBackButton && (
+            <Link
+              to="/dashboard"
+              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Back to Main Dashboard</span>
+            </Link>
+          )}
 
           {/* Search Bar */}
           <div className='relative hidden sm:block'>
@@ -151,20 +161,18 @@ export const Topbar = memo(function Topbar({ onMenuClick }: TopbarProps) {
           </div>
         </div>
 
-        {/* Right Section */}
+        {/* Right Section - unchanged */}
         <div className='flex items-center space-x-2 sm:space-x-4'>
-          {/* Mobile search button */}
           <Button variant='ghost' size='icon' className='sm:hidden'>
             <Search className='w-5 h-5' />
           </Button>
 
-          {/* Notifications */}
           <Button variant='ghost' size='icon' className='relative'>
             <Bell className='w-5 h-5' />
             <span className='absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full'></span>
           </Button>
 
-          {/* User Avatar + Role - Now clickable with dropdown */}
+          {/* User Avatar + Role dropdown */}
           <div className='relative' ref={menuRef}>
             <button
               onClick={toggleProfileMenu}
@@ -190,16 +198,13 @@ export const Topbar = memo(function Topbar({ onMenuClick }: TopbarProps) {
               />
             </button>
 
-            {/* Dropdown Menu */}
             {showProfileMenu && (
               <>
-                {/* Backdrop for clicking outside */}
                 <div
                   className='fixed inset-0 z-40 cursor-pointer'
                   onClick={closeProfileMenu}
                 />
                 <div className='absolute right-0 top-[calc(100%+8px)] w-80 cursor-pointer bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden'>
-                  {/* User Info Section */}
                   <div className='px-4 py-3 border-b border-gray-200 bg-gray-50 cursor-pointer'>
                     <div className='flex items-center gap-3'>
                       <Avatar className='w-10 h-10'>
@@ -224,7 +229,6 @@ export const Topbar = memo(function Topbar({ onMenuClick }: TopbarProps) {
                     </div>
                   </div>
 
-                  {/* Menu Items */}
                   <ul className='py-2'>
                     <li>
                       <Link
@@ -236,8 +240,6 @@ export const Topbar = memo(function Topbar({ onMenuClick }: TopbarProps) {
                         Settings
                       </Link>
                     </li>
-
-                    {/* Logout with divider */}
                     <li className='border-t border-gray-200 mt-1 pt-1'>
                       <button
                         className='flex items-center w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors'
