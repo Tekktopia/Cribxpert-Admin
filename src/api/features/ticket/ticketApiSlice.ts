@@ -17,6 +17,7 @@ export interface Ticket {
     message: string;
     addedBy: string;
     createdAt: string;
+    type?: 'reply' | 'note';
   }>;
   createdAt: string;
   updatedAt: string;
@@ -92,7 +93,7 @@ export const ticketApiSlice = apiSlice.injectEndpoints({
     }),
     addTicketNote: builder.mutation<Ticket, { id: string; message: string; type?: string }>({
       query: ({ id, message, type }) => ({
-        url: `/tickets/${id}/notes`,
+        url: `/api/tickets/${id}/notes`,
         method: 'POST',
         body: { message, type },
       }),

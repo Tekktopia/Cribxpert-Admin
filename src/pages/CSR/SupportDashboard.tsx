@@ -145,6 +145,7 @@ const SupportDashboard = () => {
   }, [filteredTickets, showAllTickets]);
 
   const handleTicketClick = (ticket: TicketType) => {
+    console.log('Selected ticket:', ticket);
     setSelectedTicket(ticket);
     setIsDrawerOpen(true);
   };
