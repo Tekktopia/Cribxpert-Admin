@@ -23,7 +23,7 @@ const navigationItems = [
   { label: "Financials", iconSrc: "/sidebar/fluent-mdl2_financial.svg", href: "/financials" },
   { label: "Notification", iconSrc: "/sidebar/notification-block-03.svg", href: "/notifications" },
   { label: "Settings", iconSrc: "/sidebar/setting-2.svg", href: "/settings" },
-  { label: "Admin Roles", iconSrc: "/sidebar/carbon_user-role.svg", href: "/admin-roles" },
+  { label: "Admin Roles", iconSrc: "/sidebar/carbon_user-role.svg", href: "/admin-management" },
   { label: "CSR Tickets", iconSrc: "/sidebar/ticket.svg", href: "/csr/dashboard" },
   { label: "Logout", iconSrc: "/sidebar/logout-01.svg", href: "/log-out" },
 ];
