@@ -19,11 +19,14 @@ import type {
   DashboardUIMetrics,
   MetricData as UIMetricData,
 } from "../types/dashboardUi";
-
+import {
+  generateDynamicReport,
+  reportToMarkdown,
+} from "@/utils/generateHealthReport";
 const toUIMetric = (
   value: number,
   changeText: string,
-  details?: string
+  details?: string,
 ): UIMetricData => ({
   value,
   change: 0,
@@ -32,10 +35,8 @@ const toUIMetric = (
 });
 
 export function DashboardPage() {
-  const {
-    data: cardsData,
-    isLoading: cardsLoading,
-  } = useGetDashboardCardsQuery();
+  const { data: cardsData, isLoading: cardsLoading } =
+    useGetDashboardCardsQuery();
   const { data: userMgmtData, isLoading: userMgmtLoading } =
     useGetUserManagementQuery();
   const { data: activityData, isLoading: activityLoading } =
@@ -53,20 +54,20 @@ export function DashboardPage() {
         totalUsers: toUIMetric(
           parse(m.totalUsers),
           m.totalUsers.changeText,
-          m.totalUsers.details
+          m.totalUsers.details,
         ),
         activeListings: toUIMetric(
           parse(m.activeListings),
-          m.activeListings.changeText
+          m.activeListings.changeText,
         ),
         weeklyBookings: toUIMetric(
           parse(m.weeklyBookings),
-          m.weeklyBookings.changeText
+          m.weeklyBookings.changeText,
         ),
         // For now keep revenue from sample data
         totalRevenue: toUIMetric(
           parse(m.totalRevenue),
-          m.totalRevenue.changeText
+          m.totalRevenue.changeText,
         ),
       };
     }
@@ -75,16 +76,16 @@ export function DashboardPage() {
       totalUsers: toUIMetric(
         cardsData.totalUsers,
         "this week",
-        "All registered users"
+        "All registered users",
       ),
       activeListings: toUIMetric(cardsData.activeListings, "this week"),
       weeklyBookings: toUIMetric(cardsData.weeklyBookings, "vs last week"),
       // Backend doesn't yet send revenue, so keep sample revenue
       totalRevenue: toUIMetric(
         Number(
-          dashboardData.metrics.totalRevenue.value.replace(/[^0-9.-]+/g, "")
+          dashboardData.metrics.totalRevenue.value.replace(/[^0-9.-]+/g, ""),
         ) || 0,
-        dashboardData.metrics.totalRevenue.changeText
+        dashboardData.metrics.totalRevenue.changeText,
       ),
     };
   }, [cardsData]);
@@ -137,10 +138,8 @@ export function DashboardPage() {
     // Recent activity timeline
     const recentActivity: DashboardData["recentActivity"] =
       activityData?.activities?.map((activity, index) => {
-        let type:
-          | "user_verification"
-          | "listing_flagged"
-          | "payout_processed" = "user_verification";
+        let type: "user_verification" | "listing_flagged" | "payout_processed" =
+          "user_verification";
         let title = "";
         let description = "";
         let status: "completed" | "pending" | "failed" = "completed";
@@ -165,9 +164,7 @@ export function DashboardPage() {
             activity.booking?.totalPrice ?? 0
           }`;
           status =
-            activity.booking?.status === "confirmed"
-              ? "completed"
-              : "pending";
+            activity.booking?.status === "confirmed" ? "completed" : "pending";
         }
 
         const timestamp = new Date(activity.timestamp);
@@ -237,6 +234,28 @@ export function DashboardPage() {
     };
   }, [cardsData, userMgmtData, activityData, listingSummaryData]);
 
+  const handleGenerateReport = () => {
+    try {
+      const report = generateDynamicReport(combinedData);
+      const markdown = reportToMarkdown(report);
+      const blob = new Blob([markdown], { type: "text/markdown" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/[:T]/g, "-")
+        .slice(0, 19);
+      a.download = `health-report-${timestamp}.md`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Report generation failed:", error);
+      alert("Failed to generate report. See console for details.");
+    }
+  };
   const isLoading =
     cardsLoading || userMgmtLoading || activityLoading || listingSummaryLoading;
 
@@ -252,7 +271,7 @@ export function DashboardPage() {
       showDefaultHeader={false}
       headerComponent={
         <>
-          <DashboardHeader />
+          <DashboardHeader onPrimaryButtonClick={handleGenerateReport} />
           <DashboardMetrics metrics={uiMetrics} />
         </>
       }
