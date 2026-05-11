@@ -1,5 +1,6 @@
+// src/features/dashboard/MetricCard.tsx
 import type { LucideIcon } from "lucide-react";
-import { ArrowUp } from "lucide-react";
+import { ArrowUp, ArrowDown } from "lucide-react";
 import { Card, CardContent } from "../../components/ui/card";
 import { cn } from "../../utils/cn";
 
@@ -22,9 +23,13 @@ export function MetricCard({
   changeText,
   details,
 }: MetricCardProps) {
-  // Create the background color by using the 50 shade variant
-  const bgColorClass = iconBgColor.replace("bg-", "bg-") + "/10"; // Using opacity instead of -50 variant
+  const bgColorClass = iconBgColor.replace("bg-", "bg-") + "/10";
   const textColorClass = iconBgColor.replace("bg-", "text-");
+  
+  const isPositive = change > 0;
+  const isNegative = change < 0;
+  const ArrowIcon = isPositive ? ArrowUp : isNegative ? ArrowDown : ArrowUp;
+  const changeColorClass = isPositive ? "text-green-500" : isNegative ? "text-red-500" : "text-gray-500";
 
   return (
     <Card className='border border-[#eeeeee]'>
@@ -44,13 +49,21 @@ export function MetricCard({
               </div>
             </div>
 
-            <div className='flex items-center text-xs'>
-              {details && <p className='text-gray-500 text-[10px]'>{details}</p>}
-              <ArrowUp className='w-3.5 h-3.5 text-green-500 ' />
-              <span className='font-medium text-green-500'>
-                {Math.abs(change)}%
-              </span>
-              <span className='text-gray-600 ml-1.5'>{changeText}</span>
+            {/* Details and arrow/percentage on the same line - left and right */}
+            <div className='flex items-center justify-between mt-2'>
+              {/* "All time bookings" text on the left */}
+              {details && (
+                <p className='text-xs text-gray-500'>{details}</p>
+              )}
+              
+              {/* Arrow + percentage + changeText on the right */}
+              <div className='flex items-center text-xs'>
+                <ArrowIcon className={cn("w-3.5 h-3.5 mr-1", changeColorClass)} />
+                <span className={cn("font-medium mr-1", changeColorClass)}>
+                  {Math.abs(change)}%
+                </span>
+                <span className='text-gray-600'>{changeText}</span>
+              </div>
             </div>
           </div>
         </div>

@@ -1,3 +1,4 @@
+// src/pages/admin/BookingMetrics.tsx
 import { PageWrapper } from "@/components/layout/PageWrapper";
 import {
   BookingMetricsHeader,
@@ -7,9 +8,70 @@ import {
   TopBookedListings,
 } from "@/features/bookingmetrics";
 import { bookingMetricsData } from "@/data/bookingMetricsData";
+import { useGetBookingMetricsQuery } from "@/api/features/adminBookingMetrics/bookingMetricsApiSlice";
+import { Loader2 } from "lucide-react";
 
 export default function BookingMetrics() {
-  const isPopulated = true;
+  const { data, isLoading, error } = useGetBookingMetricsQuery();
+
+  if (isLoading) {
+    return (
+      <PageWrapper
+        title='Booking Metrics'
+        subtitle='Analyze booking trends, disputes, and payout performance'
+        isPopulated={false}
+        showDefaultHeader={false}
+        headerComponent={<BookingMetricsHeader />}
+      >
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
+        </div>
+      </PageWrapper>
+    );
+  }
+
+  if (error) {
+    return (
+      <PageWrapper
+        title='Booking Metrics'
+        subtitle='Analyze booking trends, disputes, and payout performance'
+        isPopulated={false}
+        showDefaultHeader={false}
+        headerComponent={<BookingMetricsHeader />}
+      >
+        <div className="text-red-500 text-center p-8">
+          Error loading metrics: {JSON.stringify(error)}
+        </div>
+      </PageWrapper>
+    );
+  }
+
+  // ✅ USE REAL DATA FROM API
+  const metrics = {
+    totalBookings: data?.totalBookings || {
+      value: 0,
+      change: 0,
+      changeText: 'this week',
+      details: 'All time bookings'
+    },
+    averageValue: data?.averageValue || {
+      value: '₹0',
+      change: 0,
+      changeText: 'this week'
+    },
+    pendingPayouts: data?.pendingPayouts || {
+      value: '₹0',
+      change: 0,
+      changeText: 'this week'
+    },
+    openDisputes: data?.openDisputes || {
+      value: 0,
+      change: 0,
+      changeText: 'this week'
+    }
+  };
+
+  const isPopulated = metrics.totalBookings.value > 0;
 
   return (
     <PageWrapper
@@ -21,23 +83,21 @@ export default function BookingMetrics() {
       emptyState={{
         iconUrl: "/svg/booking-metrics.svg",
         title: "No booking data yet",
-        subtitle:
-          "Bookings and performance insights will show here once activity begins.",
+        subtitle: "Bookings and performance insights will show here once activity begins.",
       }}
     >
-      {/* Metric cards */}
-      <BookingMetricsCards metrics={bookingMetricsData.metrics} />
+      {/* Pass the real metrics data */}
+      <BookingMetricsCards metrics={metrics} />
 
-      {/* Charts */}
+      {/* Charts - still using static data for now */}
       <BookingChartsGrid
-        trends={bookingMetricsData.trends}
-        statusBreakdown={bookingMetricsData.statusBreakdown}
-      />
-
-      {/* Tables */}
+      trends={data?.trends || []}
+      statusBreakdown={data?.statusBreakdown || { controlled: 0, cancelled: 0, failed: 0 }}
+    />
+      {/* Tables - still using static data for now */}
       <div className='grid grid-cols-1 gap-6'>
-        <RecentBookingsTable rows={bookingMetricsData.recentBookings} />
-        <TopBookedListings items={bookingMetricsData.topListings} />
+         <RecentBookingsTable rows={data?.recentBookings || []} />
+        <TopBookedListings items={data?.topListings || []} />
       </div>
     </PageWrapper>
   );

@@ -35,6 +35,7 @@ const FinanceTrans = lazy(() => import("./pages/finance-admin/FinanceTrans"));
 const FinanceReports = lazy(() => import("./pages/finance-admin/FinanceReports"));
 const AdminRolesMgmt = lazy(() => import("./pages/AdminRolesMgmt"));
 const LogOut = lazy(() => import("./pages/LogOut"));
+const TestBookingMetrics = lazy(() => import("./pages/TestBookingMetrics"));
 
 // CSR pages
 const SupportDashboard = lazy(() => import("./pages/CSR/SupportDashboard"));
@@ -112,6 +113,8 @@ function App() {
               {/* Finance admin redirects */}
               <Route path="/finance-admin" element={<Navigate to="/finance-dashboard" replace />} />
               <Route path="/finance-admin/*" element={<Navigate to="/finance-dashboard" replace />} />
+
+              <Route path="/test-booking-metrics" element={<TestBookingMetrics />} />
 
               {/* Catch all */}
               <Route path="*" element={<Navigate to="/login" replace />} />
