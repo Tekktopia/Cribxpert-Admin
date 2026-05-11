@@ -11,6 +11,7 @@ const tabs = [
   { id: "pending", label: "Pending", count: null },
   { id: "flagged", label: "Flagged", count: null },
   { id: "rejected", label: "Rejected", count: null },
+  { id: "hidden", label: "Hidden", count: null },
 ];
 
 export function ListingManagementTabs({
