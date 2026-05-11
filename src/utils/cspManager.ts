@@ -187,6 +187,8 @@ class CSPManager {
         "'self'",
         "ws:",
         "wss:",
+        "https://*.supabase.co",
+        "wss://*.supabase.co",
         "https://cribxpert-backend.onrender.com",
         "https://api.emailjs.com",
       ],
