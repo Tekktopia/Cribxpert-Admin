@@ -21,7 +21,7 @@ export function RecentBookingsTable({ rows }: Props) {
           <table className='w-full text-sm'>
             <thead>
               <tr className='text-left text-gray-500'>
-                <th className='py-3 font-medium'>TiCket ID</th>
+                <th className='py-3 font-medium'>Ticket ID</th>
                 <th className='py-3 font-medium'>Property</th>
                 <th className='py-3 font-medium'>Status</th>
                 <th className='py-3 font-medium'>Date</th>
