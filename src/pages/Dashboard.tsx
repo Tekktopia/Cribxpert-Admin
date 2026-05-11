@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useRealtimeRefetch } from "@/hooks/useRealtimeRefetch";
 import { DashboardHeader } from "../features/dashboard/DashboardHeader";
 import { DashboardMetrics } from "../features/dashboard/DashboardMetrics";
 import { DashboardGrid } from "../features/dashboard/DashboardGrid";
@@ -32,16 +33,15 @@ const toUIMetric = (
 });
 
 export function DashboardPage() {
-  const {
-    data: cardsData,
-    isLoading: cardsLoading,
-  } = useGetDashboardCardsQuery();
-  const { data: userMgmtData, isLoading: userMgmtLoading } =
-    useGetUserManagementQuery();
-  const { data: activityData, isLoading: activityLoading } =
-    useGetRecentActivityQuery({ limit: 20 });
-  const { data: listingSummaryData, isLoading: listingSummaryLoading } =
-    useGetListingSummaryQuery();
+  const { data: cardsData, isLoading: cardsLoading, refetch: refetchCards } = useGetDashboardCardsQuery();
+  const { data: userMgmtData, isLoading: userMgmtLoading, refetch: refetchUsers } = useGetUserManagementQuery();
+  const { data: activityData, isLoading: activityLoading, refetch: refetchActivity } = useGetRecentActivityQuery({ limit: 20 });
+  const { data: listingSummaryData, isLoading: listingSummaryLoading, refetch: refetchListings } = useGetListingSummaryQuery();
+
+  useRealtimeRefetch(['listings'], refetchListings, 'listings');
+  useRealtimeRefetch(['profiles'], refetchUsers, 'users');
+  useRealtimeRefetch(['bookings', 'listings', 'profiles'], refetchCards, 'cards');
+  useRealtimeRefetch(['bookings', 'listings', 'profiles'], refetchActivity, 'activity');
 
   const uiMetrics: DashboardUIMetrics = useMemo(() => {
     if (!cardsData) {

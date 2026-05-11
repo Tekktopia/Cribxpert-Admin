@@ -1,14 +1,16 @@
 import { FcGoogle } from 'react-icons/fc';
 import { useState } from 'react';
-
+import { supabase } from '@/lib/supabase';
 
 export default function GoogleSignIn() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
-  const handleGoogleLogin = () => {
-    window.location.href = 
-      "https://cribxpert-backend.onrender.com/auth/google";
+  const handleGoogleLogin = async () => {
     setIsGoogleLoading(true);
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/dashboard` },
+    });
   };
 
   return (

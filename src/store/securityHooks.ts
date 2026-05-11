@@ -6,12 +6,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "./hooks";
 import {
-  loginStart,
-  loginSuccess,
-  loginFailure,
-  logout,
-  initializeAuth,
+  clearSession,
+  setAuthError,
 } from "./slices/authSlice";
+import { supabase } from "../lib/supabase";
 import SecurityManager from "../utils/securityManager";
 
 /**
@@ -21,58 +19,30 @@ export function useSecureAuth() {
   const dispatch = useAppDispatch();
   const authState = useAppSelector((state) => state.auth);
 
-  // Simple login function
+  // Login via Supabase (authListener handles Redux update automatically)
   const login = useCallback(
     async (credentials: { email: string; password: string }) => {
       try {
-        dispatch(loginStart());
-
-        // Use secure fetch for login
-        const response = await SecurityManager.secureFetch("/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(credentials),
-        });
-
-        if (!response.ok) {
-          throw new Error("Login failed");
-        }
-
-        const { user, token } = await response.json();
-
-        // Update Redux state (token is already stored by the action)
-        dispatch(loginSuccess({ user, token }));
-
-        return { success: true, user };
+        const { error } = await supabase.auth.signInWithPassword(credentials);
+        if (error) throw error;
+        return { success: true };
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : "Login failed";
-        dispatch(loginFailure(errorMessage));
+        const errorMessage = error instanceof Error ? error.message : "Login failed";
+        dispatch(setAuthError(errorMessage));
         return { success: false, error: errorMessage };
       }
     },
     [dispatch]
   );
 
-  // Simple logout function
+  // Logout via Supabase
   const logoutUser = useCallback(async () => {
-    try {
-      // Call logout endpoint if needed
-      await SecurityManager.secureFetch("/api/auth/logout", {
-        method: "POST",
-      });
-    } catch (error) {
-      console.warn("Logout endpoint failed:", error);
-    } finally {
-      // Clear everything regardless of API call success
-      dispatch(logout());
-    }
+    await supabase.auth.signOut();
+    dispatch(clearSession());
   }, [dispatch]);
 
-  // Check auth status on mount
-  useEffect(() => {
-    dispatch(initializeAuth());
-  }, [dispatch]);
+  // Auth state is managed by startAuthListener — no effect needed here
+  useEffect(() => {}, [dispatch]);
 
   return {
     // State
@@ -106,7 +76,7 @@ export function useSecureApi() {
         if (!response.ok) {
           if (response.status === 401) {
             // Token expired, clear auth
-            dispatch(logout());
+            dispatch(clearSession());
             throw new Error("Authentication expired. Please login again.");
           }
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCompleteRegistrationMutation } from '@/features/auth/authService';
+import { supabase } from '@/lib/supabase';
 import { Eye, EyeOff } from 'lucide-react';
 import type { FormEvent } from 'react';
 
@@ -61,40 +61,38 @@ const StepFour: React.FC<StepFourProps> = ({ formData, setFormData }) => {
   };
 
   const navigate = useNavigate();
-  const [completeRegistration, { isLoading }] =
-    useCompleteRegistrationMutation();
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
 
-    // Validate password before submission
     if (!validatePassword(formData.password)) {
       setError('Please meet all password requirements');
       return;
     }
 
+    setIsLoading(true);
     try {
-      const result = await completeRegistration({
-        id: formData.id,
-        fullName: formData.firstName + ' ' + formData.lastName,
-        dob: formData.dateOfBirth,
-        phoneNo: formData.phoneNo,
-        password: formData.password,
-      }).unwrap();
+      const { error: pwErr } = await supabase.auth.updateUser({ password: formData.password });
+      if (pwErr) throw pwErr;
 
-      if (result.user) {
-        navigate('/login');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('profiles').update({
+          full_name: `${formData.firstName} ${formData.lastName}`.trim(),
+          phone_no: formData.phoneNo,
+          dob: formData.dateOfBirth,
+        }).eq('id', user.id);
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      // console.error('Error completing registration:', error);
-      setError(
-        error?.data?.message ||
-          'Failed to complete registration. Please try again.'
-      );
+      navigate('/login');
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setError(e.message || 'Failed to complete registration. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 

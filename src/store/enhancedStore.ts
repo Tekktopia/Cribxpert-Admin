@@ -1,15 +1,18 @@
-/**
- * Enhanced Redux store with security state management
- */
 import { configureStore } from "@reduxjs/toolkit";
 import { setupListeners } from "@reduxjs/toolkit/query";
-import { dashboardApi } from "./api/dashboard";
 import { apiSlice } from "@/api/apiSlice";
-// Import API slices to ensure endpoints are injected into apiSlice
+import { dashboardApi } from "./api/dashboard";
+
+// Register all API endpoints by importing their slices
 import "@/api/features/auth/authApiSlice";
 import "@/api/features/adminDashboard/adminDashboardApiSlice";
 import "@/api/features/adminUserManagement/adminUserManagementApiSlice";
 import "@/api/features/adminListingManagement/adminListingManagementApiSlice";
+import "@/api/features/adminManagement/adminManagementApiSlice";
+import "@/api/features/adminSettings/adminSettingsApiSlice";
+import "@/api/features/analytics/analyticsApiSlice";
+import "@/api/features/ticket/ticketApiSlice";
+
 import { authSlice } from "./slices/authSlice";
 import { securitySlice } from "./slices/securitySlice";
 import { uiSlice } from "./slices/uiSlice";
@@ -17,11 +20,8 @@ import { listingSlice } from "./slices/listingSlice";
 
 export const store = configureStore({
   reducer: {
-    // API slices
-    [dashboardApi.reducerPath]: dashboardApi.reducer,
     [apiSlice.reducerPath]: apiSlice.reducer,
-
-    // State slices
+    [dashboardApi.reducerPath]: dashboardApi.reducer,
     auth: authSlice.reducer,
     security: securitySlice.reducer,
     ui: uiSlice.reducer,
@@ -30,21 +30,15 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        ignoredActions: [
-          // Ignore RTK Query actions that contain non-serializable values
-          "persist/PERSIST",
-          "persist/REHYDRATE",
-        ],
+        ignoredActions: ["persist/PERSIST", "persist/REHYDRATE"],
       },
-    }).concat(dashboardApi.middleware, apiSlice.middleware),
+    }).concat(apiSlice.middleware, dashboardApi.middleware),
   devTools: process.env.NODE_ENV !== "production",
 });
 
-// Enable listener behavior for the store
 setupListeners(store.dispatch);
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
 
-// Typed hooks for components
 export { useAppDispatch, useAppSelector } from "./hooks";

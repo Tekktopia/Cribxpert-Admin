@@ -12,6 +12,7 @@ interface CreateNotificationCardProps {
   onSendNow: () => void;
   onPickDate: () => void;
   onSchedule: () => void;
+  isSending?: boolean;
 }
 
 export function CreateNotificationCard({
@@ -20,6 +21,7 @@ export function CreateNotificationCard({
   onSendNow,
   onPickDate,
   onSchedule,
+  isSending = false,
 }: CreateNotificationCardProps) {
   return (
     <Card>
@@ -46,14 +48,15 @@ export function CreateNotificationCard({
             <ScheduleControls
               onPickDate={onPickDate}
               onSchedule={onSchedule}
-              disabled={!value.scheduledAt}
+              disabled={!value.scheduledAt || isSending}
+              isSending={isSending}
             />
           ) : (
             <div />
           )}
           {!value.isScheduled && (
-            <Button variant='primary' onClick={onSendNow}>
-              Send Now
+            <Button variant='primary' onClick={onSendNow} disabled={isSending}>
+              {isSending ? "Sending..." : "Send Now"}
             </Button>
           )}
         </div>

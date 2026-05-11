@@ -5,7 +5,7 @@ import { CustomSelect } from "@/components/ui/CustomSelect";
 import { CheckCircle2, Save, Loader2, Eye, EyeOff, Lock, Circle } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { useAppSelector } from "@/store/hooks";
-import { selectUser } from "@/store/slices/authSlice";
+import { selectCurrentUser as selectUser } from "@/store/slices/authSlice";
 import {
   useGetAdminProfileQuery,
   useUpdateAdminProfileMutation,

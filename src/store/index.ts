@@ -9,8 +9,8 @@ export { store, type RootState, type AppDispatch } from "./enhancedStore";
 // Export typed hooks for components
 export { useAppDispatch, useAppSelector } from "./hooks";
 
-// Export action creators for easy access
-export { authSlice } from "./slices/authSlice";
+// Export auth slice and actions
+export { authSlice, setSession, setProfile, clearSession, setAuthLoading, setAuthError } from "./slices/authSlice";
 export { securitySlice } from "./slices/securitySlice";
 export { uiSlice } from "./slices/uiSlice";
 export { listingSlice } from "./slices/listingSlice";

@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CreateNotificationCard } from "../components/CreateNotificationCard";
 import type { NotificationFormValue } from "../components/NotificationForm";
 import { NotificationHistoryTable } from "../components/NotificationHistoryTable";
-import { mockNotifications } from "../utils/mocks";
 import { type NotificationRecord } from "../utils/types";
 import { ScheduleDateModal } from "../modals/ScheduleDateModal";
 import { useActionNotifications } from "@/utils/notificationHelpers";
+import { supabase } from "@/lib/supabase";
 
 export function NotificationPageContainer() {
   const { showSuccess, showError } = useActionNotifications();
@@ -16,106 +16,203 @@ export function NotificationPageContainer() {
     message: "",
     isScheduled: false,
   });
-  const [data, setData] = useState<NotificationRecord[]>(mockNotifications);
+  const [data, setData] = useState<NotificationRecord[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [isSending, setIsSending] = useState(false);
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
+
+  // Load broadcast notification history from Supabase
+  useEffect(() => {
+    const load = async () => {
+      setIsLoadingHistory(true);
+      const { data: rows, error } = await supabase
+        .from("broadcast_notifications")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(100);
+
+      if (error) {
+        console.error("Failed to load notification history:", error.message);
+      } else {
+        setData(
+          (rows ?? []).map((r) => ({
+            id: r.id,
+            title: r.title,
+            audience: r.audience ?? "all",
+            message: r.message,
+            status: r.status ?? "sent",
+            scheduledAt: r.scheduled_at ?? undefined,
+            sentAt: r.sent_at ?? undefined,
+            createdAt: r.created_at,
+          }))
+        );
+      }
+      setIsLoadingHistory(false);
+    };
+    load();
+  }, []);
 
   const onChange = (patch: Partial<NotificationFormValue>) =>
     setForm((p) => ({ ...p, ...patch }));
 
-  const handleSendNow = () => {
+  const broadcastToUsers = async (
+    title: string,
+    message: string,
+    audience: string,
+    status: "sent" | "scheduled",
+    scheduledAt?: string
+  ): Promise<boolean> => {
+    // 1. Record the broadcast in broadcast_notifications table
+    const { data: broadcast, error: broadcastErr } = await supabase
+      .from("broadcast_notifications")
+      .insert({
+        title,
+        message,
+        audience,
+        status,
+        scheduled_at: scheduledAt ?? null,
+        sent_at: status === "sent" ? new Date().toISOString() : null,
+      })
+      .select("*")
+      .single();
+
+    if (broadcastErr) {
+      showError("Failed", broadcastErr.message);
+      return false;
+    }
+
+    // 2. If sending now, insert into each target user's notifications
+    if (status === "sent") {
+      let query = supabase.from("profiles").select("id");
+      if (audience === "hosts") {
+        query = query.eq("is_host", true);
+      } else if (audience === "guests") {
+        query = query.eq("is_host", false).eq("role", "user");
+      }
+      // "all" sends to everyone with role 'user' or host
+      if (audience === "all") {
+        query = query.in("role", ["user"]);
+      }
+
+      const { data: users } = await query;
+      if (users && users.length > 0) {
+        await supabase.from("notifications").insert(
+          users.map((u) => ({
+            user_id: u.id,
+            title,
+            description: message,
+            category: "general",
+            is_read: false,
+          }))
+        );
+      }
+    }
+
+    // Add to local state
+    setData((d) => [
+      {
+        id: broadcast.id,
+        title: broadcast.title,
+        audience: broadcast.audience ?? "all",
+        message: broadcast.message,
+        status: broadcast.status,
+        scheduledAt: broadcast.scheduled_at ?? undefined,
+        sentAt: broadcast.sent_at ?? undefined,
+        createdAt: broadcast.created_at,
+      },
+      ...d,
+    ]);
+
+    return true;
+  };
+
+  const handleSendNow = async () => {
     if (!form.title.trim() || !form.message.trim()) {
       showError("Missing fields", "Please enter title and message.");
       return;
     }
-    const newRow: NotificationRecord = {
-      id: crypto.randomUUID(),
-      title: form.title.trim(),
-      audience: form.audience,
-      message: form.message.trim(),
-      status: "sent",
-      sentAt: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
-    };
-    setData((d) => [newRow, ...d]);
-    showSuccess("Notification Sent", "Your notification was sent.");
-    setForm({
-      title: "",
-      audience: form.audience,
-      message: "",
-      isScheduled: false,
-    });
+    setIsSending(true);
+    const ok = await broadcastToUsers(form.title.trim(), form.message.trim(), form.audience, "sent");
+    setIsSending(false);
+    if (ok) {
+      showSuccess("Notification Sent", `Sent to all ${form.audience} users.`);
+      setForm({ title: "", audience: form.audience, message: "", isScheduled: false });
+    }
   };
 
   const handlePickDate = () => setIsScheduleOpen(true);
 
   const handleConfirmSchedule = (isoLocal: string) => {
     setIsScheduleOpen(false);
-    // store local datetime as ISO
     const iso = new Date(isoLocal).toISOString();
     setForm((p) => ({ ...p, scheduledAt: iso }));
   };
 
-  const handleSchedule = () => {
+  const handleSchedule = async () => {
     if (!form.title.trim() || !form.message.trim() || !form.scheduledAt) {
-      showError(
-        "Incomplete schedule",
-        "Provide title, message and schedule date."
-      );
+      showError("Incomplete schedule", "Provide title, message and schedule date.");
       return;
     }
-    const newRow: NotificationRecord = {
-      id: crypto.randomUUID(),
-      title: form.title.trim(),
-      audience: form.audience,
-      message: form.message.trim(),
-      status: "scheduled",
-      scheduledAt: form.scheduledAt,
-      createdAt: new Date().toISOString(),
-    };
-    setData((d) => [newRow, ...d]);
-    showSuccess("Notification Scheduled", "It will be sent automatically.");
-    setForm({
-      title: "",
-      audience: form.audience,
-      message: "",
-      isScheduled: true,
-      scheduledAt: undefined,
-    });
+    setIsSending(true);
+    const ok = await broadcastToUsers(
+      form.title.trim(),
+      form.message.trim(),
+      form.audience,
+      "scheduled",
+      form.scheduledAt
+    );
+    setIsSending(false);
+    if (ok) {
+      showSuccess("Notification Scheduled", "It will be sent automatically.");
+      setForm({ title: "", audience: form.audience, message: "", isScheduled: true, scheduledAt: undefined });
+    }
   };
 
-  const handleRowAction = (item: NotificationRecord, action: string) => {
+  const handleRowAction = async (item: NotificationRecord, action: string) => {
     if (action === "delete") {
-      setData((d) => d.filter((x) => x.id !== item.id));
+      const { error } = await supabase
+        .from("broadcast_notifications")
+        .delete()
+        .eq("id", item.id);
+      if (!error) setData((d) => d.filter((x) => x.id !== item.id));
       return;
     }
     if (action === "cancel") {
-      setData((d) =>
-        d.map((x) =>
-          x.id === item.id
-            ? { ...x, status: "draft", scheduledAt: undefined }
-            : x
-        )
-      );
+      const { error } = await supabase
+        .from("broadcast_notifications")
+        .update({ status: "draft", scheduled_at: null })
+        .eq("id", item.id);
+      if (!error) {
+        setData((d) =>
+          d.map((x) =>
+            x.id === item.id ? { ...x, status: "draft", scheduledAt: undefined } : x
+          )
+        );
+      }
       return;
     }
-    // view/edit can be wired later
   };
 
   return (
-    <div className='space-y-8'>
+    <div className="space-y-8">
       <CreateNotificationCard
         value={form}
         onChange={onChange}
         onSendNow={handleSendNow}
         onPickDate={handlePickDate}
         onSchedule={handleSchedule}
+        isSending={isSending}
       />
 
       <div>
-        <h3 className='text-base font-semibold text-gray-900 mb-3'>
+        <h3 className="text-base font-semibold text-gray-900 mb-3">
           Notification History
         </h3>
-        <NotificationHistoryTable data={data} onAction={handleRowAction} />
+        {isLoadingHistory ? (
+          <p className="text-sm text-gray-400">Loading history...</p>
+        ) : (
+          <NotificationHistoryTable data={data} onAction={handleRowAction} />
+        )}
       </div>
 
       <ScheduleDateModal

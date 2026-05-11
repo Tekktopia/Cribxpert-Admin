@@ -1,26 +1,2 @@
-import authReducer, {
-  setUser,
-  setToken,
-  setLoading,
-  setError,
-  clearUser,
-} from './authSlice';
-
-import {
-  useLoginMutation,
-  useRegisterMutation,
-  useGetCurrentUserQuery,
-} from './authService';
-
-export {
-  setUser,
-  setToken,
-  setLoading,
-  setError,
-  clearUser,
-  useLoginMutation,
-  useRegisterMutation,
-  useGetCurrentUserQuery,
-};
-
-export default authReducer;
+export { default as authReducer } from './authSlice';
+export { setUser, setToken, setLoading, setError, clearUser } from './authSlice';

@@ -44,7 +44,25 @@ export const listingSlice = createSlice({
     // Set listings data
     setListings: (state, action: PayloadAction<ListingRecord[]>) => {
       state.listings = action.payload;
-      state.filteredListings = action.payload;
+      // Re-apply active tab filter so a refetch doesn't reset the current tab
+      switch (state.activeTab) {
+        case "approved":
+          state.filteredListings = action.payload.filter(
+            (l) => l.status === "active" || l.status === "approved"
+          );
+          break;
+        case "pending":
+          state.filteredListings = action.payload.filter((l) => l.status === "pending");
+          break;
+        case "flagged":
+          state.filteredListings = action.payload.filter((l) => l.status === "flagged");
+          break;
+        case "rejected":
+          state.filteredListings = action.payload.filter((l) => l.status === "rejected");
+          break;
+        default:
+          state.filteredListings = action.payload;
+      }
     },
 
     // Filter listings by tab

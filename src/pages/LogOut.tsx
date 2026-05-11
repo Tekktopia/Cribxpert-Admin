@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch } from "@/store/hooks";
-import { logout } from "@/store/slices/authSlice";
+import { clearSession } from "@/store/slices/authSlice";
+import { supabase } from "@/lib/supabase";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { ConfirmationModal } from "@/components/ui/ActionModals";
 import { SvgIcon } from "@/components/ui/SvgIcon";
@@ -18,18 +19,10 @@ export default function LogOut() {
   };
 
   // Handle actual logout
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setShowModal(false);
-
-    // Clear sessionStorage completely
-    if (typeof window !== "undefined") {
-      sessionStorage.clear();
-    }
-
-    // Dispatch logout action to clear Redux state
-    dispatch(logout());
-
-    // Redirect to login page immediately
+    await supabase.auth.signOut();
+    dispatch(clearSession());
     navigate("/login", { replace: true });
   };
 

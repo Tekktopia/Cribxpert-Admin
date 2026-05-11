@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { IoReload } from 'react-icons/io5';
-import { useResendVerificationMutation } from '@/features/auth/authService';
+import { supabase } from '@/lib/supabase';
 
 type Props = {
   methodSelected: string | null;
@@ -13,12 +13,10 @@ const StepTwoResendButton = ({
   methodSelected,
   handleVerify,
   email,
-  // phoneNumber,
 }: Props) => {
   const [resendDisabled, setResendDisabled] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(120); // Countdown from 120 seconds
-  const [resendVerification, { isLoading }] = useResendVerificationMutation();
-
+  const [timeLeft, setTimeLeft] = useState(120);
+  const [isLoading, setIsLoading] = useState(false);
   const [resendError, setResendError] = useState<string>('');
 
   useEffect(() => {
@@ -33,39 +31,23 @@ const StepTwoResendButton = ({
 
     setResendDisabled(true);
     setResendError('');
+    setIsLoading(true);
 
     try {
-      // Different data based on verification method
-      // const verificationData =
-      //   methodSelected === 'Email Address'
-      //     ? { email, type: 'email' }
-      //     : { phoneNumber, type: 'phone' };
+      const { error: sbError } = await supabase.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: false },
+      });
 
-      // Call the resend verification API
-      const response = await resendVerification({ email }).unwrap();
-
-      // Reset the countdown
-      setTimeLeft(120);
-
-      // Show success feedback if needed
-      console.log('Verification resent successfully:', response);
-    } catch (err: unknown) {
-      console.error('Error resending verification:', err);
-      if (typeof err === 'object' && err !== null) {
-        const errorObj = err as {
-          data?: { message?: string };
-          message?: string;
-        };
-        setResendError(
-          errorObj.data?.message ||
-            errorObj.message ||
-            'Failed to resend verification'
-        );
+      if (sbError) {
+        setResendError(sbError.message || 'Failed to resend verification');
       } else {
-        setResendError('Failed to resend verification');
+        setTimeLeft(120);
       }
+    } catch {
+      setResendError('Failed to resend verification');
     } finally {
-      // Enable the button again after 2 minutes
+      setIsLoading(false);
       setTimeout(() => setResendDisabled(false), 120000);
     }
   };

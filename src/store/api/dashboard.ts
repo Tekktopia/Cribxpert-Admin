@@ -1,10 +1,5 @@
-// =====================================================
-// File: src/store/api/dashboard.ts
-// =====================================================
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import SecureTokenStorage from "@/utils/secureStorage";
-import CSRFProtection from "@/utils/csrfProtection";
-import RateLimiter from "@/utils/rateLimiter";
+import { createApi, fakeBaseQuery } from "@reduxjs/toolkit/query/react";
+import { supabase } from "@/lib/supabase";
 import type {
   DashboardMetrics,
   User,
@@ -14,153 +9,194 @@ import type {
   NotificationItem,
 } from "@/types";
 
-function normalizeOrigin(origin: string): string {
-  return origin.replace(/\/+$/, "");
-}
-
-function getBaseUrl(): string {
-  const origin = (import.meta as any).env?.VITE_API_URL as string | undefined;
-  if (!origin?.trim()) throw new Error("Missing VITE_API_URL");
-  return normalizeOrigin(origin);
-}
-
-const isJson = (ct: string) =>
-  ct.includes("application/json") || ct.includes("application/problem+json");
-
-function unwrapArray<T>(resp: unknown): T[] {
-  if (Array.isArray(resp)) return resp as T[];
-  if (resp && typeof resp === "object") {
-    const obj = resp as Record<string, unknown>;
-    for (const k of ["data", "results", "items", "rows"]) {
-      const v = obj[k];
-      if (Array.isArray(v)) return v as T[];
-    }
-  }
-  return [];
-}
-
-const DEFAULT_METRICS: DashboardMetrics = {
-  totalUsers: 0,
-  activeListings: 0,
-  weeklyBookings: 0,
-  totalRevenue: 0,
-  userGrowth: 0,
-  listingGrowth: 0,
-  bookingGrowth: 0,
-  revenueGrowth: 0,
-};
-
-function toNumber(v: unknown): number {
-  if (typeof v === "number" && !Number.isNaN(v)) return v;
-  if (typeof v === "string") return Number(v) || 0;
-  return 0;
-}
-
-function normalizeMetrics(raw: unknown): DashboardMetrics {
-  const obj = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : null;
-  const data = obj && typeof obj.data === "object" ? (obj.data as Record<string, unknown>) : obj;
-  if (!data) return DEFAULT_METRICS;
-  return {
-    totalUsers: toNumber(data.totalUsers),
-    activeListings: toNumber(data.activeListings),
-    weeklyBookings: toNumber(data.weeklyBookings),
-    totalRevenue: toNumber(data.totalRevenue),
-    userGrowth: toNumber(data.userGrowth),
-    listingGrowth: toNumber(data.listingGrowth),
-    bookingGrowth: toNumber(data.bookingGrowth),
-    revenueGrowth: toNumber(data.revenueGrowth),
-  };
-}
-
 export const dashboardApi = createApi({
   reducerPath: "dashboardApi",
-  baseQuery: fetchBaseQuery({
-    baseUrl: getBaseUrl(),
-    prepareHeaders: (headers) => {
-      const authHeaders = SecureTokenStorage.getAuthHeader();
-      if (authHeaders.Authorization) headers.set("authorization", authHeaders.Authorization);
-
-      const csrfHeaders = CSRFProtection.getHeaders();
-      for (const [k, v] of Object.entries(csrfHeaders)) headers.set(k, v);
-
-      headers.set("Accept", "application/json");
-      headers.set("X-Requested-With", "XMLHttpRequest");
-      return headers;
-    },
-    fetchFn: async (url, options) => {
-      const key = url.toString();
-      if (!RateLimiter.isAllowed(key)) {
-        const retryAfter = RateLimiter.getRetryAfter(key);
-        throw new Error(`Rate limit exceeded. Retry after: ${retryAfter}ms`);
-      }
-      RateLimiter.recordRequest(key);
-      return fetch(url, options);
-    },
-    responseHandler: async (response) => {
-      const ct = response.headers.get("content-type") ?? "";
-      const text = await response.text();
-
-      if (isJson(ct)) return JSON.parse(text || "null");
-
-      throw new Error(
-        `Expected JSON, got "${ct}". Body starts: ${JSON.stringify(text.slice(0, 160))}`
-      );
-    },
-  }),
+  baseQuery: fakeBaseQuery(),
   tagTypes: ["Metrics", "Users", "Listings", "Bookings", "Activities", "Notifications"],
   endpoints: (builder) => ({
     getDashboardMetrics: builder.query<DashboardMetrics, void>({
-      query: () => "dashboard/metrics",
-      transformResponse: (resp: unknown) => normalizeMetrics(resp),
+      queryFn: async () => {
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        const [
+          { count: totalUsers },
+          { count: activeListings },
+          { count: weeklyBookings },
+          { data: bookingRevenue },
+        ] = await Promise.all([
+          supabase.from('profiles').select('*', { count: 'exact', head: true }).not('role', 'in', '(admin,superadmin,finance_admin,csr_admin)'),
+          supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'approved').eq('hide_status', false),
+          supabase.from('bookings').select('*', { count: 'exact', head: true }).gte('created_at', sevenDaysAgo),
+          supabase.from('bookings').select('total_price').eq('status', 'completed'),
+        ]);
+
+        const totalRevenue = (bookingRevenue ?? []).reduce((sum, b) => sum + (b.total_price ?? 0), 0);
+
+        return {
+          data: {
+            totalUsers: totalUsers ?? 0,
+            activeListings: activeListings ?? 0,
+            weeklyBookings: weeklyBookings ?? 0,
+            totalRevenue,
+            userGrowth: 0,
+            listingGrowth: 0,
+            bookingGrowth: 0,
+            revenueGrowth: 0,
+          },
+        };
+      },
       providesTags: ["Metrics"],
     }),
 
     getUsers: builder.query<User[], { page?: number; status?: string }>({
-      query: ({ page = 1, status } = {}) => ({
-        url: "user",
-        params: { page, status },
-      }),
-      transformResponse: (resp: unknown) => unwrapArray<User>(resp),
+      queryFn: async ({ status } = {}) => {
+        let query = supabase
+          .from('profiles')
+          .select('id, full_name, email, role, kyc_status, account_disabled, created_at')
+          .not('role', 'in', '(admin,superadmin,finance_admin,csr_admin)')
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        if (status === 'verified') query = query.eq('kyc_status', 'verified').eq('account_disabled', false);
+        else if (status === 'blocked') query = query.eq('account_disabled', true);
+        else if (status === 'pending') query = query.neq('kyc_status', 'verified').eq('account_disabled', false);
+
+        const { data, error } = await query;
+        if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
+
+        return {
+          data: (data ?? []).map(p => ({
+            id: p.id,
+            name: p.full_name ?? p.email ?? '',
+            email: p.email ?? '',
+            avatar: undefined,
+            status: p.account_disabled ? 'blocked' : 'active',
+            verificationStatus: p.kyc_status === 'verified' ? 'verified' : 'pending',
+            joinDate: p.created_at,
+          } as User)),
+        };
+      },
       providesTags: ["Users"],
     }),
 
     getListings: builder.query<Listing[], { page?: number; status?: string }>({
-      query: ({ page = 1, status } = {}) => ({
-        url: "listing",
-        params: { page, status },
-      }),
-      transformResponse: (resp: unknown) => unwrapArray<Listing>(resp),
+      queryFn: async ({ status } = {}) => {
+        let query = supabase
+          .from('listings')
+          .select('id, name, status, base_price, city, state, created_at, user_id')
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        if (status) query = query.eq('status', status);
+
+        const { data, error } = await query;
+        if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
+
+        return {
+          data: (data ?? []).map(l => ({
+            id: l.id,
+            title: l.name,
+            location: [l.city, l.state].filter(Boolean).join(', '),
+            price: l.base_price ?? 0,
+            status: l.status === 'approved' ? 'active' : l.status === 'flagged' ? 'flagged' : 'pending',
+            createdAt: l.created_at,
+            userId: l.user_id ?? '',
+          } as Listing)),
+        };
+      },
       providesTags: ["Listings"],
     }),
 
     getBookings: builder.query<Booking[], { userId: string; page?: number }>({
-      query: ({ userId, page = 1 }) => ({
-        url: `booking/user/${userId}`,
-        params: { page },
-      }),
-      transformResponse: (resp: unknown) => unwrapArray<Booking>(resp),
+      queryFn: async ({ userId }) => {
+        const { data, error } = await supabase
+          .from('bookings')
+          .select('id, status, total_price, check_in, check_out, created_at')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(20);
+        if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
+
+        return {
+          data: (data ?? []).map(b => ({
+            id: b.id,
+            listingId: '',
+            userId,
+            checkIn: b.check_in ?? '',
+            checkOut: b.check_out ?? '',
+            totalAmount: b.total_price ?? 0,
+            status: b.status === 'confirmed' ? 'confirmed' : b.status === 'cancelled' ? 'cancelled' : 'pending',
+            createdAt: b.created_at,
+          } as Booking)),
+        };
+      },
       providesTags: ["Bookings"],
     }),
 
     getRecentActivities: builder.query<ActivityItem[], void>({
-      query: () => "activities/recent",
-      transformResponse: (resp: unknown) => unwrapArray<ActivityItem>(resp),
+      queryFn: async () => {
+        const [{ data: signups }, { data: bookings }] = await Promise.all([
+          supabase.from('profiles').select('id, email, full_name, created_at').order('created_at', { ascending: false }).limit(5),
+          supabase.from('bookings').select('id, status, total_price, created_at').order('created_at', { ascending: false }).limit(5),
+        ]);
+
+        const activities: ActivityItem[] = [
+          ...(signups ?? []).map(u => ({
+            id: u.id,
+            type: 'user_verification' as const,
+            title: 'New User',
+            description: `${u.full_name ?? u.email} signed up`,
+            timestamp: u.created_at,
+            status: 'completed' as const,
+          })),
+          ...(bookings ?? []).map(b => ({
+            id: b.id,
+            type: 'payout_processed' as const,
+            title: 'New Booking',
+            description: `New booking - ${b.status}`,
+            timestamp: b.created_at,
+            status: 'pending' as const,
+          })),
+        ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 10);
+
+        return { data: activities };
+      },
       providesTags: ["Activities"],
     }),
 
     getNotifications: builder.query<NotificationItem[], { userId: string }>({
-      query: ({ userId }) => `notification/user/${userId}`,
-      transformResponse: (resp: unknown) => unwrapArray<NotificationItem>(resp),
+      queryFn: async ({ userId }) => {
+        const { data, error } = await supabase
+          .from('notifications')
+          .select('id, title, description, is_read, created_at')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(20);
+        if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
+
+        return {
+          data: (data ?? []).map(n => ({
+            id: n.id,
+            type: 'system_alert' as const,
+            title: n.title,
+            description: n.description ?? '',
+            timestamp: n.created_at,
+            priority: 'Medium' as const,
+            status: n.is_read ? 'read' : 'unread' as const,
+          } as NotificationItem)),
+        };
+      },
       providesTags: ["Notifications"],
     }),
 
-    // ✅ Put it back if your UI imports useUpdateUserStatusMutation
     updateUserStatus: builder.mutation<void, { userId: string; status: string }>({
-      query: ({ userId, status }) => ({
-        url: `user/${userId}/status`,
-        method: "PATCH",
-        body: { status },
-      }),
+      queryFn: async ({ userId, status }) => {
+        const { error } = await supabase
+          .from('profiles')
+          .update({ account_disabled: status === 'blocked' })
+          .eq('id', userId);
+        if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
+        return { data: undefined };
+      },
       invalidatesTags: ["Users"],
     }),
   }),
@@ -173,5 +209,5 @@ export const {
   useGetBookingsQuery,
   useGetRecentActivitiesQuery,
   useGetNotificationsQuery,
-  useUpdateUserStatusMutation, // ✅ export the hook
+  useUpdateUserStatusMutation,
 } = dashboardApi;

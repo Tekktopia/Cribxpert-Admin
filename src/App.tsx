@@ -9,7 +9,7 @@ import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { PublicRoute } from "./components/auth/PublicRoute";
 import { RoleGuard } from "./components/auth/RoleGuard";
 import { HomeRedirect } from "./components/auth/HomeRedirect";
-import { initializeAuth } from "./store/slices/authSlice";
+import { startAuthListener } from "./lib/authListener";
 
 const LoginPage = lazy(() =>
   import("./pages/Login").then((module) => ({ default: module.LoginPage }))
@@ -49,7 +49,7 @@ const CSRSettings = lazy(() => import("./pages/CSR/Settings"));
 function App() {
   useEffect(() => {
     initializeSecurity();
-    store.dispatch(initializeAuth());
+    startAuthListener();
   }, []);
 
   return (

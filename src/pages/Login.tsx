@@ -1,112 +1,45 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { useLoginMutation } from "@/api/features/auth/authApiSlice";
-import { useAppDispatch } from "@/store/hooks";
-import { loginSuccess, loginFailure } from "@/store/slices/authSlice";
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff, AlertCircle, Loader2, TrendingUp, Users, DollarSign, BarChart3, PieChart } from "lucide-react";
 import { cn } from "@/utils/cn";
+import { supabase } from "@/lib/supabase";
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
-  const [login, { isLoading, error }] = useLoginMutation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const [localError, setLocalError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setLocalError(null);
+    setError(null);
 
-    // Basic client-side validation
     if (!email.trim() || !password.trim()) {
-      setLocalError("Please enter both email and password");
+      setError("Please enter both email and password");
       return;
     }
 
-    try {
-      const result = await login({
-        email: email.trim(),
-        password,
-      }).unwrap();
+    setIsLoading(true);
+    const { error: sbError } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+    setIsLoading(false);
 
-      // Update Redux state with user data (role can be on result.user or result)
-      const role =
-        (result as { role?: string }).role ??
-        (result.user as { role?: string }).role ??
-        "";
-      dispatch(
-        loginSuccess({
-          user: {
-            id: result.user._id || result.user.id || "",
-            _id: result.user._id,
-            email: result.user.email,
-            name: result.user.name || result.user.fullName || "",
-            role,
-            fullName: result.user.fullName,
-            phoneNo: result.user.phoneNo,
-            roles: result.user.roles,
-            isVerified: result.user.isVerified,
-            lastLogin: result.user.lastLogin,
-            createdAt: result.user.createdAt,
-            updatedAt: result.user.updatedAt,
-          },
-          token: result.accessToken,
-        })
-      );
-
-      // Navigate to dashboard on success
-      navigate("/dashboard");
-    } catch (err: unknown) {
-      // Handle error
-      let errorMessage = "Login failed. Please check your credentials and try again.";
-      
-      if (err && typeof err === "object") {
-        const error = err as { status?: number | string; originalStatus?: number; data?: { message?: string }; message?: string };
-        
-        if (error.status === 404 || error.originalStatus === 404) {
-          errorMessage = "Backend server not found. Please ensure the backend is running on http://localhost:5000";
-        } else if (error.status === "PARSING_ERROR" || error.status === "FETCH_ERROR") {
-          errorMessage = "Unable to connect to the server. Please check if the backend is running.";
-        } else if (error.data?.message) {
-          errorMessage = error.data.message;
-        } else if (error.message) {
-          errorMessage = error.message;
-        }
-      }
-      
-      setLocalError(errorMessage);
-      dispatch(loginFailure(errorMessage));
+    if (sbError) {
+      setError(sbError.message || "Login failed. Please check your credentials.");
+      return;
     }
-  };
 
-  // Only show error if there's an actual error message
-  const getErrorMessage = () => {
-    if (localError) return localError;
-    
-    // Check if error exists and has a message
-    if (error) {
-      if ("data" in error && error.data) {
-        const errorData = error.data as { message?: string };
-        if (errorData?.message) {
-          return errorData.message;
-        }
-      }
-      // Fallback for other error types
-      if ("message" in error && typeof error.message === "string") {
-        return error.message;
-      }
-    }
-    
-    return null;
+    // authListener fires onAuthStateChange → dispatches setSession → Redux updates
+    navigate("/dashboard");
   };
-
-  const displayError = getErrorMessage();
 
   return (
     <div className="min-h-screen flex bg-gray-50">
@@ -115,9 +48,9 @@ export function LoginPage() {
         {/* Logo and Branding */}
         <div className="px-8 pt-8 pb-4">
           <div className="flex items-center gap-3">
-            <img 
-              src="/CribXpert.svg" 
-              alt="CribXpert Logo" 
+            <img
+              src="/CribXpert.svg"
+              alt="CribXpert Logo"
               className="h-10 w-auto"
             />
           </div>
@@ -140,8 +73,8 @@ export function LoginPage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Email Field */}
               <div className="space-y-2">
-                <label 
-                  htmlFor="email" 
+                <label
+                  htmlFor="email"
                   className="block text-sm font-medium text-gray-700"
                 >
                   Email
@@ -171,8 +104,8 @@ export function LoginPage() {
 
               {/* Password Field */}
               <div className="space-y-2">
-                <label 
-                  htmlFor="password" 
+                <label
+                  htmlFor="password"
                   className="block text-sm font-medium text-gray-700"
                 >
                   Password
@@ -227,10 +160,7 @@ export function LoginPage() {
                 </label>
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    // Forgot password functionality can be added here
-                  }}
+                  onClick={(e) => e.preventDefault()}
                   className="text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors focus:outline-none"
                 >
                   Forgot Your Password?
@@ -238,10 +168,10 @@ export function LoginPage() {
               </div>
 
               {/* Error Message */}
-              {displayError && (
+              {error && (
                 <div className="rounded-lg bg-red-50 border border-red-200 p-4 flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-red-600 flex-1">{displayError}</p>
+                  <p className="text-sm text-red-600 flex-1">{error}</p>
                 </div>
               )}
 
@@ -274,10 +204,7 @@ export function LoginPage() {
               <button
                 type="button"
                 className="text-primary-600 hover:text-primary-700 transition-colors"
-                onClick={(e) => {
-                  e.preventDefault();
-                  // Privacy policy functionality can be added here
-                }}
+                onClick={(e) => e.preventDefault()}
               >
                 Privacy Policy
               </button>
@@ -288,7 +215,6 @@ export function LoginPage() {
 
       {/* Right Column - Promotional Section */}
       <div className="hidden lg:flex lg:w-[45%] bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 relative overflow-hidden">
-        {/* Decorative Background Pattern */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0" style={{
             backgroundImage: `radial-gradient(circle at 2px 2px, white 1px, transparent 0)`,
@@ -297,7 +223,6 @@ export function LoginPage() {
         </div>
 
         <div className="flex flex-col justify-center px-12 py-16 relative z-10">
-          {/* Headline */}
           <h2 className="text-4xl font-bold text-white mb-4 leading-tight">
             Effortlessly manage your team and operations.
           </h2>
@@ -305,9 +230,7 @@ export function LoginPage() {
             Log in to access your CRM dashboard and manage your team.
           </p>
 
-          {/* Dashboard Cards Preview */}
           <div className="grid grid-cols-2 gap-4 max-w-2xl">
-            {/* Total Sales Card */}
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-white/80 text-sm font-medium">Total Sales</span>
@@ -317,7 +240,6 @@ export function LoginPage() {
               <div className="text-sm text-white/70">Forecast Profit</div>
             </div>
 
-            {/* Chat Performance Card */}
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-white/80 text-sm font-medium">Chat Performance</span>
@@ -327,7 +249,6 @@ export function LoginPage() {
               <div className="h-8 bg-white/20 rounded mt-2"></div>
             </div>
 
-            {/* Sales Overview Card */}
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 col-span-2">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-white/80 text-sm font-medium">Sales Overview</span>
@@ -348,7 +269,6 @@ export function LoginPage() {
               </div>
             </div>
 
-            {/* Sales Categories Card */}
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-white/80 text-sm font-medium">Sales Categories</span>
@@ -369,7 +289,6 @@ export function LoginPage() {
               </div>
             </div>
 
-            {/* Product Transaction Card */}
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-white/80 text-sm font-medium">Product Transaction</span>
@@ -394,7 +313,6 @@ export function LoginPage() {
           </div>
         </div>
 
-        {/* Decorative Background Elements */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl"></div>
           <div className="absolute bottom-0 left-0 w-96 h-96 bg-white/5 rounded-full blur-3xl"></div>

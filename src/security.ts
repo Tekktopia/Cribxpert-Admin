@@ -12,18 +12,9 @@
 import SecurityManager from "./utils/securityManager";
 import type { SecurityConfig } from "./utils/securityManager";
 
-/**
- * Backend origin used for API calls.
- * Example: https://cribxpert-backend.onrender.com
- */
-export const BACKEND_ORIGIN: string =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim() ||
-  "https://cribxpert-backend.onrender.com";
+// All API calls now go directly to Supabase — no backend origin needed.
+export const BACKEND_ORIGIN: string = import.meta.env.VITE_SUPABASE_URL as string || '';
 
-/**
- * Optional: any other external origins your app legitimately connects to.
- * Add only what you need.
- */
 const EXTRA_CONNECT_ORIGINS: string[] = ["https://api.emailjs.com"];
 
 /**

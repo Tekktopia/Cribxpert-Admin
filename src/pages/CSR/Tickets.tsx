@@ -25,7 +25,7 @@ import {
   useGetTicketsQuery,
   useUpdateTicketStatusMutation,
 } from "@/api/features/ticket/ticketApiSlice";
-import { connectSocket } from "@/services/socket";
+import { supabase } from "@/lib/supabase";
 
 // Helper to map backend status to UI status
 const mapStatus = (backendStatus: string): Ticket['status'] => {
@@ -156,23 +156,13 @@ export default function Tickets() {
   const { data, isLoading, isError, refetch } = useGetTicketsQuery(queryParams);
   const [] = useUpdateTicketStatusMutation(); // will be used in modals
 
-  // Socket connection for real-time updates
+  // Supabase Realtime — refetch on any ticket INSERT or UPDATE
   useEffect(() => {
-    const token = sessionStorage.getItem('accessToken');
-    if (token) {
-      const socket = connectSocket(token);
-      socket.on('new-ticket', () => {
-        refetch(); // refresh list
-      });
-      socket.on('ticket-updated', () => {
-        refetch(); // refresh list
-      });
-      socket.emit('join-admin-tickets'); // join room
-      return () => {
-        socket.off('new-ticket');
-        socket.off('ticket-updated');
-      };
-    }
+    const channel = supabase
+      .channel('csr-tickets')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tickets' }, () => refetch())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [refetch]);
 
   // Transform backend tickets to UI format

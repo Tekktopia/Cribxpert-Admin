@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { PageWrapper } from "@/components/layout/PageWrapper";
 import { ListingManagementContainer } from "../features/listingmgmt/containers/ListingManagementContainer";
 import { ListingManagementHeader } from "../features/listingmgmt/containers/ListingManagementHeader";
@@ -6,12 +6,13 @@ import { useGetListingsQuery } from "@/api/features/adminListingManagement/admin
 import LoadingPage from "@/components/ui/LoadingPage";
 import { useAppDispatch } from "@/store/hooks";
 import { setListings } from "@/store/slices/listingSlice";
-import { useEffect } from "react";
 import type { ListingRecord } from "@/data/listingMgmtData";
+import { useRealtimeRefetch } from "@/hooks/useRealtimeRefetch";
 
 export default function ListingMgmt() {
   const dispatch = useAppDispatch();
-  const { data: listingsData, isLoading, error } = useGetListingsQuery();
+  const { data: listingsData, isLoading, error, refetch } = useGetListingsQuery();
+  useRealtimeRefetch(['listings'], refetch);
 
   // Transform API data to match ListingRecord type
   const transformedListings = useMemo(() => {
@@ -93,9 +94,7 @@ export default function ListingMgmt() {
 
   // Update Redux store with transformed listings
   useEffect(() => {
-    if (transformedListings.length > 0) {
-      dispatch(setListings(transformedListings));
-    }
+    dispatch(setListings(transformedListings));
   }, [transformedListings, dispatch]);
 
   const isPopulated = !isLoading && transformedListings.length > 0;

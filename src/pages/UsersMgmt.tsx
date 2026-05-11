@@ -4,9 +4,11 @@ import { PageWrapper } from "@/components/layout/PageWrapper";
 import { userMgmtData, type User } from "../data/userMgmtData";
 import { useGetAllUsersQuery } from "@/api/features/adminUserManagement/adminUserManagementApiSlice";
 import LoadingPage from "@/components/ui/LoadingPage";
+import { useRealtimeRefetch } from "@/hooks/useRealtimeRefetch";
 
 export default function UsersMgmt() {
-  const { data: usersData, isLoading, error } = useGetAllUsersQuery();
+  const { data: usersData, isLoading, error, refetch } = useGetAllUsersQuery();
+  useRealtimeRefetch(['profiles'], refetch);
 
   // Transform API data to match User type
   const transformedUsers = useMemo(() => {

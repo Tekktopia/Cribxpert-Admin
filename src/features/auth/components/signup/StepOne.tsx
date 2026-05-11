@@ -1,7 +1,7 @@
 import React from 'react';
 import CustomDropdown from './CustomDropdown';
 import { GoogleSignUp } from './GoogleSignUp';
-import { useInitiateEmailVerificationMutation } from '@/features/auth/authService';
+import { supabase } from '@/lib/supabase';
 import { Link } from 'react-router';
 
 const isValidEmail = (email: string): boolean => {
@@ -28,65 +28,31 @@ const StepOne: React.FC<StepOneProps> = ({
   setPhoneNumber,
 }) => {
   const [error, setError] = React.useState<string>('');
-  const [initiateEmailVerification, { isLoading }] =
-    useInitiateEmailVerificationMutation();
+  const [isLoading, setIsLoading] = React.useState(false);
 
   const handleSignUp = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    // Prevent default button click behavior
     e.preventDefault();
     e.stopPropagation();
+    setError('');
 
     try {
       if (methodSelected === 'Email Address') {
-
-        // Check email format
-        if (!isValidEmail(email)) {
-          throw new Error('Please enter a valid email address');
-        }
-
-        const result = await initiateEmailVerification({ email });
-
-        // Check for errors in the result
-        if ('error' in result) {
-          // console.error('API error:', result.error);
-          throw result.error;
-        }
-
-        // Access data safely
-        const response = result.data;
-        if (response?.user) {
-          localStorage.setItem('pendingEmail', email);
-        }
-        // console.log('Verification email sent:', response?.message);
-
-        // Only proceed if we get here without errors
+        if (!isValidEmail(email)) throw new Error('Please enter a valid email address');
+        setIsLoading(true);
+        const { error: sbError } = await supabase.auth.signInWithOtp({ email });
+        if (sbError) throw sbError;
+        localStorage.setItem('pendingEmail', email);
         nextStep();
       } else {
-        // Phone number validation
-        if (!phoneNumber) {
-          throw new Error('Phone number is required');
-        } else if (phoneNumber.length < 11 || phoneNumber.length > 11) {
-          throw new Error('Phone number must be 11 digits');
-        }
-
-        // Phone verification not implemented
+        if (!phoneNumber) throw new Error('Phone number is required');
+        if (phoneNumber.length !== 11) throw new Error('Phone number must be 11 digits');
         throw new Error('Phone verification is not implemented yet');
       }
     } catch (err: unknown) {
-      // Error handling
-      if (typeof err === 'object' && err !== null) {
-        const errorObj = err as {
-          data?: { message?: string };
-          message?: string;
-        };
-        setError(
-          errorObj.data?.message ||
-            errorObj.message ||
-            'An error occurred during sign-up'
-        );
-      } else {
-        setError('An error occurred during sign-up');
-      }
+      const errorObj = err as { message?: string };
+      setError(errorObj.message || 'An error occurred during sign-up');
+    } finally {
+      setIsLoading(false);
     }
   };
 

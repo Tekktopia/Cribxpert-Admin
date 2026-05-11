@@ -1,9 +1,6 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAppSelector } from "@/store/hooks";
 
-// Admin‑only paths
-
-// Finance admin paths
 const FINANCE_ADMIN_PATHS = [
   "/finance-dashboard",
   "/finance-payouts",
@@ -14,7 +11,6 @@ const FINANCE_ADMIN_PATHS = [
   "/log-out",
 ];
 
-// CSR paths
 const CSR_PATHS = [
   "/csr",
   "/csr/dashboard",
@@ -38,28 +34,27 @@ function isCSRPath(pathname: string) {
 export function RoleGuard() {
   const location = useLocation();
   const pathname = location.pathname;
-  const role = useAppSelector(state => state.auth.user?.role) || "";
+  // Read role from profile (Supabase string enum)
+  const role = useAppSelector(state => state.auth.profile?.role) || "";
 
   if (pathname === "/") return <Outlet />;
 
-  const normalizedRole = role.trim();
-
-  // FinanceAdmin: only finance paths
-  if (normalizedRole === "FinanceAdmin") {
+  // finance_admin: only finance paths
+  if (role === "finance_admin") {
     if (!isFinancePath(pathname)) {
       return <Navigate to="/finance-dashboard" replace />;
     }
   }
 
-  // Admin or CSRAdmin: block /admin-management
-  if (normalizedRole === "Admin" || normalizedRole === "CSRAdmin") {
+  // admin or csr_admin: block /admin-management (superadmin only)
+  if (role === "admin" || role === "csr_admin") {
     if (pathname === "/admin-management") {
       return <Navigate to="/dashboard" replace />;
     }
   }
 
-  // CSR: only CSR paths, settings, logout
-  if (normalizedRole === "CSR") {
+  // csr_admin: only CSR paths, settings, logout
+  if (role === "csr_admin") {
     if (!isCSRPath(pathname)) {
       return <Navigate to="/csr/dashboard" replace />;
     }

@@ -7,8 +7,8 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { csrNavigationItems } from "@/components/layout/csrSidebar";
 import { useGetTicketsQuery } from "@/api/features/ticket/ticketApiSlice";
-import { connectSocket } from "@/services/socket";
 import { useAppSelector } from "@/store/hooks";
+import { supabase } from "@/lib/supabase";
 import { TicketDetailsDrawer } from "@/features/csr/tickets/TicketDetailsDrawer";
 import { type Ticket as TicketType } from "@/features/csr/tickets/types";
 import arrow from "/svg/arrow-up.svg";
@@ -78,25 +78,13 @@ const SupportDashboard = () => {
   // Fetch tickets from backend
   const { data, isLoading, isError, refetch } = useGetTicketsQuery({ limit: 100 });
 
-  // Socket for real‑time updates
+  // Supabase Realtime — refetch on any ticket INSERT or UPDATE
   useEffect(() => {
-    const token = sessionStorage.getItem('accessToken');
-    if (!token) return;
-
-    const socket = connectSocket(token);
-    if (!socket) return;
-
-    const handleNewTicket = () => refetch();
-    const handleTicketUpdated = () => refetch();
-
-    socket.on('new-ticket', handleNewTicket);
-    socket.on('ticket-updated', handleTicketUpdated);
-    socket.emit('join-admin-tickets');
-
-    return () => {
-      socket.off('new-ticket', handleNewTicket);
-      socket.off('ticket-updated', handleTicketUpdated);
-    };
+    const channel = supabase
+      .channel('admin-tickets')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tickets' }, () => refetch())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [refetch]);
 
   // Transform backend tickets to UI format
