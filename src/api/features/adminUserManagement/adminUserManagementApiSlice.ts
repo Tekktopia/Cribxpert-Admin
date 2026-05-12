@@ -89,11 +89,11 @@ export const adminUserManagementApiSlice = apiSlice.injectEndpoints({
 
     getUserById: builder.query<UserDetailsResponse, string>({
       queryFn: async (userId) => {
-        const { data: profile, error } = await supabase
+        const { data: profile, error } = await (supabase
           .from('profiles')
           .select('*')
           .eq('id', userId)
-          .single();
+          .single() as any);
         if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
 
         const [{ count: activeBookings }, { count: completedBookings }, { count: cancelledBookings }] = await Promise.all([
@@ -127,16 +127,15 @@ export const adminUserManagementApiSlice = apiSlice.injectEndpoints({
 
     blockUser: builder.mutation<BlockUserResponse, { userId: string; reason: string }>({
       queryFn: async ({ userId, reason }) => {
-        const { data: current } = await supabase.from('profiles').select('account_disabled, email, full_name').eq('id', userId).single();
+        const { data: current } = await ((supabase.from('profiles') as any).select('account_disabled, email, full_name').eq('id', userId).single());
         const newDisabled = !(current?.account_disabled ?? false);
-        const { data, error } = await supabase
-          .from('profiles')
+        const { data, error } = await ((supabase.from('profiles') as any)
           .update({ account_disabled: newDisabled, block_reason: newDisabled ? reason : null })
           .eq('id', userId)
           .select('id, email, account_disabled, block_reason')
-          .single();
+          .single());
         if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
-        await supabase.from('notifications').insert({
+        await (supabase.from('notifications') as any).insert({
           user_id: userId,
           title: newDisabled ? 'Account Suspended' : 'Account Reinstated',
           description: newDisabled
@@ -146,15 +145,16 @@ export const adminUserManagementApiSlice = apiSlice.injectEndpoints({
           is_read: false,
         });
         const userName = current?.full_name || current?.email || '';
+        const dataTyped = data as any;
         await sendEmail(
           newDisabled ? 'account_blocked' : 'account_reinstated',
-          data.email,
+          dataTyped.email,
           newDisabled ? { userName, reason } : { userName }
         );
         return {
           data: {
             message: newDisabled ? 'User account blocked successfully' : 'User account unblocked successfully',
-            user: { userId: data.id, email: data.email, accountDisabled: data.account_disabled, blockReason: data.block_reason ?? '' },
+            user: { userId: dataTyped.id, email: dataTyped.email, accountDisabled: dataTyped.account_disabled, blockReason: dataTyped.block_reason ?? '' },
           },
         };
       },
@@ -166,7 +166,7 @@ export const adminUserManagementApiSlice = apiSlice.injectEndpoints({
 
     deleteUser: builder.mutation<DeleteUserResponse, string>({
       queryFn: async (userId) => {
-        const { data: profile } = await supabase.from('profiles').select('email').eq('id', userId).single();
+        const { data: profile } = await (supabase.from('profiles').select('email').eq('id', userId).single() as any);
         const { error } = await supabase.from('profiles').delete().eq('id', userId);
         if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
         return {

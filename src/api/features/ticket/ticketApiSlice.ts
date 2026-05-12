@@ -59,7 +59,7 @@ export const ticketApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     createTicket: builder.mutation<Ticket, CreateTicketData>({
       queryFn: async (ticketData) => {
-        const { data, error } = await supabase
+        const { data, error } = await (supabase
           .from('tickets')
           .insert({
             first_name: ticketData.firstName,
@@ -71,9 +71,9 @@ export const ticketApiSlice = apiSlice.injectEndpoints({
             source: 'admin',
             status: 'pending',
             priority: 'medium',
-          })
+          } as any)
           .select('*')
-          .single();
+          .single() as any);
         if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
         return { data: mapTicket(data as Record<string, unknown>) };
       },
@@ -96,7 +96,7 @@ export const ticketApiSlice = apiSlice.injectEndpoints({
         if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
 
         const tickets = (data ?? []).map(r => mapTicket(r as Record<string, unknown>));
-        const { data: allTickets } = await supabase.from('tickets').select('status');
+        const { data: allTickets } = await supabase.from('tickets').select('status') as { data: any[] | null };
         const all = allTickets ?? [];
 
         return {
@@ -106,10 +106,10 @@ export const ticketApiSlice = apiSlice.injectEndpoints({
               tickets,
               stats: {
                 total: all.length,
-                pending: all.filter(t => t.status === 'pending').length,
-                inProgress: all.filter(t => t.status === 'in-progress').length,
-                resolved: all.filter(t => t.status === 'resolved').length,
-                closed: all.filter(t => t.status === 'closed').length,
+                pending: all.filter((t: any) => t.status === 'pending').length,
+                inProgress: all.filter((t: any) => t.status === 'in-progress').length,
+                resolved: all.filter((t: any) => t.status === 'resolved').length,
+                closed: all.filter((t: any) => t.status === 'closed').length,
               },
               pagination: { page, limit, total: count ?? tickets.length, totalPages: Math.ceil((count ?? tickets.length) / limit) },
             },
@@ -138,7 +138,7 @@ export const ticketApiSlice = apiSlice.injectEndpoints({
       queryFn: async ({ id, status, assignedTo }) => {
         const patch: Record<string, unknown> = { status };
         if (assignedTo !== undefined) patch.assigned_to = assignedTo;
-        const { data, error } = await supabase.from('tickets').update(patch).eq('id', id).select('*').single();
+        const { data, error } = await ((supabase.from('tickets') as any).update(patch).eq('id', id).select('*').single());
         if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
         return { data: mapTicket(data as Record<string, unknown>) };
       },
@@ -147,16 +147,15 @@ export const ticketApiSlice = apiSlice.injectEndpoints({
 
     addTicketNote: builder.mutation<Ticket, { id: string; message: string; type?: string }>({
       queryFn: async ({ id, message, type = 'reply' }) => {
-        const { data: current, error: fetchErr } = await supabase.from('tickets').select('notes').eq('id', id).single();
+        const { data: current, error: fetchErr } = await ((supabase.from('tickets') as any).select('notes').eq('id', id).single());
         if (fetchErr) return { error: { status: 'CUSTOM_ERROR', error: fetchErr.message } };
         const existingNotes = (current?.notes as unknown[]) ?? [];
         const newNote = { message, addedBy: 'admin', type, createdAt: new Date().toISOString() };
-        const { data, error } = await supabase
-          .from('tickets')
+        const { data, error } = await ((supabase.from('tickets') as any)
           .update({ notes: [...existingNotes, newNote] })
           .eq('id', id)
           .select('*')
-          .single();
+          .single());
         if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
         return { data: mapTicket(data as Record<string, unknown>) };
       },

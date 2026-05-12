@@ -22,7 +22,7 @@ export const authApiSlice = apiSlice.injectEndpoints({
       queryFn: async ({ email, fullName, role = 'admin' }) => {
         const { error: otpError } = await supabase.auth.signInWithOtp({ email });
         if (otpError) return { error: { status: 'CUSTOM_ERROR', error: otpError.message } };
-        const { error: profileError } = await supabase.from('profiles').upsert({ email, full_name: fullName, role }, { onConflict: 'email' });
+        const { error: profileError } = await (supabase.from('profiles') as any).upsert({ email, full_name: fullName, role }, { onConflict: 'email' });
         if (profileError) return { error: { status: 'CUSTOM_ERROR', error: profileError.message } };
         return { data: { message: `Admin invite sent to ${email}` } };
       },

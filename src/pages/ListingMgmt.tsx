@@ -56,7 +56,7 @@ export default function ListingMgmt() {
 
       return {
         id: apiListing._id,
-        propertyId: apiListing.propertyId,
+        propertyId: (apiListing as any).propertyId,
         title: apiListing.name,
         description: apiListing.description,
         host: {

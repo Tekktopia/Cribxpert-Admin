@@ -89,13 +89,14 @@ export default function Settings() {
 
   useEffect(() => {
     const apiUser = profileData?.user;
+    const u = user as any;
     const name =
       (apiUser?.fullName as string) ||
-      (user?.fullName as string) ||
-      (user?.name as string) ||
+      u?.fullName ||
+      u?.name ||
       "";
     const phone =
-      (apiUser?.phoneNo as string) || (user?.phoneNo as string) || "";
+      (apiUser?.phoneNo as string) || u?.phoneNo || "";
     setFullName(name);
     setPhoneNumber(phone);
 
@@ -111,17 +112,13 @@ export default function Settings() {
     if (typeof apiUser?.emailAlerts === "boolean") {
       setEmailAlerts(apiUser.emailAlerts);
     }
-  }, [
-    profileData?.user,
-    user?.fullName,
-    user?.name,
-    user?.phoneNo,
-  ]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileData?.user, user]);
 
   const lastLoginDisplay = (() => {
     const raw =
       (profileData?.user.lastLogin as string | undefined) ||
-      (user?.lastLogin as string | undefined);
+      ((user as any)?.lastLogin as string | undefined);
     if (!raw) return "Not available";
     try {
       const date = new Date(raw);

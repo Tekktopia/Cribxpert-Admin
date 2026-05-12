@@ -105,37 +105,37 @@ export const adminBookingMetricsApiSlice = apiSlice.injectEndpoints({
             .from('bookings')
             .select('total_price, created_at')
             .in('status', ['Confirmed', 'Completed'])
-            .not('total_price', 'is', null);
+            .not('total_price', 'is', null) as { data: any[] | null; error: any };
 
           if (priceError) throw priceError;
 
           // Calculate current average
           let averageValue = 0;
           if (bookingsWithPrice && bookingsWithPrice.length > 0) {
-            const totalSum = bookingsWithPrice.reduce((sum, b) => sum + (b.total_price || 0), 0);
+            const totalSum = bookingsWithPrice.reduce((sum: number, b: any) => sum + (b.total_price || 0), 0);
             averageValue = totalSum / bookingsWithPrice.length;
           }
 
           // Calculate average value change
-          const thisWeekBookingsAvg = bookingsWithPrice?.filter(b => 
+          const thisWeekBookingsAvg = bookingsWithPrice?.filter((b: any) =>
             new Date(b.created_at) >= sevenDaysAgo
           ) || [];
-          
-          const lastWeekBookingsPrice = bookingsWithPrice?.filter(b => 
-            new Date(b.created_at) >= fourteenDaysAgo && 
+
+          const lastWeekBookingsPrice = bookingsWithPrice?.filter((b: any) =>
+            new Date(b.created_at) >= fourteenDaysAgo &&
             new Date(b.created_at) < sevenDaysAgo
           ) || [];
 
           let thisWeekAvg = 0;
           let lastWeekAvg = 0;
-          
+
           if (thisWeekBookingsAvg.length > 0) {
-            const thisWeekSum = thisWeekBookingsAvg.reduce((sum, b) => sum + (b.total_price || 0), 0);
+            const thisWeekSum = thisWeekBookingsAvg.reduce((sum: number, b: any) => sum + (b.total_price || 0), 0);
             thisWeekAvg = thisWeekSum / thisWeekBookingsAvg.length;
           }
-          
+
           if (lastWeekBookingsPrice.length > 0) {
-            const lastWeekSum = lastWeekBookingsPrice.reduce((sum, b) => sum + (b.total_price || 0), 0);
+            const lastWeekSum = lastWeekBookingsPrice.reduce((sum: number, b: any) => sum + (b.total_price || 0), 0);
             lastWeekAvg = lastWeekSum / lastWeekBookingsPrice.length;
           }
 
@@ -151,22 +151,22 @@ export const adminBookingMetricsApiSlice = apiSlice.injectEndpoints({
             .from('bookings')
             .select('total_price, created_at')
             .eq('escrow_status', 'AWAITING_KYC')
-            .not('total_price', 'is', null);
+            .not('total_price', 'is', null) as { data: any[] | null; error: any };
 
           if (payoutError) throw payoutError;
 
           let pendingPayoutsTotal = 0;
           if (pendingPayoutsData && pendingPayoutsData.length > 0) {
-            pendingPayoutsTotal = pendingPayoutsData.reduce((sum, b) => sum + (b.total_price || 0), 0);
+            pendingPayoutsTotal = pendingPayoutsData.reduce((sum: number, b: any) => sum + (b.total_price || 0), 0);
           }
 
           // Calculate pending payouts change
-          const lastWeekPayoutsData = pendingPayoutsData?.filter(b => 
-            new Date(b.created_at) >= fourteenDaysAgo && 
+          const lastWeekPayoutsData = pendingPayoutsData?.filter((b: any) =>
+            new Date(b.created_at) >= fourteenDaysAgo &&
             new Date(b.created_at) < sevenDaysAgo
           ) || [];
 
-          const lastWeekPayoutsTotal = lastWeekPayoutsData.reduce((sum, b) => sum + (b.total_price || 0), 0);
+          const lastWeekPayoutsTotal = lastWeekPayoutsData.reduce((sum: number, b: any) => sum + (b.total_price || 0), 0);
 
           let pendingPayoutsChange = 0;
           if (lastWeekPayoutsTotal > 0) {
@@ -183,14 +183,14 @@ export const adminBookingMetricsApiSlice = apiSlice.injectEndpoints({
           const { data: allTrendsBookings, error: trendsError } = await supabase
             .from('bookings')
             .select('status, created_at')
-            .gte('created_at', thirtyDaysAgo.toISOString());
+            .gte('created_at', thirtyDaysAgo.toISOString()) as { data: any[] | null; error: any };
 
           if (trendsError) throw trendsError;
 
           // Group by date
           const trendsMap = new Map<string, { confirmed: number; cancelled: number; failed: number }>();
 
-          allTrendsBookings?.forEach(booking => {
+          (allTrendsBookings ?? []).forEach((booking: any) => {
             const date = new Date(booking.created_at).toISOString().split('T')[0];
             
             if (!trendsMap.has(date)) {
@@ -259,11 +259,11 @@ export const adminBookingMetricsApiSlice = apiSlice.injectEndpoints({
               )
             `)
             .order('created_at', { ascending: false })
-            .limit(10);
+            .limit(10) as { data: any[] | null; error: any };
 
           if (recentError) throw recentError;
 
-          const recentBookings = recentBookingsData?.map(booking => {
+          const recentBookings = (recentBookingsData ?? []).map((booking: any) => {
             // Generate ticket ID from booking ID (first 8 characters)
             const ticketId = `#${booking.id.slice(0, 8)}`;
             
@@ -295,13 +295,13 @@ export const adminBookingMetricsApiSlice = apiSlice.injectEndpoints({
                 profiles!listings_user_id_fkey (
                 full_name
                 )
-            `);
+            `) as { data: any[] | null; error: any };
 
             if (topListingsError) throw topListingsError;
 
             // Get booking counts for each listing
             const listingsWithBookings = await Promise.all(
-            topListingsData?.map(async (listing) => {
+            (topListingsData ?? []).map(async (listing: any) => {
                 const { count: bookingCount, error: countError } = await supabase
                 .from('bookings')
                 .select('*', { count: 'exact', head: true })

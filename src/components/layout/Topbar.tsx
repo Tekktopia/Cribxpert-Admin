@@ -100,13 +100,14 @@ export const Topbar = memo(function Topbar({ onMenuClick }: TopbarProps) {
       };
     }
 
-    const fullName = (user.fullName as string) || (user.name as string) || user.email || "User";
+    const u = user as any;
+    const fullName = u.fullName || u.name || u.email || "User";
     let role = "User";
-    const roleStr = user.role && typeof user.role === "string" ? user.role.trim() : "";
+    const roleStr = u.role && typeof u.role === "string" ? u.role.trim() : "";
     if (roleStr) {
       role = formatRoleLabel(roleStr);
-    } else if (user.roles != null) {
-      role = getRoleDisplay(user.roles);
+    } else if (u.roles != null) {
+      role = getRoleDisplay(u.roles);
     }
 
     const initials = getInitials(fullName);
@@ -179,8 +180,8 @@ export const Topbar = memo(function Topbar({ onMenuClick }: TopbarProps) {
               className='flex items-center cursor-pointer space-x-2 sm:space-x-3 hover:opacity-80 transition-opacity focus:outline-none'
             >
               <Avatar className='w-8 h-8 shrink-0 cursor-pointer'>
-                {typeof user?.avatar === "string" && user.avatar ? (
-                  <AvatarImage src={user.avatar} alt={userDisplay.name} />
+                {typeof (user as any)?.avatar === "string" && (user as any).avatar ? (
+                  <AvatarImage src={(user as any).avatar} alt={userDisplay.name} />
                 ) : null}
                 <AvatarFallback className='bg-primary-100 text-primary-700 text-xs font-semibold'>
                   {userDisplay.initials}
@@ -208,8 +209,8 @@ export const Topbar = memo(function Topbar({ onMenuClick }: TopbarProps) {
                   <div className='px-4 py-3 border-b border-gray-200 bg-gray-50 cursor-pointer'>
                     <div className='flex items-center gap-3'>
                       <Avatar className='w-10 h-10'>
-                        {typeof user?.avatar === "string" && user.avatar ? (
-                          <AvatarImage src={user.avatar} alt={userDisplay.name} />
+                        {typeof (user as any)?.avatar === "string" && (user as any).avatar ? (
+                          <AvatarImage src={(user as any).avatar} alt={userDisplay.name} />
                         ) : null}
                         <AvatarFallback className='bg-primary-100 text-primary-700 text-sm font-semibold'>
                           {userDisplay.initials}

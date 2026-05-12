@@ -58,8 +58,8 @@ export default function UserDetails() {
               User Not Found
             </h2>
             <p className='text-gray-600 mb-4'>
-              {error && "data" in error
-                ? (error.data as { message?: string })?.message ||
+              {error && typeof error === 'object' && 'data' in (error as object)
+                ? ((error as any).data as { message?: string })?.message ||
                   "The user you're looking for doesn't exist."
                 : "The user you're looking for doesn't exist."}
             </p>
