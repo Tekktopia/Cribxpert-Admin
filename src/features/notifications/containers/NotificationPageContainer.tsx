@@ -29,13 +29,13 @@ export function NotificationPageContainer() {
         .from("broadcast_notifications")
         .select("*")
         .order("created_at", { ascending: false })
-        .limit(100);
+        .limit(100) as { data: any[] | null; error: any };
 
       if (error) {
         console.error("Failed to load notification history:", error.message);
       } else {
         setData(
-          (rows ?? []).map((r) => ({
+          (rows ?? []).map((r: any) => ({
             id: r.id,
             title: r.title,
             audience: r.audience ?? "all",
@@ -63,7 +63,7 @@ export function NotificationPageContainer() {
     scheduledAt?: string
   ): Promise<boolean> => {
     // 1. Record the broadcast in broadcast_notifications table
-    const { data: broadcast, error: broadcastErr } = await supabase
+    const { data: broadcast, error: broadcastErr } = await (supabase
       .from("broadcast_notifications")
       .insert({
         title,
@@ -72,9 +72,9 @@ export function NotificationPageContainer() {
         status,
         scheduled_at: scheduledAt ?? null,
         sent_at: status === "sent" ? new Date().toISOString() : null,
-      })
+      } as any)
       .select("*")
-      .single();
+      .single() as any);
 
     if (broadcastErr) {
       showError("Failed", broadcastErr.message);
@@ -94,10 +94,10 @@ export function NotificationPageContainer() {
         query = query.in("role", ["user"]);
       }
 
-      const { data: users } = await query;
+      const { data: users } = await (query as any);
       if (users && users.length > 0) {
-        await supabase.from("notifications").insert(
-          users.map((u) => ({
+        await (supabase.from("notifications") as any).insert(
+          (users as any[]).map((u: any) => ({
             user_id: u.id,
             title,
             description: message,
@@ -109,16 +109,17 @@ export function NotificationPageContainer() {
     }
 
     // Add to local state
+    const bc = broadcast as any;
     setData((d) => [
       {
-        id: broadcast.id,
-        title: broadcast.title,
-        audience: broadcast.audience ?? "all",
-        message: broadcast.message,
-        status: broadcast.status,
-        scheduledAt: broadcast.scheduled_at ?? undefined,
-        sentAt: broadcast.sent_at ?? undefined,
-        createdAt: broadcast.created_at,
+        id: bc.id,
+        title: bc.title,
+        audience: bc.audience ?? "all",
+        message: bc.message,
+        status: bc.status,
+        scheduledAt: bc.scheduled_at ?? undefined,
+        sentAt: bc.sent_at ?? undefined,
+        createdAt: bc.created_at,
       },
       ...d,
     ]);
@@ -178,10 +179,9 @@ export function NotificationPageContainer() {
       return;
     }
     if (action === "cancel") {
-      const { error } = await supabase
-        .from("broadcast_notifications")
+      const { error } = await ((supabase.from("broadcast_notifications") as any)
         .update({ status: "draft", scheduled_at: null })
-        .eq("id", item.id);
+        .eq("id", item.id));
       if (!error) {
         setData((d) =>
           d.map((x) =>

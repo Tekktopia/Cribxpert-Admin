@@ -80,7 +80,7 @@ const StepFour: React.FC<StepFourProps> = ({ formData, setFormData }) => {
 
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        await supabase.from('profiles').update({
+        await (supabase.from('profiles') as any).update({
           full_name: `${formData.firstName} ${formData.lastName}`.trim(),
           phone_no: formData.phoneNo,
           dob: formData.dateOfBirth,

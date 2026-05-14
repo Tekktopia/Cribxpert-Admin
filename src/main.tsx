@@ -8,7 +8,7 @@ import App from "./App.tsx";
 
 const root = createRoot(document.getElementById("root")!);
 
-// Option A: Disable StrictMode in dev (stops double-invocation noise)
+// Option A: Disable StrictMode in dev (stops double-invocation noise )
 if (import.meta.env.DEV) {
   root.render(<App />);
 } else {

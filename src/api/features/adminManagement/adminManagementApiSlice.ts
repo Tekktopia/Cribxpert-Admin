@@ -40,11 +40,11 @@ export const adminManagementApiSlice = apiSlice.injectEndpoints({
           .from('profiles')
           .select('id, full_name, email, role, account_disabled, created_at')
           .in('role', ['admin', 'superadmin', 'finance_admin', 'csr_admin'])
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false }) as { data: any[] | null; error: any };
         if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
         return {
           data: {
-            admins: (data ?? []).map(p => ({
+            admins: (data ?? []).map((p: any) => ({
               id: p.id,
               fullName: p.full_name ?? p.email ?? '',
               email: p.email ?? '',
@@ -71,7 +71,7 @@ export const adminManagementApiSlice = apiSlice.injectEndpoints({
         if (inviteError) return { error: { status: 'CUSTOM_ERROR', error: inviteError.message } };
 
         // Upsert profile with admin role
-        const { error: profileError } = await supabase.from('profiles').upsert({
+        const { error: profileError } = await (supabase.from('profiles') as any).upsert({
           email,
           full_name: fullName,
           role: ROLE_TO_DB[adminType] ?? 'admin',
@@ -85,9 +85,9 @@ export const adminManagementApiSlice = apiSlice.injectEndpoints({
 
     disableAdmin: builder.mutation<DisableAdminResponse, string>({
       queryFn: async (adminId) => {
-        const { data: current } = await supabase.from('profiles').select('account_disabled').eq('id', adminId).single();
+        const { data: current } = await ((supabase.from('profiles') as any).select('account_disabled').eq('id', adminId).single());
         const newDisabled = !(current?.account_disabled ?? false);
-        const { error } = await supabase.from('profiles').update({ account_disabled: newDisabled }).eq('id', adminId);
+        const { error } = await ((supabase.from('profiles') as any).update({ account_disabled: newDisabled }).eq('id', adminId));
         if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
         return { data: { message: newDisabled ? 'Admin disabled successfully' : 'Admin enabled successfully' } };
       },

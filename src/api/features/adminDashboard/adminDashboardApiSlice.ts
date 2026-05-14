@@ -54,13 +54,13 @@ export const adminDashboardApiSlice = apiSlice.injectEndpoints({
         const { data } = await supabase
           .from('profiles')
           .select('kyc_status, account_disabled')
-          .not('role', 'in', '(admin,superadmin,finance_admin,csr_admin)');
+          .not('role', 'in', '(admin,superadmin,finance_admin,csr_admin)') as { data: any[] | null };
         const rows = data ?? [];
         return {
           data: {
-            verifiedUsers: rows.filter(r => r.kyc_status === 'verified' && !r.account_disabled).length,
-            pendingUsers: rows.filter(r => r.kyc_status !== 'verified' && !r.account_disabled).length,
-            blockedUsers: rows.filter(r => r.account_disabled).length,
+            verifiedUsers: rows.filter((r: any) => r.kyc_status === 'verified' && !r.account_disabled).length,
+            pendingUsers: rows.filter((r: any) => r.kyc_status !== 'verified' && !r.account_disabled).length,
+            blockedUsers: rows.filter((r: any) => r.account_disabled).length,
           },
         };
       },
@@ -70,23 +70,23 @@ export const adminDashboardApiSlice = apiSlice.injectEndpoints({
       queryFn: async (params) => {
         const limit = params?.limit ?? 10;
         const [{ data: signups }, { data: listings }, { data: bookings }] = await Promise.all([
-          supabase.from('profiles').select('id, email, full_name, created_at').not('role', 'in', '(admin,superadmin,finance_admin,csr_admin)').order('created_at', { ascending: false }).limit(limit),
-          supabase.from('listings').select('id, name, updated_at').order('updated_at', { ascending: false }).limit(limit),
-          supabase.from('bookings').select('id, total_price, status, created_at').order('created_at', { ascending: false }).limit(limit),
+          (supabase.from('profiles').select('id, email, full_name, created_at').not('role', 'in', '(admin,superadmin,finance_admin,csr_admin)').order('created_at', { ascending: false }).limit(limit) as unknown) as Promise<{ data: any[] | null }>,
+          (supabase.from('listings').select('id, name, updated_at').order('updated_at', { ascending: false }).limit(limit) as unknown) as Promise<{ data: any[] | null }>,
+          (supabase.from('bookings').select('id, total_price, status, created_at').order('created_at', { ascending: false }).limit(limit) as unknown) as Promise<{ data: any[] | null }>,
         ]);
 
         const activities: RecentActivity[] = [
-          ...(signups ?? []).map(u => ({
+          ...(signups ?? []).map((u: any) => ({
             type: 'signup' as const,
             timestamp: u.created_at,
             user: { _id: u.id, email: u.email ?? '', fullName: u.full_name ?? '' },
           })),
-          ...(listings ?? []).map(l => ({
+          ...(listings ?? []).map((l: any) => ({
             type: 'listing_update' as const,
             timestamp: l.updated_at,
             listing: { _id: l.id, name: l.name },
           })),
-          ...(bookings ?? []).map(b => ({
+          ...(bookings ?? []).map((b: any) => ({
             type: 'booking' as const,
             timestamp: b.created_at,
             booking: { _id: b.id, totalPrice: b.total_price ?? 0, status: b.status },
@@ -99,14 +99,14 @@ export const adminDashboardApiSlice = apiSlice.injectEndpoints({
 
     getListingSummary: builder.query<ListingSummaryResponse, void>({
       queryFn: async () => {
-        const { data } = await supabase.from('listings').select('status, hide_status');
+        const { data } = await supabase.from('listings').select('status, hide_status') as { data: any[] | null };
         const rows = data ?? [];
         return {
           data: {
-            activeListings: rows.filter(r => r.status === 'approved' && !r.hide_status).length,
-            inactiveListings: rows.filter(r => r.hide_status).length,
-            pendingListings: rows.filter(r => r.status === 'pending').length,
-            flaggedListings: rows.filter(r => r.status === 'flagged').length,
+            activeListings: rows.filter((r: any) => r.status === 'approved' && !r.hide_status).length,
+            inactiveListings: rows.filter((r: any) => r.hide_status).length,
+            pendingListings: rows.filter((r: any) => r.status === 'pending').length,
+            flaggedListings: rows.filter((r: any) => r.status === 'flagged').length,
           },
         };
       },

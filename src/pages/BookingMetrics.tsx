@@ -7,7 +7,6 @@ import {
   RecentBookingsTable,
   TopBookedListings,
 } from "@/features/bookingmetrics";
-import { bookingMetricsData } from "@/data/bookingMetricsData";
 import { useGetBookingMetricsQuery } from "@/api/features/adminBookingMetrics/bookingMetricsApiSlice";
 import { Loader2 } from "lucide-react";
 
@@ -91,12 +90,12 @@ export default function BookingMetrics() {
 
       {/* Charts - still using static data for now */}
       <BookingChartsGrid
-      trends={data?.trends || []}
-      statusBreakdown={data?.statusBreakdown || { controlled: 0, cancelled: 0, failed: 0 }}
-    />
+        trends={data?.trends || []}
+        statusBreakdown={data?.statusBreakdown || []}
+      />
       {/* Tables - still using static data for now */}
       <div className='grid grid-cols-1 gap-6'>
-         <RecentBookingsTable rows={data?.recentBookings || []} />
+        <RecentBookingsTable rows={(data?.recentBookings || []) as any} />
         <TopBookedListings items={data?.topListings || []} />
       </div>
     </PageWrapper>

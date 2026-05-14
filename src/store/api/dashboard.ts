@@ -26,10 +26,10 @@ export const dashboardApi = createApi({
           supabase.from('profiles').select('*', { count: 'exact', head: true }).not('role', 'in', '(admin,superadmin,finance_admin,csr_admin)'),
           supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'approved').eq('hide_status', false),
           supabase.from('bookings').select('*', { count: 'exact', head: true }).gte('created_at', sevenDaysAgo),
-          supabase.from('bookings').select('total_price').eq('status', 'completed'),
+          (supabase.from('bookings').select('total_price').eq('status', 'completed') as unknown) as Promise<{ data: any[] | null }>,
         ]);
 
-        const totalRevenue = (bookingRevenue ?? []).reduce((sum, b) => sum + (b.total_price ?? 0), 0);
+        const totalRevenue = (bookingRevenue ?? []).reduce((sum: number, b: any) => sum + (b.total_price ?? 0), 0);
 
         return {
           data: {
@@ -60,11 +60,11 @@ export const dashboardApi = createApi({
         else if (status === 'blocked') query = query.eq('account_disabled', true);
         else if (status === 'pending') query = query.neq('kyc_status', 'verified').eq('account_disabled', false);
 
-        const { data, error } = await query;
+        const { data, error } = await (query as any);
         if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
 
         return {
-          data: (data ?? []).map(p => ({
+          data: (data ?? []).map((p: any) => ({
             id: p.id,
             name: p.full_name ?? p.email ?? '',
             email: p.email ?? '',
@@ -88,11 +88,11 @@ export const dashboardApi = createApi({
 
         if (status) query = query.eq('status', status);
 
-        const { data, error } = await query;
+        const { data, error } = await (query as any);
         if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
 
         return {
-          data: (data ?? []).map(l => ({
+          data: (data ?? []).map((l: any) => ({
             id: l.id,
             title: l.name,
             location: [l.city, l.state].filter(Boolean).join(', '),
@@ -113,11 +113,11 @@ export const dashboardApi = createApi({
           .select('id, status, total_price, check_in, check_out, created_at')
           .eq('user_id', userId)
           .order('created_at', { ascending: false })
-          .limit(20);
+          .limit(20) as any;
         if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
 
         return {
-          data: (data ?? []).map(b => ({
+          data: (data ?? []).map((b: any) => ({
             id: b.id,
             listingId: '',
             userId,
@@ -135,12 +135,12 @@ export const dashboardApi = createApi({
     getRecentActivities: builder.query<ActivityItem[], void>({
       queryFn: async () => {
         const [{ data: signups }, { data: bookings }] = await Promise.all([
-          supabase.from('profiles').select('id, email, full_name, created_at').order('created_at', { ascending: false }).limit(5),
-          supabase.from('bookings').select('id, status, total_price, created_at').order('created_at', { ascending: false }).limit(5),
+          (supabase.from('profiles').select('id, email, full_name, created_at').order('created_at', { ascending: false }).limit(5) as unknown) as Promise<{ data: any[] | null }>,
+          (supabase.from('bookings').select('id, status, total_price, created_at').order('created_at', { ascending: false }).limit(5) as unknown) as Promise<{ data: any[] | null }>,
         ]);
 
         const activities: ActivityItem[] = [
-          ...(signups ?? []).map(u => ({
+          ...(signups ?? []).map((u: any) => ({
             id: u.id,
             type: 'user_verification' as const,
             title: 'New User',
@@ -148,7 +148,7 @@ export const dashboardApi = createApi({
             timestamp: u.created_at,
             status: 'completed' as const,
           })),
-          ...(bookings ?? []).map(b => ({
+          ...(bookings ?? []).map((b: any) => ({
             id: b.id,
             type: 'payout_processed' as const,
             title: 'New Booking',
@@ -170,11 +170,11 @@ export const dashboardApi = createApi({
           .select('id, title, description, is_read, created_at')
           .eq('user_id', userId)
           .order('created_at', { ascending: false })
-          .limit(20);
+          .limit(20) as any;
         if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
 
         return {
-          data: (data ?? []).map(n => ({
+          data: (data ?? []).map((n: any) => ({
             id: n.id,
             type: 'system_alert' as const,
             title: n.title,
@@ -190,10 +190,9 @@ export const dashboardApi = createApi({
 
     updateUserStatus: builder.mutation<void, { userId: string; status: string }>({
       queryFn: async ({ userId, status }) => {
-        const { error } = await supabase
-          .from('profiles')
+        const { error } = await ((supabase.from('profiles') as any)
           .update({ account_disabled: status === 'blocked' })
-          .eq('id', userId);
+          .eq('id', userId));
         if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
         return { data: undefined };
       },

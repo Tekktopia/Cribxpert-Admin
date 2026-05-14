@@ -66,7 +66,7 @@ export const adminSettingsApiSlice = apiSlice.injectEndpoints({
         if (body.newListingSubmission !== undefined) patch.new_listing_submission = body.newListingSubmission;
         if (body.emailAlerts !== undefined) patch.email_alerts = body.emailAlerts;
 
-        const { data, error } = await supabase.from('profiles').update(patch).eq('id', authUser.id).select('*').single();
+        const { data, error } = await ((supabase.from('profiles') as any).update(patch).eq('id', authUser.id).select('*').single());
         if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
         return { data: { user: mapProfile(data as Record<string, unknown>) } };
       },
