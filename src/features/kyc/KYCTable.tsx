@@ -1,6 +1,3 @@
-// =====================================================
-// File: src/features/kyc/KYCTable.tsx
-// =====================================================
 import { useState } from "react";
 import type { KYCSubmission } from "@/data/kycData";
 import { DataTable, type TableColumn } from "@/components/layout/DataTable";
@@ -30,16 +27,16 @@ export function KYCTable({ submissions, onAction, onUpdateStatus }: KYCTableProp
       key: "ticketId",
       header: "Ticket ID",
       width: "w-24",
-      render: (row) => <span className="text-sm text-gray-900">{safeText((row as any).ticketId)}</span>,
+      render: (row) => <span className="text-sm text-gray-900">{safeText(row.ticketId)}</span>,
     },
     {
       key: "name",
       header: "Name",
       width: "w-56",
       render: (row) => {
-        const name = safeText((row as any).name, "Unknown User");
-        const initials = getInitials((row as any).name, "U");
-        const avatarSrc = normalizeAvatarSrc((row as any).avatar);
+        const name = safeText(row.name, "Unknown User");
+        const initials = getInitials(row.name, "U");
+        const avatarSrc = normalizeAvatarSrc(row.avatar);
 
         return (
           <div className="flex items-center">
@@ -56,28 +53,28 @@ export function KYCTable({ submissions, onAction, onUpdateStatus }: KYCTableProp
       key: "email",
       header: "Email",
       width: "w-56",
-      render: (row) => <span className="text-sm text-gray-900">{safeText((row as any).email)}</span>,
+      render: (row) => <span className="text-sm text-gray-900">{safeText(row.email)}</span>,
     },
     {
       key: "documentType",
       header: "Document Type",
       width: "w-40",
       render: (row) => (
-        <span className="text-sm text-gray-900">{safeText((row as any).documentType)}</span>
+        <span className="text-sm text-gray-900">{safeText(row.documentType)}</span>
       ),
     },
     {
       key: "status",
       header: "Role",
       width: "w-28",
-      render: (row) => statusBadge((row as any).status),
+      render: (row) => statusBadge(row.status),
     },
     {
       key: "submissionDate",
       header: "Submission Date",
       width: "w-32",
       render: (row) => (
-        <span className="text-sm text-gray-900">{safeText((row as any).submissionDate)}</span>
+        <span className="text-sm text-gray-900">{safeText(row.submissionDate)}</span>
       ),
     },
   ];
@@ -86,7 +83,7 @@ export function KYCTable({ submissions, onAction, onUpdateStatus }: KYCTableProp
     <button
       onClick={() => {
         setSelected(row);
-        onAction?.((row as any).id, "view");
+        onAction?.(row.id, "view");
       }}
       className="text-sm text-cyan-700 hover:underline font-medium"
     >
@@ -99,7 +96,7 @@ export function KYCTable({ submissions, onAction, onUpdateStatus }: KYCTableProp
       <DataTable
         data={submissions}
         columns={columns}
-        keyExtractor={(row) => String((row as any).id)}
+        keyExtractor={(row) => String(row.id)}
         renderRowAction={renderRowAction}
         showCheckboxes={true}
         showPagination={true}
