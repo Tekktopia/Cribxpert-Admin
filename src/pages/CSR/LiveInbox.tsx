@@ -37,7 +37,7 @@ function formatTime(iso: string): string {
   return d.toLocaleDateString();
 }
 
-function getInitials(name: string | null, email: string | null): string {
+function getInitials(name: string | null, email: string | null, sessionId?: string): string {
   if (name) {
     const parts = name.trim().split(' ');
     return parts.length >= 2
@@ -45,11 +45,23 @@ function getInitials(name: string | null, email: string | null): string {
       : parts[0].slice(0, 2).toUpperCase();
   }
   if (email) return email.slice(0, 2).toUpperCase();
+  if (sessionId) return `G${sessionId.slice(0, 1).toUpperCase()}`;
   return '??';
 }
 
-function getDisplayName(name: string | null, email: string | null): string {
-  return name || email || 'Anonymous User';
+function getDisplayName(name: string | null, email: string | null, sessionId?: string): string {
+  if (name) return name;
+  if (email) return email.split('@')[0]; // "johndoe" from "johndoe@gmail.com"
+  if (sessionId) return `Guest #${sessionId.slice(0, 6).toUpperCase()}`;
+  return 'Guest';
+}
+
+function showAdminNotification(title: string, body: string) {
+  if (!('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
+  try {
+    new Notification(title, { body: body.slice(0, 120), icon: '/favicon.ico', tag: title });
+  } catch { /* silently ignore */ }
 }
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -64,6 +76,9 @@ const LiveInbox = () => {
   const [resolving, setResolving] = useState(false);
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  // Stable ref so the global notification subscription always sees latest active sessions
+  const activeSessionsRef = useRef<ChatSession[]>([]);
+  useEffect(() => { activeSessionsRef.current = activeSessions; }, [activeSessions]);
 
   // Sessions shown in the current tab
   const sessions = tab === 'active' ? activeSessions : resolvedSessions;
@@ -93,6 +108,37 @@ const LiveInbox = () => {
   }, []);
 
   useEffect(() => { loadSessions(); }, [loadSessions]);
+
+  // ── Request push-notification permission + global user-message listener ─
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+
+    // Subscribe to ALL session_messages inserts so we can notify even when
+    // the CSR is on a different tab or has a different session selected.
+    const ch = supabase
+      .channel('admin-global-notifications')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'session_messages' },
+        (payload) => {
+          const msg = payload.new as ChatMessage;
+          if (msg.role !== 'user') return; // only notify for user messages
+          if (document.visibilityState === 'visible') return; // tab is already focused
+          if (Notification.permission !== 'granted') return;
+
+          const sess = activeSessionsRef.current.find(s => s.session_id === msg.session_id);
+          if (!sess) return; // not one of our active sessions
+
+          const name = getDisplayName(sess.name, sess.email, sess.session_id);
+          showAdminNotification(`💬 New message — ${name}`, msg.content);
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(ch); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Clear selected session when switching tabs
   useEffect(() => { setActiveSessionId(null); }, [tab]);
@@ -346,8 +392,8 @@ const LiveInbox = () => {
                 ) : (
                   sessions.map(session => {
                     const isActive = session.session_id === activeSessionId;
-                    const initials = getInitials(session.name, session.email);
-                    const displayName = getDisplayName(session.name, session.email);
+                    const initials = getInitials(session.name, session.email, session.session_id);
+                    const displayName = getDisplayName(session.name, session.email, session.session_id);
                     return (
                       <button
                         key={session.session_id}
@@ -458,11 +504,11 @@ const LiveInbox = () => {
                           fontWeight: 700,
                         }}
                       >
-                        {getInitials(activeSession.name, activeSession.email)}
+                        {getInitials(activeSession.name, activeSession.email, activeSession.session_id)}
                       </div>
                       <div>
                         <div style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>
-                          {getDisplayName(activeSession.name, activeSession.email)}
+                          {getDisplayName(activeSession.name, activeSession.email, activeSession.session_id)}
                         </div>
                         <div style={{ fontSize: 11, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 4 }}>
                           <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />
