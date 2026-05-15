@@ -149,11 +149,21 @@ const LiveInbox = () => {
     const text = replyText.trim();
     setReplyText('');
 
-    await supabase.from('session_messages').insert({
-      session_id: activeSessionId,
-      role: 'agent',
-      content: text,
-    });
+    // Insert and retrieve the saved row so we can show it immediately
+    // without waiting for the Realtime echo
+    const { data: inserted } = await supabase
+      .from('session_messages')
+      .insert({ session_id: activeSessionId, role: 'agent', content: text })
+      .select()
+      .single();
+
+    if (inserted) {
+      setMessages(prev =>
+        prev.some(m => m.id === (inserted as ChatMessage).id)
+          ? prev
+          : [...prev, inserted as ChatMessage],
+      );
+    }
 
     setSending(false);
   }, [replyText, activeSessionId, sending]);
