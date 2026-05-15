@@ -10,6 +10,11 @@ export const csrNavigationItems = [
     href: "/csr/users", // Changed from "/support/users"
   },
   {
+    label: "Live Chat",
+    iconSrc: "/sidebar/ticket.svg",
+    href: "/csr/live-inbox",
+  },
+  {
     label: "Tickets",
     iconSrc: "/sidebar/ticket.svg",
     href: "/csr/tickets", // Changed from "/support/tickets"
