@@ -183,47 +183,66 @@ const LiveInbox = () => {
   // (Simple approach — sessions list always shows live count)
 
   return (
-    <div className="supportDash">
+    <div className="supportDash" style={{ height: '100vh', overflow: 'hidden' }}>
       <Sidebar navigationItems={csrNavigationItems} />
-      <div className="main">
+
+      {/* Main column — fills all remaining width */}
+      <div className="main" style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, height: '100vh', overflow: 'hidden' }}>
         <Topbar />
 
-        <section className="container px-4 md:px-6">
-          {/* Page header */}
-          <div className="text mb-4">
-            <span>
-              <h1>Live Chat Inbox</h1>
-              <p>Real-time support conversations handed off from CribBot</p>
-            </span>
-            <div className="flex items-center gap-2">
-              <span
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold"
-                style={{ background: sessions.length > 0 ? '#fef2f2' : '#f0fdf4', color: sessions.length > 0 ? '#dc2626' : '#15803d' }}
-              >
-                <span
-                  style={{
-                    width: 7, height: 7, borderRadius: '50%', display: 'inline-block',
-                    background: sessions.length > 0 ? '#ef4444' : '#4ade80',
-                    animation: sessions.length > 0 ? 'pulse 1.5s infinite' : 'none',
-                  }}
-                />
-                {sessions.length} Active {sessions.length === 1 ? 'Session' : 'Sessions'}
-              </span>
-            </div>
+        {/* Page header */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '16px 24px 12px',
+            flexShrink: 0,
+          }}
+        >
+          <div>
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: '#111827', margin: 0 }}>Live Chat Inbox</h1>
+            <p style={{ fontSize: 13, color: '#6b7280', margin: '2px 0 0' }}>
+              Real-time support conversations handed off from CribBot
+            </p>
           </div>
-
-          {/* Main inbox layout */}
-          <div
+          <span
             style={{
-              display: 'flex',
-              height: 'calc(100vh - 180px)',
-              gap: 16,
-              background: '#f9fafb',
-              borderRadius: 16,
-              overflow: 'hidden',
-              border: '1px solid #e5e7eb',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '5px 14px',
+              borderRadius: 20,
+              fontSize: 12,
+              fontWeight: 600,
+              background: sessions.length > 0 ? '#fef2f2' : '#f0fdf4',
+              color: sessions.length > 0 ? '#dc2626' : '#15803d',
             }}
           >
+            <span
+              style={{
+                width: 7, height: 7, borderRadius: '50%', display: 'inline-block',
+                background: sessions.length > 0 ? '#ef4444' : '#4ade80',
+              }}
+            />
+            {sessions.length} Active {sessions.length === 1 ? 'Session' : 'Sessions'}
+          </span>
+        </div>
+
+        {/* Main inbox layout — fills rest of page height */}
+        <div
+          style={{
+            display: 'flex',
+            flex: 1,
+            minHeight: 0,
+            margin: '0 24px 24px',
+            background: '#ffffff',
+            borderRadius: 16,
+            overflow: 'hidden',
+            border: '1px solid #e5e7eb',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+          }}
+        >
             {/* Session list panel */}
             <div
               style={{
@@ -585,7 +604,7 @@ const LiveInbox = () => {
               )}
             </div>
           </div>
-        </section>
+        </div>
       </div>
     </div>
   );
