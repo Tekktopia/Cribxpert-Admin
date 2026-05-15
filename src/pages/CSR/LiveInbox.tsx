@@ -227,13 +227,29 @@ const LiveInbox = () => {
       );
     }
 
+    // ── Push notification to the user via platform notifications table ──
+    // The push_on_notification_insert DB trigger fires automatically on insert.
+    if (activeSession?.user_id) {
+      await (supabase as any).from('notifications').insert({
+        user_id: activeSession.user_id,
+        title: 'New message from CribXpert Support',
+        description: text.slice(0, 200),
+        category: 'live_chat',
+        status: 'unread',
+        is_read: false,
+      });
+    }
+
     setSending(false);
-  }, [replyText, activeSessionId, sending]);
+  }, [replyText, activeSessionId, sending, activeSession]);
 
   // ── Resolve session ────────────────────────────────────────────────────
   const resolveSession = useCallback(async () => {
     if (!activeSessionId || resolving) return;
     setResolving(true);
+
+    // Capture session before state clears
+    const session = activeSessions.find(s => s.session_id === activeSessionId) ?? null;
 
     await (supabase as any)
       .from('conversation_sessions')
@@ -247,9 +263,21 @@ const LiveInbox = () => {
       content: '✅ This support session has been resolved. You have been returned to CribBot. Feel free to reach out again if you need help!',
     });
 
+    // ── Push notification to the user that the session was resolved ──
+    if (session?.user_id) {
+      await (supabase as any).from('notifications').insert({
+        user_id: session.user_id,
+        title: 'Support session resolved',
+        description: 'Your CribXpert support chat has been closed. CribBot is ready to help anytime.',
+        category: 'live_chat',
+        status: 'unread',
+        is_read: false,
+      });
+    }
+
     setActiveSessionId(null);
     setResolving(false);
-  }, [activeSessionId, resolving]);
+  }, [activeSessionId, resolving, activeSessions]);
 
   // ── Unread badge: count sessions that received a new user message ─────
   // (Simple approach — sessions list always shows live count)
