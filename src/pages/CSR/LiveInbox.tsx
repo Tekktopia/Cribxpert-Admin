@@ -54,32 +54,48 @@ function getDisplayName(name: string | null, email: string | null): string {
 
 // ── Component ──────────────────────────────────────────────────────────────
 const LiveInbox = () => {
-  const [sessions, setSessions] = useState<ChatSession[]>([]);
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [tab, setTab]             = useState<'active' | 'resolved'>('active');
+  const [activeSessions, setActiveSessions]     = useState<ChatSession[]>([]);
+  const [resolvedSessions, setResolvedSessions] = useState<ChatSession[]>([]);
+  const [activeSessionId, setActiveSessionId]   = useState<string | null>(null);
+  const [messages, setMessages]   = useState<ChatMessage[]>([]);
   const [replyText, setReplyText] = useState('');
-  const [sending, setSending] = useState(false);
+  const [sending, setSending]     = useState(false);
   const [resolving, setResolving] = useState(false);
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Sessions shown in the current tab
+  const sessions = tab === 'active' ? activeSessions : resolvedSessions;
   const activeSession = sessions.find(s => s.session_id === activeSessionId) ?? null;
+  // In resolved tab the conversation is read-only
+  const isReadOnly = tab === 'resolved';
 
-  // ── Load active sessions ──────────────────────────────────────────────
+  // ── Load sessions (both tabs) ─────────────────────────────────────────
   const loadSessions = useCallback(async () => {
-    const { data } = await supabase
-      .from('conversation_sessions')
-      .select('*')
-      .eq('mode', 'agent')
-      .order('handed_off_at', { ascending: false });
+    const [activeRes, resolvedRes] = await Promise.all([
+      supabase
+        .from('conversation_sessions')
+        .select('*')
+        .eq('mode', 'agent')
+        .order('handed_off_at', { ascending: false }),
+      supabase
+        .from('conversation_sessions')
+        .select('*')
+        .not('resolved_at', 'is', null)
+        .order('resolved_at', { ascending: false })
+        .limit(50),
+    ]);
 
-    if (data) setSessions(data as ChatSession[]);
+    if (activeRes.data)   setActiveSessions(activeRes.data as ChatSession[]);
+    if (resolvedRes.data) setResolvedSessions(resolvedRes.data as ChatSession[]);
     setSessionsLoading(false);
   }, []);
 
-  useEffect(() => {
-    loadSessions();
-  }, [loadSessions]);
+  useEffect(() => { loadSessions(); }, [loadSessions]);
+
+  // Clear selected session when switching tabs
+  useEffect(() => { setActiveSessionId(null); }, [tab]);
 
   // ── Realtime: session list updates ─────────────────────────────────────
   useEffect(() => {
@@ -225,17 +241,17 @@ const LiveInbox = () => {
               borderRadius: 20,
               fontSize: 12,
               fontWeight: 600,
-              background: sessions.length > 0 ? '#fef2f2' : '#f0fdf4',
-              color: sessions.length > 0 ? '#dc2626' : '#15803d',
+              background: activeSessions.length > 0 ? '#fef2f2' : '#f0fdf4',
+              color: activeSessions.length > 0 ? '#dc2626' : '#15803d',
             }}
           >
             <span
               style={{
                 width: 7, height: 7, borderRadius: '50%', display: 'inline-block',
-                background: sessions.length > 0 ? '#ef4444' : '#4ade80',
+                background: activeSessions.length > 0 ? '#ef4444' : '#4ade80',
               }}
             />
-            {sessions.length} Active {sessions.length === 1 ? 'Session' : 'Sessions'}
+            {activeSessions.length} Live {activeSessions.length === 1 ? 'Chat' : 'Chats'}
           </span>
         </div>
 
@@ -264,31 +280,50 @@ const LiveInbox = () => {
                 flexDirection: 'column',
               }}
             >
-              <div
-                style={{
-                  padding: '14px 16px',
-                  borderBottom: '1px solid #f0f0f0',
-                  fontWeight: 700,
-                  fontSize: 13,
-                  color: '#374151',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <span>Active Chats</span>
-                <span
-                  style={{
-                    background: sessions.length > 0 ? '#fef2f2' : '#f3f4f6',
-                    color: sessions.length > 0 ? '#dc2626' : '#6b7280',
-                    borderRadius: 12,
-                    padding: '1px 8px',
-                    fontSize: 11,
-                    fontWeight: 600,
-                  }}
-                >
-                  {sessions.length}
-                </span>
+              {/* ── Tab bar ── */}
+              <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb', flexShrink: 0 }}>
+                {(['active', 'resolved'] as const).map(t => (
+                  <button
+                    key={t}
+                    onClick={() => setTab(t)}
+                    style={{
+                      flex: 1,
+                      padding: '11px 0',
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      border: 'none',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      color: tab === t ? '#1d4ed8' : '#6b7280',
+                      borderBottom: tab === t ? '2.5px solid #1d4ed8' : '2.5px solid transparent',
+                      transition: 'color 0.15s, border-color 0.15s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                    }}
+                  >
+                    {t === 'active' ? '🟢 Active' : '✅ Resolved'}
+                    <span
+                      style={{
+                        background: t === 'active'
+                          ? (activeSessions.length > 0 ? '#fef2f2' : '#f3f4f6')
+                          : '#f3f4f6',
+                        color: t === 'active'
+                          ? (activeSessions.length > 0 ? '#dc2626' : '#6b7280')
+                          : '#6b7280',
+                        borderRadius: 10,
+                        padding: '0 6px',
+                        fontSize: 10.5,
+                        fontWeight: 700,
+                        minWidth: 18,
+                        textAlign: 'center',
+                      }}
+                    >
+                      {t === 'active' ? activeSessions.length : resolvedSessions.length}
+                    </span>
+                  </button>
+                ))}
               </div>
 
               <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -298,10 +333,14 @@ const LiveInbox = () => {
                   </div>
                 ) : sessions.length === 0 ? (
                   <div style={{ padding: 32, textAlign: 'center' }}>
-                    <div style={{ fontSize: 36, marginBottom: 8 }}>💬</div>
-                    <div style={{ color: '#6b7280', fontSize: 13, fontWeight: 500 }}>No active chats</div>
+                    <div style={{ fontSize: 36, marginBottom: 8 }}>{tab === 'active' ? '💬' : '✅'}</div>
+                    <div style={{ color: '#6b7280', fontSize: 13, fontWeight: 500 }}>
+                      {tab === 'active' ? 'No active chats' : 'No resolved chats yet'}
+                    </div>
                     <div style={{ color: '#9ca3af', fontSize: 12, marginTop: 4 }}>
-                      Sessions will appear when users request a live agent
+                      {tab === 'active'
+                        ? 'Sessions appear when users request a live agent'
+                        : 'Resolved sessions will show up here'}
                     </div>
                   </div>
                 ) : (
@@ -432,24 +471,44 @@ const LiveInbox = () => {
                       </div>
                     </div>
 
-                    <button
-                      onClick={resolveSession}
-                      disabled={resolving}
-                      style={{
-                        background: resolving ? '#f3f4f6' : '#f0fdf4',
-                        border: '1.5px solid',
-                        borderColor: resolving ? '#d1d5db' : '#86efac',
-                        color: resolving ? '#9ca3af' : '#15803d',
-                        fontWeight: 600,
-                        fontSize: 12.5,
-                        padding: '7px 16px',
-                        borderRadius: 20,
-                        cursor: resolving ? 'not-allowed' : 'pointer',
-                        transition: 'all 0.2s',
-                      }}
-                    >
-                      {resolving ? 'Resolving…' : '✅ Resolve & Close'}
-                    </button>
+                    {!isReadOnly && (
+                      <button
+                        onClick={resolveSession}
+                        disabled={resolving}
+                        style={{
+                          background: resolving ? '#f3f4f6' : '#f0fdf4',
+                          border: '1.5px solid',
+                          borderColor: resolving ? '#d1d5db' : '#86efac',
+                          color: resolving ? '#9ca3af' : '#15803d',
+                          fontWeight: 600,
+                          fontSize: 12.5,
+                          padding: '7px 16px',
+                          borderRadius: 20,
+                          cursor: resolving ? 'not-allowed' : 'pointer',
+                          transition: 'all 0.2s',
+                        }}
+                      >
+                        {resolving ? 'Resolving…' : '✅ Resolve & Close'}
+                      </button>
+                    )}
+                    {isReadOnly && (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 5,
+                          background: '#f0fdf4',
+                          border: '1px solid #86efac',
+                          color: '#15803d',
+                          fontWeight: 600,
+                          fontSize: 11.5,
+                          padding: '5px 12px',
+                          borderRadius: 20,
+                        }}
+                      >
+                        ✅ Resolved {activeSession?.resolved_at ? formatTime(activeSession.resolved_at) : ''}
+                      </span>
+                    )}
                   </div>
 
                   {/* Messages area */}
@@ -552,7 +611,22 @@ const LiveInbox = () => {
                     <div ref={messagesEndRef} />
                   </div>
 
-                  {/* Reply input */}
+                  {/* Reply input — hidden for resolved sessions */}
+                  {isReadOnly ? (
+                    <div
+                      style={{
+                        padding: '12px 20px',
+                        borderTop: '1px solid #e5e7eb',
+                        background: '#f9fafb',
+                        textAlign: 'center',
+                        fontSize: 12.5,
+                        color: '#9ca3af',
+                        flexShrink: 0,
+                      }}
+                    >
+                      This conversation is resolved — read only
+                    </div>
+                  ) : (
                   <div
                     style={{
                       display: 'flex',
@@ -610,6 +684,7 @@ const LiveInbox = () => {
                       ➤
                     </button>
                   </div>
+                  )}
                 </>
               )}
             </div>
