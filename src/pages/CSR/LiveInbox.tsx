@@ -604,7 +604,6 @@ const LiveInbox = () => {
               )}
             </div>
           </div>
-        </div>
       </div>
     </div>
   );
