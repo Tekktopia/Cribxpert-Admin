@@ -102,7 +102,7 @@ export const bookingsManagementApiSlice = apiSlice.injectEndpoints({
           if (bookingsError) throw bookingsError;
 
           // Transform data to match the interface
-          const bookings: Booking[] = bookingsData?.map(booking => {
+          const bookings: Booking[] = (bookingsData as any[])?.map((booking: any) => {
             // Get host name from profiles
             const hostName = booking.listings?.profiles?.full_name || 'Unknown Host';
             
@@ -261,7 +261,7 @@ export const bookingsManagementApiSlice = apiSlice.injectEndpoints({
           ];
 
           // Create CSV rows
-          const rows = bookingsData?.map(booking => {
+          const rows = (bookingsData as any[])?.map((booking: any) => {
             const hostName = booking.listings?.profiles?.full_name || 'Unknown Host';
             const commission = Math.round((booking.total_price || 0) * 0.1);
             

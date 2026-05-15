@@ -213,7 +213,7 @@ const LiveInbox = () => {
 
     // Insert and retrieve the saved row so we can show it immediately
     // without waiting for the Realtime echo
-    const { data: inserted } = await supabase
+    const { data: inserted } = await (supabase as any)
       .from('session_messages')
       .insert({ session_id: activeSessionId, role: 'agent', content: text })
       .select()
@@ -235,13 +235,13 @@ const LiveInbox = () => {
     if (!activeSessionId || resolving) return;
     setResolving(true);
 
-    await supabase
+    await (supabase as any)
       .from('conversation_sessions')
       .update({ mode: 'bot', resolved_at: new Date().toISOString() })
       .eq('session_id', activeSessionId);
 
     // Send a closing message to the user
-    await supabase.from('session_messages').insert({
+    await (supabase as any).from('session_messages').insert({
       session_id: activeSessionId,
       role: 'agent',
       content: '✅ This support session has been resolved. You have been returned to CribBot. Feel free to reach out again if you need help!',

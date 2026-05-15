@@ -42,7 +42,7 @@ export function BookingMgmtGrid({ data }: BookingMgmtGridProps) {
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [selectedPaymentStatus, setSelectedPaymentStatus] =
     useState<string>("all");
-  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [searchTerm, _setSearchTerm] = useState<string>("");
   const [filteredBookings, setFilteredBookings] = useState<Booking[]>(
     data.bookings,
   );
@@ -53,7 +53,7 @@ export function BookingMgmtGrid({ data }: BookingMgmtGridProps) {
 };
 
 
-  const [isExporting, setIsExporting] = useState(false);
+  const [_isExporting, setIsExporting] = useState(false);
 
   // Apply filters
   useEffect(() => {

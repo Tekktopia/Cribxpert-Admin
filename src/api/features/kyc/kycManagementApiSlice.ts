@@ -84,7 +84,7 @@ export const kycManagementApiSlice = apiSlice.injectEndpoints({
 
             // Transform data to KYC submission format
             const submissions: KYCSubmission[] =
-              profiles?.map((profile) => ({
+              (profiles as any[])?.map((profile: any) => ({
                 id: profile.id,
                 userId: profile.id,
                 name: profile.full_name || "Unknown",
@@ -173,7 +173,7 @@ export const kycManagementApiSlice = apiSlice.injectEndpoints({
       { success: boolean },
       { userId: string; remarks?: string }
     >({
-      queryFn: async ({ userId, remarks }) => {
+      queryFn: async ({ userId, remarks: _remarks }) => {
         try {
           const { error } = await supabase
             .from("profiles")
@@ -199,7 +199,7 @@ export const kycManagementApiSlice = apiSlice.injectEndpoints({
       { success: boolean },
       { userId: string; reason: string }
     >({
-      queryFn: async ({ userId, reason }) => {
+      queryFn: async ({ userId, reason: _reason }) => {
         try {
           const { error } = await supabase
             .from("profiles")
@@ -296,7 +296,7 @@ export const kycManagementApiSlice = apiSlice.injectEndpoints({
           };
 
           const rows =
-            profiles?.map((profile) => [
+            (profiles as any[])?.map((profile: any) => [
               profile.id.slice(0, 8),
               profile.full_name || "Unknown",
               profile.email || "",

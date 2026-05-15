@@ -2,6 +2,7 @@ export interface Booking {
   id: string;
   ticketId: string;
   guestName: string;
+  guestEmail?: string;
   hostName: string;
   propertyName: string;
   dates: string;

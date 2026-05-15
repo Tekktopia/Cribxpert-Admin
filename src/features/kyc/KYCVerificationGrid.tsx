@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import type { KYCData, KYCSubmission } from "@/data/kycData";
 import { ManagementGrid } from "@/components/layout/ManagementGrid";
 import { useNotification } from "@/hooks/useNotification";
@@ -22,12 +22,12 @@ interface KYCVerificationGridProps {
 }
 
 export function KYCVerificationGrid({
-  data: propData,
+  data: _propData,
 }: KYCVerificationGridProps) {
   const { showNotification } = useNotification();
 
   // State for filters
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, _setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [selectedDocumentType, setSelectedDocumentType] =
     useState<string>("all");
@@ -64,8 +64,8 @@ export function KYCVerificationGrid({
     return "Guest"; // default
   };
   // Mutations
-  const [approveKYC, { isLoading: approving }] = useApproveKYCMutation();
-  const [rejectKYC, { isLoading: rejecting }] = useRejectKYCMutation();
+  const [approveKYC] = useApproveKYCMutation();
+  const [rejectKYC] = useRejectKYCMutation();
   const [resetKYC] = useResetKYCMutation();
 
   // Transform API data to match component format
@@ -102,6 +102,7 @@ export function KYCVerificationGrid({
 
     return {
       id: ticketId,
+      ticketId: ticketId,
       name: apiSubmission.name || "Unknown",
       email: apiSubmission.email || "",
       documentType: mapDocumentType(apiSubmission.documentType),
@@ -199,7 +200,7 @@ export function KYCVerificationGrid({
   console.log("API Data:", apiData);
   console.log("Submissions:", apiData?.submissions);
 
-  const handleSendNotification = (id: string, name: string) => {
+  const handleSendNotification = (_id: string, name: string) => {
     showNotification({
       type: "info",
       title: "Notification Sent",
