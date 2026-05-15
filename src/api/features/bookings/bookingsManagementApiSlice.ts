@@ -152,11 +152,11 @@ export const bookingsManagementApiSlice = apiSlice.injectEndpoints({
     updateBookingStatus: builder.mutation<{ success: boolean }, { bookingId: string; status: string }>({
       queryFn: async ({ bookingId, status }) => {
         try {
-          const { error } = await supabase
+          const { error } = await (supabase as any)
             .from('bookings')
-            .update({ 
-              status, 
-              updated_at: new Date().toISOString() 
+            .update({
+              status,
+              updated_at: new Date().toISOString()
             })
             .eq('id', bookingId);
 
@@ -175,11 +175,11 @@ export const bookingsManagementApiSlice = apiSlice.injectEndpoints({
     updatePaymentStatus: builder.mutation<{ success: boolean }, { bookingId: string; paymentStatus: string }>({
       queryFn: async ({ bookingId, paymentStatus }) => {
         try {
-          const { error } = await supabase
+          const { error } = await (supabase as any)
             .from('bookings')
-            .update({ 
+            .update({
               escrow_status: paymentStatus,
-              updated_at: new Date().toISOString() 
+              updated_at: new Date().toISOString()
             })
             .eq('id', bookingId);
 
@@ -299,21 +299,22 @@ export const bookingsManagementApiSlice = apiSlice.injectEndpoints({
     getBookingStatusCounts: builder.query<Record<string, number>, void>({
       queryFn: async () => {
         try {
-          const { data: bookings, error } = await supabase
+          const { data: bookings, error } = await (supabase as any)
             .from('bookings')
             .select('status');
 
           if (error) throw error;
 
+          const typedBookings = bookings as { status: string }[] | null;
           const counts: Record<string, number> = {
-            'All Status': bookings?.length || 0,
+            'All Status': typedBookings?.length || 0,
             'Pending': 0,
             'Confirmed': 0,
             'Cancelled': 0,
             'Completed': 0,
           };
 
-          bookings?.forEach(booking => {
+          typedBookings?.forEach(booking => {
             if (counts[booking.status] !== undefined) {
               counts[booking.status]++;
             }
@@ -332,19 +333,20 @@ export const bookingsManagementApiSlice = apiSlice.injectEndpoints({
     getPaymentStatusCounts: builder.query<Record<string, number>, void>({
       queryFn: async () => {
         try {
-          const { data: bookings, error } = await supabase
+          const { data: bookings, error } = await (supabase as any)
             .from('bookings')
             .select('escrow_status');
 
           if (error) throw error;
 
+          const typedBookings2 = bookings as { escrow_status: string }[] | null;
           const counts: Record<string, number> = {
-            'All': bookings?.length || 0,
+            'All': typedBookings2?.length || 0,
             'AWAITING_KYC': 0,
             'DELIVERY_CONFIRMED': 0,
           };
 
-          bookings?.forEach(booking => {
+          typedBookings2?.forEach(booking => {
             const status = booking.escrow_status;
             if (counts[status] !== undefined) {
               counts[status]++;

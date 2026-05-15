@@ -232,7 +232,7 @@ export function BookingMgmtGrid({ data }: BookingMgmtGridProps) {
     }
   };
 
-  const handleSendNotification = (bookingId: string, entityName: string) => {
+  const handleSendNotification = (_bookingId: string, entityName: string) => {
     showNotification({
       type: "success",
       title: "Notification Sent",

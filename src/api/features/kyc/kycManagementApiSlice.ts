@@ -128,21 +128,22 @@ export const kycManagementApiSlice = apiSlice.injectEndpoints({
     getKYCStats: builder.query<KYCStats, void>({
       queryFn: async () => {
         try {
-          const { data: profiles, error } = await supabase
+          const { data: profiles, error } = await (supabase as any)
             .from("profiles")
             .select("kyc_status");
 
           if (error) throw error;
 
+          const typedProfiles = profiles as { kyc_status: string }[] | null;
           const stats: KYCStats = {
             not_started: 0,
             pending: 0,
             verified: 0,
             failed: 0,
-            total: profiles?.length || 0,
+            total: typedProfiles?.length || 0,
           };
 
-          profiles?.forEach((profile) => {
+          typedProfiles?.forEach((profile) => {
             switch (profile.kyc_status) {
               case "not_started":
                 stats.not_started++;
@@ -175,7 +176,7 @@ export const kycManagementApiSlice = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ userId, remarks: _remarks }) => {
         try {
-          const { error } = await supabase
+          const { error } = await (supabase as any)
             .from("profiles")
             .update({
               kyc_status: "verified",
@@ -201,7 +202,7 @@ export const kycManagementApiSlice = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ userId, reason: _reason }) => {
         try {
-          const { error } = await supabase
+          const { error } = await (supabase as any)
             .from("profiles")
             .update({
               kyc_status: "failed",
@@ -224,7 +225,7 @@ export const kycManagementApiSlice = apiSlice.injectEndpoints({
     resetKYC: builder.mutation<{ success: boolean }, { userId: string }>({
       queryFn: async ({ userId }) => {
         try {
-          const { error } = await supabase
+          const { error } = await (supabase as any)
             .from("profiles")
             .update({
               kyc_status: "pending",

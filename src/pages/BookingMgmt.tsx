@@ -103,7 +103,7 @@ export default function BookingMgmt() {
         subtitle: "All property bookings made by guests will show here once they start rolling in.",
       }}
     >
-      {isPopulated && <BookingMgmtGrid data={transformedData} />}
+      {isPopulated && <BookingMgmtGrid data={transformedData as any} />}
     </PageWrapper>
   );
 }
