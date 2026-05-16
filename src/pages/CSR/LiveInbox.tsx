@@ -698,7 +698,7 @@ const LiveInbox = () => {
                                   width: 28,
                                   height: 28,
                                   borderRadius: '50%',
-                                  background: isUser ? '#e5e7eb' : '#e6f4f2',
+                                  background: isUser ? '#e5e7eb' : '#1d5c5c',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
@@ -717,9 +717,9 @@ const LiveInbox = () => {
                                 fontSize: 13.5,
                                 lineHeight: 1.55,
                                 wordBreak: 'break-word',
-                                // Sender (agent) = green; receiver (user/bot) = secondary
-                                background: isAgent ? '#10b981' : '#E6EFF1',
-                                color: isAgent ? '#ffffff' : '#1f2937',
+                                // Sender (agent) = teal; receiver (user/bot) = brand gold
+                                background: isAgent ? '#1d5c5c' : '#C18B3F',
+                                color: '#ffffff',
                                 borderBottomRightRadius: isAgent ? 4 : 14,
                                 borderBottomLeftRadius: isAgent ? 14 : 4,
                                 boxShadow: isAgent ? 'none' : '0 1px 3px rgba(0,0,0,0.08)',
@@ -743,7 +743,7 @@ const LiveInbox = () => {
                                   width: 28,
                                   height: 28,
                                   borderRadius: '50%',
-                                  background: '#10b981',
+                                  background: '#1d5c5c',
                                   color: '#fff',
                                   display: 'flex',
                                   alignItems: 'center',
@@ -763,13 +763,13 @@ const LiveInbox = () => {
                     {/* Typing indicator */}
                     {userIsTyping && (
                       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
-                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}>👤</div>
-                        <div style={{ background: '#f3f4f6', borderRadius: '14px 14px 14px 4px', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 5, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#C18B3F', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}>👤</div>
+                        <div style={{ background: '#C18B3F', borderRadius: '14px 14px 14px 4px', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 5, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
                           {[0, 0.2, 0.4].map((delay, i) => (
                             <span
                               key={i}
                               style={{
-                                width: 7, height: 7, borderRadius: '50%', background: '#9ca3af',
+                                width: 7, height: 7, borderRadius: '50%', background: '#ffffff',
                                 display: 'inline-block',
                                 animation: 'typingDot 1.2s ease-in-out infinite',
                                 animationDelay: `${delay}s`,
