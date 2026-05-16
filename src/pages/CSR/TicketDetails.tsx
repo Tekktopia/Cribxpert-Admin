@@ -31,6 +31,7 @@ import {
   useAssignTicketMutation,
   useSendTicketReplyMutation,
   useUpdateTicketStatusMutation,
+  useUpdateTicketPriorityMutation,
 } from '@/api/features/ticket/ticketApiSlice';
 import { supabase } from '@/lib/supabase';
 
@@ -96,6 +97,7 @@ export default function TicketDetails() {
 
   const [assignTicket, { isLoading: assigning }] = useAssignTicketMutation();
   const [updateStatus] = useUpdateTicketStatusMutation();
+  const [updatePriority] = useUpdateTicketPriorityMutation();
   const [sendReply, { isLoading: sending }] = useSendTicketReplyMutation();
 
   const [composerMode, setComposerMode] = useState<ComposerMode>('reply');
@@ -154,6 +156,10 @@ export default function TicketDetails() {
   const handleStatusChange = async (status: string) => {
     if (!ticketId) return;
     await updateStatus({ id: ticketId, status });
+  };
+  const handlePriorityChange = async (priority: string) => {
+    if (!ticketId) return;
+    await updatePriority({ id: ticketId, priority: priority as 'low' | 'medium' | 'high' | 'urgent' });
   };
 
   if (ticketLoading) {
@@ -348,9 +354,8 @@ export default function TicketDetails() {
                 </label>
                 <select
                   value={ticket.priority}
+                  onChange={(e) => handlePriorityChange(e.target.value)}
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  disabled
-                  title="Use the Edit Ticket modal to change priority (coming soon here)"
                 >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>

@@ -205,7 +205,23 @@ export const ticketApiSlice = apiSlice.injectEndpoints({
         if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
         return { data: mapTicket(data as Record<string, unknown>) };
       },
-      invalidatesTags: (_result, _error, { id }) => [{ type: 'Ticket', id }],
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Ticket', id },
+        { type: 'Ticket', id: 'LIST' },
+      ],
+    }),
+
+    updateTicketPriority: builder.mutation<Ticket, { id: string; priority: 'low' | 'medium' | 'high' | 'urgent' }>({
+      queryFn: async ({ id, priority }) => {
+        const { data, error } = await ((supabase.from('tickets') as any)
+          .update({ priority }).eq('id', id).select('*').single());
+        if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
+        return { data: mapTicket(data as Record<string, unknown>) };
+      },
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Ticket', id },
+        { type: 'Ticket', id: 'LIST' },
+      ],
     }),
 
     addTicketNote: builder.mutation<Ticket, { id: string; message: string; type?: string }>({
@@ -255,6 +271,46 @@ export const ticketApiSlice = apiSlice.injectEndpoints({
         if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
         return { data: (data ?? []).map((r: any) => ({ key: r.key, name: r.name, color: r.color })) };
       },
+      providesTags: [{ type: 'Ticket', id: 'GROUPS' }],
+    }),
+
+    createTicketGroup: builder.mutation<TicketGroup, { key: string; name: string; color?: string }>({
+      queryFn: async ({ key, name, color }) => {
+        const { data, error } = await ((supabase.from('ticket_groups') as any)
+          .insert({ key: key.toLowerCase().trim(), name: name.trim(), color: color ?? null })
+          .select('*').single());
+        if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
+        return { data: { key: data.key, name: data.name, color: data.color } };
+      },
+      invalidatesTags: [{ type: 'Ticket', id: 'GROUPS' }],
+    }),
+
+    updateTicketGroup: builder.mutation<TicketGroup, { key: string; name?: string; color?: string }>({
+      queryFn: async ({ key, name, color }) => {
+        const patch: Record<string, unknown> = {};
+        if (name  !== undefined) patch.name  = name.trim();
+        if (color !== undefined) patch.color = color;
+        const { data, error } = await ((supabase.from('ticket_groups') as any)
+          .update(patch).eq('key', key).select('*').single());
+        if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
+        return { data: { key: data.key, name: data.name, color: data.color } };
+      },
+      invalidatesTags: [{ type: 'Ticket', id: 'GROUPS' }, { type: 'Ticket', id: 'LIST' }],
+    }),
+
+    deleteTicketGroup: builder.mutation<{ ok: true }, string>({
+      queryFn: async (key) => {
+        // Refuse to delete a group that still has tickets attached
+        const { count } = await supabase
+          .from('tickets').select('*', { count: 'exact', head: true }).eq('assigned_group', key);
+        if ((count ?? 0) > 0) {
+          return { error: { status: 'CUSTOM_ERROR', error: `Cannot delete: ${count} ticket(s) still assigned to this group. Reassign them first.` } };
+        }
+        const { error } = await supabase.from('ticket_groups').delete().eq('key', key);
+        if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
+        return { data: { ok: true } };
+      },
+      invalidatesTags: [{ type: 'Ticket', id: 'GROUPS' }],
     }),
 
     // ── Agents you can assign tickets to (filter by group if provided) ─
@@ -324,10 +380,14 @@ export const {
   useGetTicketsQuery,
   useGetTicketByIdQuery,
   useUpdateTicketStatusMutation,
+  useUpdateTicketPriorityMutation,
   useAddTicketNoteMutation,
   useDeleteTicketMutation,
   useGetTicketMessagesQuery,
   useGetTicketGroupsQuery,
+  useCreateTicketGroupMutation,
+  useUpdateTicketGroupMutation,
+  useDeleteTicketGroupMutation,
   useGetAssignableAgentsQuery,
   useAssignTicketMutation,
   useSendTicketReplyMutation,

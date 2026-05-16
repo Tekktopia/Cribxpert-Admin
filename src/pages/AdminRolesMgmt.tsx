@@ -16,6 +16,8 @@ import {
 } from "@/api/features/adminManagement/adminManagementApiSlice";
 import LoadingPage from "@/components/ui/LoadingPage";
 import { supabase } from "@/lib/supabase";
+import { GroupsManager } from "@/features/groups/GroupsManager";
+import { useAppSelector } from "@/store/hooks";
 
 type AdminStatus = "Active" | "Disabled";
 
@@ -59,6 +61,8 @@ function mapApiAdminToLocal(admin: AdminManagementAdmin) {
 }
 
 export default function AdminRolesMgmt() {
+  const myRole = (useAppSelector(s => s.auth.profile?.role) ?? '').toLowerCase();
+  const isSuperAdmin = myRole === 'superadmin';
   const { data, isLoading, error, refetch } = useGetAdminsQuery();
   const [createAdmin] = useCreateAdminMutation();
   const [disableAdmin] = useDisableAdminMutation();
@@ -395,6 +399,9 @@ export default function AdminRolesMgmt() {
               </div>
             </div>
           </div>
+
+          {/* Groups management — superadmin only */}
+          {isSuperAdmin && <GroupsManager />}
         </div>
       )}
 
