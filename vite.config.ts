@@ -37,6 +37,11 @@ function devPlaceholderPlugin(): Plugin {
 }
 
 export default defineConfig({
+  server: {
+    port: 5174,        // Admin runs on 5174 (Frontend uses 5173)
+    strictPort: true,  // fail loudly instead of silently picking another port
+    host: true,        // listen on LAN so phones can reach it
+  },
   plugins: [react(), tailwindcss(), devPlaceholderPlugin()],
   resolve: {
     alias: {
