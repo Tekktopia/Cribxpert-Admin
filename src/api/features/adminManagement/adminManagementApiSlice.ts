@@ -66,19 +66,15 @@ export const adminManagementApiSlice = apiSlice.injectEndpoints({
 
     createAdmin: builder.mutation<CreateAdminResponse, CreateAdminRequest>({
       queryFn: async ({ email, fullName, adminType = 'Admin' }) => {
-        // Invite via Supabase auth (magic link) and set role in profiles
-        const { error: inviteError } = await supabase.auth.signInWithOtp({ email });
-        if (inviteError) return { error: { status: 'CUSTOM_ERROR', error: inviteError.message } };
-
-        // Upsert profile with admin role
-        const { error: profileError } = await (supabase.from('profiles') as any).upsert({
-          email,
-          full_name: fullName,
-          role: ROLE_TO_DB[adminType] ?? 'admin',
-        }, { onConflict: 'email' });
-        if (profileError) return { error: { status: 'CUSTOM_ERROR', error: profileError.message } };
-
-        return { data: { message: `Admin invite sent to ${email}` } };
+        // Uses the create-admin edge function which runs with the service role
+        // key — required for auth.admin.inviteUserByEmail and correct profile
+        // upsert with the real auth user UUID.
+        const { data, error } = await supabase.functions.invoke('create-admin', {
+          body: { email, fullName, adminType },
+        });
+        if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
+        if (data?.error) return { error: { status: 'CUSTOM_ERROR', error: data.error } };
+        return { data: { message: data?.message ?? `Admin invite sent to ${email}` } };
       },
       invalidatesTags: [{ type: "User", id: "ADMIN_LIST" }],
     }),
