@@ -13,8 +13,8 @@ import {
   Inbox,
   CheckCheck,
   Star,
-  Headphones,
   Ticket as TicketIcon,
+  Sparkles,
 } from 'lucide-react';
 import { CreateTicketModal, type CreateTicketInitialData } from '@/features/csr/tickets/CreateTicketModal';
 import '@/style(nicholas)/style.scss';
@@ -428,619 +428,284 @@ const LiveInbox = () => {
   // (Simple approach — sessions list always shows live count)
 
   return (
-    <div className="supportDash" style={{ height: '100vh', overflow: 'hidden' }}>
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
       <Sidebar navigationItems={csrNavigationItems} />
 
-      {/* Main column — fills all remaining width */}
-      <div className="main" style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, height: '100vh', overflow: 'hidden' }}>
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         <Topbar />
 
         {/* Page header */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '16px 24px 12px',
-            flexShrink: 0,
-          }}
-        >
+        <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between flex-shrink-0">
           <div>
-            <h1 style={{ fontSize: 20, fontWeight: 700, color: '#111827', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Headphones size={20} color='#1d5c5c' strokeWidth={2.25} />
-              Live Chat Inbox
-            </h1>
-            <p style={{ fontSize: 13, color: '#6b7280', margin: '4px 0 0' }}>
-              Real-time support conversations handed off from CribBot
-            </p>
+            <div className="flex items-center gap-2 text-xs font-semibold text-teal-700 mb-1 uppercase tracking-wide">
+              <Sparkles className="w-3.5 h-3.5" />
+              Live Support
+            </div>
+            <h1 className="text-xl font-bold text-gray-900">Live Chat Inbox</h1>
+            <p className="text-xs text-gray-500 mt-0.5">Real-time conversations handed off from CribBot</p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div className="flex items-center gap-2">
             {ratingSummary && (
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '6px 12px',
-                  borderRadius: 20,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  background: '#fffbeb',
-                  color: '#92400e',
-                  border: '1px solid #fde68a',
-                }}
-                title={`${ratingSummary.count} customer ${ratingSummary.count === 1 ? 'rating' : 'ratings'}`}
-              >
-                <Star size={13} fill='#f59e0b' color='#f59e0b' />
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-xs font-semibold text-amber-800">
+                <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
                 {ratingSummary.avg.toFixed(1)}
-                <span style={{ color: '#a16207', fontWeight: 500 }}>· {ratingSummary.count}</span>
+                <span className="text-amber-600 font-normal">· {ratingSummary.count}</span>
               </span>
             )}
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '6px 14px',
-                borderRadius: 20,
-                fontSize: 12,
-                fontWeight: 600,
-                background: activeSessions.length > 0 ? '#fef2f2' : '#f0fdf4',
-                color: activeSessions.length > 0 ? '#dc2626' : '#15803d',
-                border: `1px solid ${activeSessions.length > 0 ? '#fecaca' : '#bbf7d0'}`,
-              }}
-            >
-              <span
-                style={{
-                  width: 7, height: 7, borderRadius: '50%', display: 'inline-block',
-                  background: activeSessions.length > 0 ? '#ef4444' : '#4ade80',
-                }}
-              />
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border ${
+              activeSessions.length > 0 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+            }`}>
+              <span className={`w-2 h-2 rounded-full ${activeSessions.length > 0 ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`} />
               {activeSessions.length} Live {activeSessions.length === 1 ? 'Chat' : 'Chats'}
             </span>
           </div>
         </div>
 
-        {/* Main inbox layout — fills rest of page height */}
-        <div
-          style={{
-            display: 'flex',
-            flex: 1,
-            minHeight: 0,
-            margin: '0 24px 24px',
-            background: '#ffffff',
-            borderRadius: 16,
-            overflow: 'hidden',
-            border: '1px solid #e5e7eb',
-            boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-          }}
-        >
-            {/* Session list panel */}
-            <div
-              style={{
-                width: 300,
-                minWidth: 260,
-                borderRight: '1px solid #e5e7eb',
-                background: '#ffffff',
-                display: 'flex',
-                flexDirection: 'column',
-              }}
-            >
-              {/* ── Tab bar ── */}
-              <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb', flexShrink: 0 }}>
-                {(['active', 'resolved'] as const).map(t => (
-                  <button
-                    key={t}
-                    onClick={() => setTab(t)}
-                    style={{
-                      flex: 1,
-                      padding: '11px 0',
-                      fontSize: 12.5,
-                      fontWeight: 600,
-                      border: 'none',
-                      background: 'transparent',
-                      cursor: 'pointer',
-                      color: tab === t ? '#1d5c5c' : '#6b7280',
-                      borderBottom: tab === t ? '2.5px solid #1d5c5c' : '2.5px solid transparent',
-                      transition: 'color 0.15s, border-color 0.15s',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6,
-                    }}
-                  >
-                    {t === 'active' ? (
-                      <>
-                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: tab === t ? '#10b981' : '#9ca3af', display: 'inline-block' }} />
-                        Active
-                      </>
-                    ) : (
-                      <>
-                        <CheckCheck size={14} />
-                        Resolved
-                      </>
-                    )}
-                    <span
-                      style={{
-                        background: t === 'active'
-                          ? (activeSessions.length > 0 ? '#fef2f2' : '#f3f4f6')
-                          : '#f3f4f6',
-                        color: t === 'active'
-                          ? (activeSessions.length > 0 ? '#dc2626' : '#6b7280')
-                          : '#6b7280',
-                        borderRadius: 10,
-                        padding: '0 6px',
-                        fontSize: 10.5,
-                        fontWeight: 700,
-                        minWidth: 18,
-                        textAlign: 'center',
-                      }}
-                    >
-                      {t === 'active' ? activeSessions.length : resolvedSessions.length}
-                    </span>
-                  </button>
-                ))}
-              </div>
+        {/* Inbox container */}
+        <div className="flex-1 flex min-h-0 m-6 bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+          {/* LEFT: Session list */}
+          <div className="w-80 flex-shrink-0 border-r border-gray-200 flex flex-col bg-white">
+            {/* Tabs */}
+            <div className="flex border-b border-gray-200 flex-shrink-0 p-2 gap-1 bg-gray-50/60">
+              {(['active', 'resolved'] as const).map(t => (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={`flex-1 px-3 py-2 text-sm font-semibold rounded-md transition-colors flex items-center justify-center gap-1.5 ${
+                    tab === t ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  {t === 'active' ? (
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  ) : (
+                    <CheckCheck className="w-3.5 h-3.5" />
+                  )}
+                  {t === 'active' ? 'Active' : 'Resolved'}
+                  <span className={`px-1.5 py-0.5 text-[10px] rounded-full ${
+                    tab === t ? 'bg-teal-100 text-teal-700' : 'bg-gray-200 text-gray-600'
+                  }`}>
+                    {t === 'active' ? activeSessions.length : resolvedSessions.length}
+                  </span>
+                </button>
+              ))}
+            </div>
 
-              <div style={{ flex: 1, overflowY: 'auto' }}>
-                {sessionsLoading ? (
-                  <div style={{ padding: 24, textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>
-                    Loading sessions…
+            {/* Sessions list */}
+            <div className="flex-1 overflow-y-auto">
+              {sessionsLoading ? (
+                <div className="p-6 text-center text-sm text-gray-500">Loading sessions…</div>
+              ) : sessions.length === 0 ? (
+                <div className="p-8 text-center">
+                  <div className="w-14 h-14 rounded-full bg-teal-50 flex items-center justify-center mx-auto mb-3">
+                    {tab === 'active' ? <Inbox className="w-6 h-6 text-teal-600" /> : <CheckCheck className="w-6 h-6 text-teal-600" />}
                   </div>
-                ) : sessions.length === 0 ? (
-                  <div style={{ padding: 36, textAlign: 'center' }}>
-                    <div style={{
-                      width: 56, height: 56, borderRadius: '50%',
-                      background: '#E6EFF1', display: 'inline-flex',
-                      alignItems: 'center', justifyContent: 'center', marginBottom: 12,
-                    }}>
-                      {tab === 'active'
-                        ? <Inbox size={26} color='#1d5c5c' strokeWidth={2} />
-                        : <CheckCheck size={26} color='#1d5c5c' strokeWidth={2} />}
-                    </div>
-                    <div style={{ color: '#374151', fontSize: 13.5, fontWeight: 600 }}>
-                      {tab === 'active' ? 'No active chats' : 'No resolved chats yet'}
-                    </div>
-                    <div style={{ color: '#9ca3af', fontSize: 12, marginTop: 4 }}>
-                      {tab === 'active'
-                        ? 'Sessions appear when users request a live agent'
-                        : 'Resolved sessions will show up here'}
-                    </div>
-                  </div>
-                ) : (
-                  sessions.map(session => {
+                  <p className="text-sm font-semibold text-gray-700">
+                    {tab === 'active' ? 'No active chats' : 'No resolved chats yet'}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {tab === 'active' ? 'Sessions appear when users request a live agent' : 'Resolved sessions will show up here'}
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {sessions.map(session => {
                     const isActive = session.session_id === activeSessionId;
                     const initials = getInitials(session.name, session.email, session.session_id);
                     const displayName = getDisplayName(session.name, session.email, session.session_id);
+                    const rating = ratings[session.session_id];
                     return (
                       <button
                         key={session.session_id}
                         onClick={() => setActiveSessionId(session.session_id)}
-                        style={{
-                          width: '100%',
-                          padding: '12px 16px',
-                          textAlign: 'left',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 12,
-                          border: 'none',
-                          borderBottom: '1px solid #f5f5f5',
-                          background: isActive ? '#E6EFF1' : 'transparent',
-                          cursor: 'pointer',
-                          transition: 'background 0.15s',
-                          borderLeft: isActive ? '3px solid #1d5c5c' : '3px solid transparent',
-                        }}
+                        className={`w-full px-4 py-3 flex items-center gap-3 text-left transition-colors border-l-[3px] ${
+                          isActive ? 'bg-teal-50/60 border-teal-600' : 'border-transparent hover:bg-gray-50'
+                        }`}
                       >
-                        {/* Avatar */}
-                        <div
-                          style={{
-                            width: 38,
-                            height: 38,
-                            borderRadius: '50%',
-                            background: isActive ? '#1d5c5c' : '#e5e7eb',
-                            color: isActive ? '#fff' : '#374151',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: 13,
-                            fontWeight: 700,
-                            flexShrink: 0,
-                          }}
-                        >
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 ${
+                          isActive ? 'bg-teal-600 text-white' : 'bg-gray-200 text-gray-700'
+                        }`}>
                           {initials}
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 600, fontSize: 13, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {displayName}
-                          </div>
-                          <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-semibold text-gray-900 truncate">{displayName}</div>
+                          <div className="text-[11px] text-gray-500 mt-0.5 flex items-center gap-1.5">
                             <span>{formatTime(tab === 'resolved' && session.resolved_at ? session.resolved_at : session.handed_off_at)}</span>
-                            {tab === 'resolved' && ratings[session.session_id] && (
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-                                <span style={{ color: '#d1d5db' }}>·</span>
-                                {[1, 2, 3, 4, 5].map(n => (
-                                  <Star
-                                    key={n}
-                                    size={10}
-                                    fill={n <= ratings[session.session_id].rating ? '#f59e0b' : 'transparent'}
-                                    color={n <= ratings[session.session_id].rating ? '#f59e0b' : '#d1d5db'}
-                                    strokeWidth={2}
-                                  />
+                            {tab === 'resolved' && rating && (
+                              <span className="inline-flex items-center gap-0.5">
+                                <span className="text-gray-300">·</span>
+                                {[1,2,3,4,5].map(n => (
+                                  <Star key={n} size={9} fill={n <= rating.rating ? '#f59e0b' : 'transparent'} color={n <= rating.rating ? '#f59e0b' : '#d1d5db'} strokeWidth={2} />
                                 ))}
                               </span>
                             )}
                           </div>
                         </div>
-                        {/* Status dot — live red if active, check if resolved */}
                         {tab === 'active' ? (
-                          <span
-                            style={{
-                              width: 8, height: 8, borderRadius: '50%',
-                              background: '#ef4444', flexShrink: 0,
-                              boxShadow: '0 0 0 3px rgba(239, 68, 68, 0.15)',
-                            }}
-                          />
+                          <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" style={{ boxShadow: '0 0 0 3px rgba(239,68,68,0.15)' }} />
                         ) : (
-                          <CheckCircle2 size={16} color='#10b981' style={{ flexShrink: 0 }} />
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
                         )}
                       </button>
                     );
-                  })
-                )}
-              </div>
-            </div>
-
-            {/* Conversation panel */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-              {!activeSession ? (
-                <div
-                  style={{
-                    flex: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#9ca3af',
-                    background: '#fafafa',
-                  }}
-                >
-                  <div style={{
-                    width: 72, height: 72, borderRadius: '50%',
-                    background: '#E6EFF1', display: 'flex',
-                    alignItems: 'center', justifyContent: 'center', marginBottom: 16,
-                  }}>
-                    <MessageSquare size={32} color='#1d5c5c' strokeWidth={1.75} />
-                  </div>
-                  <div style={{ fontWeight: 600, fontSize: 15, color: '#374151' }}>Select a conversation</div>
-                  <div style={{ fontSize: 13, marginTop: 4, color: '#9ca3af' }}>
-                    Choose a session from the left to start chatting
-                  </div>
+                  })}
                 </div>
-              ) : (
-                <>
-                  {/* Conversation header */}
-                  <div
-                    style={{
-                      padding: '14px 20px',
-                      borderBottom: '1px solid #e5e7eb',
-                      background: '#fff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div
-                        style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: '50%',
-                          background: '#1d5c5c',
-                          color: '#fff',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: 14,
-                          fontWeight: 700,
-                        }}
-                      >
-                        {getInitials(activeSession.name, activeSession.email, activeSession.session_id)}
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>
-                          {getDisplayName(activeSession.name, activeSession.email, activeSession.session_id)}
-                        </div>
-                        <div style={{ fontSize: 11, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />
-                          Live — handed off {formatTime(activeSession.handed_off_at)}
-                        </div>
+              )}
+            </div>
+          </div>
+
+          {/* RIGHT: Conversation panel */}
+          <div className="flex-1 flex flex-col min-w-0">
+            {!activeSession ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center px-6 bg-gradient-to-br from-gray-50 to-white">
+                <div className="w-20 h-20 rounded-full bg-teal-50 flex items-center justify-center mb-4">
+                  <MessageSquare className="w-9 h-9 text-teal-600" strokeWidth={1.75} />
+                </div>
+                <div className="text-base font-semibold text-gray-900">Select a conversation</div>
+                <div className="text-sm text-gray-500 mt-1">Choose a session from the left to start chatting</div>
+              </div>
+            ) : (
+              <>
+                {/* Conversation header */}
+                <div className="px-5 py-3.5 border-b border-gray-200 flex items-center justify-between flex-shrink-0 bg-white gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-full bg-teal-600 text-white flex items-center justify-center font-bold text-sm flex-shrink-0">
+                      {getInitials(activeSession.name, activeSession.email, activeSession.session_id)}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-bold text-sm text-gray-900 truncate">{getDisplayName(activeSession.name, activeSession.email, activeSession.session_id)}</div>
+                      <div className="text-[11px] text-gray-500 flex items-center gap-1.5 mt-0.5">
+                        <span className={`w-1.5 h-1.5 rounded-full ${isReadOnly ? 'bg-gray-400' : 'bg-red-500 animate-pulse'}`} />
+                        {isReadOnly ? 'Resolved' : 'Live'} · handed off {formatTime(activeSession.handed_off_at)}
                       </div>
                     </div>
-
-                    {!isReadOnly && (
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        {/* Create a ticket prefilled with this chat's transcript */}
-                        <button
-                          onClick={() => setTicketModalOpen(true)}
-                          title="Create a support ticket from this conversation"
-                          style={{
-                            background: '#ffffff',
-                            border: '1.5px solid #1d5c5c',
-                            color: '#1d5c5c',
-                            fontWeight: 600,
-                            fontSize: 12.5,
-                            padding: '7px 14px',
-                            borderRadius: 8,
-                            cursor: 'pointer',
-                            transition: 'all 0.15s',
-                            display: 'inline-flex', alignItems: 'center', gap: 6,
-                          }}
-                        >
-                          <TicketIcon size={14} />
-                          Create Ticket
-                        </button>
-                        {/* Leave without resolving — session stays open for other agents */}
-                        <button
-                          onClick={leaveChat}
-                          title="Leave this chat — the session stays active for other agents"
-                          style={{
-                            background: '#ffffff',
-                            border: '1.5px solid #e5e7eb',
-                            color: '#374151',
-                            fontWeight: 600,
-                            fontSize: 12.5,
-                            padding: '7px 14px',
-                            borderRadius: 8,
-                            cursor: 'pointer',
-                            transition: 'all 0.15s',
-                            display: 'inline-flex', alignItems: 'center', gap: 6,
-                          }}
-                        >
-                          <ArrowLeftCircle size={14} />
-                          Leave
-                        </button>
-                        <button
-                          onClick={resolveSession}
-                          disabled={resolving}
-                          style={{
-                            background: resolving ? '#f3f4f6' : '#10b981',
-                            border: '1.5px solid',
-                            borderColor: resolving ? '#d1d5db' : '#10b981',
-                            color: resolving ? '#9ca3af' : '#ffffff',
-                            fontWeight: 600,
-                            fontSize: 12.5,
-                            padding: '7px 14px',
-                            borderRadius: 8,
-                            cursor: resolving ? 'not-allowed' : 'pointer',
-                            transition: 'all 0.15s',
-                            display: 'inline-flex', alignItems: 'center', gap: 6,
-                          }}
-                        >
-                          <CheckCircle2 size={14} />
-                          {resolving ? 'Resolving…' : 'Resolve & Close'}
-                        </button>
-                      </div>
-                    )}
-                    {isReadOnly && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        {ratings[activeSession.session_id] && (
-                          <div style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 4,
-                            background: '#fffbeb', border: '1px solid #fde68a',
-                            padding: '5px 10px', borderRadius: 8,
-                          }}>
-                            {[1, 2, 3, 4, 5].map(n => (
-                              <Star
-                                key={n}
-                                size={13}
-                                fill={n <= ratings[activeSession.session_id].rating ? '#f59e0b' : 'transparent'}
-                                color={n <= ratings[activeSession.session_id].rating ? '#f59e0b' : '#fcd34d'}
-                                strokeWidth={2}
-                              />
-                            ))}
-                          </div>
-                        )}
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 5,
-                            background: '#f0fdf4',
-                            border: '1px solid #86efac',
-                            color: '#15803d',
-                            fontWeight: 600,
-                            fontSize: 11.5,
-                            padding: '5px 12px',
-                            borderRadius: 8,
-                          }}
-                        >
-                          <CheckCircle2 size={12} />
-                          Resolved {activeSession?.resolved_at ? formatTime(activeSession.resolved_at) : ''}
-                        </span>
-                      </div>
-                    )}
                   </div>
 
-                  {/* Rating comment banner (only when viewing a resolved session that has one) */}
-                  {isReadOnly && ratings[activeSession.session_id]?.comment && (
-                    <div style={{
-                      padding: '10px 20px',
-                      borderBottom: '1px solid #fde68a',
-                      background: '#fffbeb',
-                      fontSize: 12.5,
-                      color: '#78350f',
-                      display: 'flex',
-                      gap: 8,
-                      alignItems: 'flex-start',
-                    }}>
-                      <Star size={14} fill='#f59e0b' color='#f59e0b' style={{ flexShrink: 0, marginTop: 2 }} />
-                      <div>
-                        <strong style={{ fontWeight: 700 }}>Customer feedback:</strong>{' '}
-                        <span style={{ fontStyle: 'italic' }}>"{ratings[activeSession.session_id].comment}"</span>
+                  {!isReadOnly && (
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => setTicketModalOpen(true)}
+                        title="Create a support ticket from this conversation"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-teal-700 border border-teal-300 bg-white rounded-lg hover:bg-teal-50 transition-colors"
+                      >
+                        <TicketIcon className="w-3.5 h-3.5" />
+                        Create Ticket
+                      </button>
+                      <button
+                        onClick={leaveChat}
+                        title="Leave this chat — the session stays active for other agents"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-gray-700 border border-gray-300 bg-white rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        <ArrowLeftCircle className="w-3.5 h-3.5" />
+                        Leave
+                      </button>
+                      <button
+                        onClick={resolveSession}
+                        disabled={resolving}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 border border-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 shadow-sm"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        {resolving ? 'Resolving…' : 'Resolve & Close'}
+                      </button>
+                    </div>
+                  )}
+                  {isReadOnly && (
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {ratings[activeSession.session_id] && (
+                        <div className="inline-flex items-center gap-0.5 px-2.5 py-1 bg-amber-50 border border-amber-200 rounded-md">
+                          {[1,2,3,4,5].map(n => (
+                            <Star key={n} size={12} fill={n <= ratings[activeSession.session_id].rating ? '#f59e0b' : 'transparent'} color={n <= ratings[activeSession.session_id].rating ? '#f59e0b' : '#fcd34d'} strokeWidth={2} />
+                          ))}
+                        </div>
+                      )}
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Resolved {activeSession.resolved_at ? formatTime(activeSession.resolved_at) : ''}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Rating comment banner */}
+                {isReadOnly && ratings[activeSession.session_id]?.comment && (
+                  <div className="px-5 py-3 border-b border-amber-200 bg-amber-50 text-xs text-amber-900 flex gap-2.5 flex-shrink-0">
+                    <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold">Customer feedback:</span>{' '}
+                      <span className="italic">"{ratings[activeSession.session_id].comment}"</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Messages area */}
+                <div className="flex-1 overflow-y-auto px-5 py-5 space-y-2.5 bg-gray-50/40">
+                  {messages.length === 0 ? (
+                    <div className="text-center text-sm text-gray-400 py-10">No messages yet — waiting for the user to speak…</div>
+                  ) : (
+                    messages.map(msg => {
+                      const isAgent = msg.role === 'agent';
+                      return (
+                        <div key={msg.id} className={`flex items-end gap-2 ${isAgent ? 'justify-end' : 'justify-start'}`}>
+                          {!isAgent && (
+                            <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                              {msg.role === 'user'
+                                ? <UserIcon size={14} color="#6b7280" strokeWidth={2.25} />
+                                : <Bot size={14} color="#C18B3F" strokeWidth={2.25} />}
+                            </div>
+                          )}
+                          <div
+                            className="max-w-[72%] px-3.5 py-2.5 text-sm leading-relaxed break-words"
+                            style={{
+                              background: isAgent ? '#1d5c5c' : '#C18B3F',
+                              color: '#ffffff',
+                              borderRadius: 14,
+                              borderBottomRightRadius: isAgent ? 4 : 14,
+                              borderBottomLeftRadius: isAgent ? 14 : 4,
+                              boxShadow: isAgent ? 'none' : '0 1px 3px rgba(0,0,0,0.08)',
+                            }}
+                          >
+                            {msg.content}
+                            <div className={`text-[10px] mt-1 opacity-60 ${isAgent ? 'text-right' : 'text-left'}`}>
+                              {formatTime(msg.created_at)}
+                            </div>
+                          </div>
+                          {isAgent && (
+                            <div className="w-7 h-7 rounded-full bg-teal-600 text-white flex items-center justify-center text-[10px] font-bold flex-shrink-0">CS</div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+
+                  {userIsTyping && (
+                    <div className="flex items-end gap-2">
+                      <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                        <UserIcon size={14} color="#6b7280" strokeWidth={2.25} />
+                      </div>
+                      <div className="px-4 py-2.5 rounded-2xl bg-white shadow-sm border border-gray-200 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400" style={{ animation: 'liDot 1.2s ease-in-out infinite' }} />
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400" style={{ animation: 'liDot 1.2s ease-in-out 0.2s infinite' }} />
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400" style={{ animation: 'liDot 1.2s ease-in-out 0.4s infinite' }} />
+                        <style>{`@keyframes liDot { 0%,80%,100% { transform:scale(0.7); opacity:0.4 } 40% { transform:scale(1); opacity:1 } }`}</style>
                       </div>
                     </div>
                   )}
 
-                  {/* Messages area */}
-                  <div
-                    style={{
-                      flex: 1,
-                      overflowY: 'auto',
-                      padding: '16px 20px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 10,
-                      background: '#fafafa',
-                    }}
-                  >
-                    {messages.length === 0 ? (
-                      <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: 13, marginTop: 32 }}>
-                        No messages yet — waiting for the user to speak…
-                      </div>
-                    ) : (
-                      messages.map((msg) => {
-                        const isAgent = msg.role === 'agent';
-                        const isUser = msg.role === 'user';
-                        return (
-                          <div
-                            key={msg.id}
-                            style={{
-                              display: 'flex',
-                              justifyContent: isAgent ? 'flex-end' : 'flex-start',
-                              alignItems: 'flex-end',
-                              gap: 8,
-                            }}
-                          >
-                            {!isAgent && (
-                              <div
-                                style={{
-                                  width: 28,
-                                  height: 28,
-                                  borderRadius: '50%',
-                                  background: isUser ? '#e5e7eb' : '#1d5c5c',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  fontSize: 13,
-                                  flexShrink: 0,
-                                }}
-                              >
-                                {isUser
-                                  ? <UserIcon size={14} color='#6b7280' strokeWidth={2.25} />
-                                  : <Bot size={14} color='#C18B3F' strokeWidth={2.25} />}
-                              </div>
-                            )}
-                            <div
-                              style={{
-                                maxWidth: '72%',
-                                padding: '10px 14px',
-                                borderRadius: 14,
-                                fontSize: 13.5,
-                                lineHeight: 1.55,
-                                wordBreak: 'break-word',
-                                // Sender (agent) = teal; receiver (user/bot) = brand gold
-                                background: isAgent ? '#1d5c5c' : '#C18B3F',
-                                color: '#ffffff',
-                                borderBottomRightRadius: isAgent ? 4 : 14,
-                                borderBottomLeftRadius: isAgent ? 14 : 4,
-                                boxShadow: isAgent ? 'none' : '0 1px 3px rgba(0,0,0,0.08)',
-                              }}
-                            >
-                              {msg.content}
-                              <div
-                                style={{
-                                  fontSize: 10,
-                                  marginTop: 4,
-                                  opacity: 0.6,
-                                  textAlign: isAgent ? 'right' : 'left',
-                                }}
-                              >
-                                {formatTime(msg.created_at)}
-                              </div>
-                            </div>
-                            {isAgent && (
-                              <div
-                                style={{
-                                  width: 28,
-                                  height: 28,
-                                  borderRadius: '50%',
-                                  background: '#1d5c5c',
-                                  color: '#fff',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  fontSize: 11,
-                                  fontWeight: 700,
-                                  flexShrink: 0,
-                                }}
-                              >
-                                CS
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })
-                    )}
-                    {/* Typing indicator */}
-                    {userIsTyping && (
-                      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
-                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <UserIcon size={14} color='#6b7280' strokeWidth={2.25} />
-                        </div>
-                        <div style={{ background: '#C18B3F', borderRadius: '14px 14px 14px 4px', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 5, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
-                          {[0, 0.2, 0.4].map((delay, i) => (
-                            <span
-                              key={i}
-                              style={{
-                                width: 7, height: 7, borderRadius: '50%', background: '#ffffff',
-                                display: 'inline-block',
-                                animation: 'typingDot 1.2s ease-in-out infinite',
-                                animationDelay: `${delay}s`,
-                              }}
-                            />
-                          ))}
-                          <style>{`@keyframes typingDot { 0%,80%,100%{transform:scale(0.7);opacity:0.4} 40%{transform:scale(1);opacity:1} }`}</style>
-                        </div>
-                      </div>
-                    )}
-                    <div ref={messagesEndRef} />
-                  </div>
+                  <div ref={messagesEndRef} />
+                </div>
 
-                  {/* Reply input — hidden for resolved sessions */}
-                  {isReadOnly ? (
-                    <div
-                      style={{
-                        padding: '12px 20px',
-                        borderTop: '1px solid #e5e7eb',
-                        background: '#f9fafb',
-                        textAlign: 'center',
-                        fontSize: 12.5,
-                        color: '#9ca3af',
-                        flexShrink: 0,
-                      }}
-                    >
-                      This conversation is resolved — read only
-                    </div>
-                  ) : (
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 10,
-                      padding: '12px 16px',
-                      borderTop: '1px solid #e5e7eb',
-                      background: '#ffffff',
-                      flexShrink: 0,
-                    }}
-                  >
+                {/* Composer */}
+                {isReadOnly ? (
+                  <div className="px-5 py-3 border-t border-gray-200 bg-gray-50 text-center text-xs text-gray-500 flex-shrink-0">
+                    This conversation is resolved — read only
+                  </div>
+                ) : (
+                  <div className="px-4 py-3 border-t border-gray-200 bg-white flex items-center gap-2.5 flex-shrink-0">
                     <input
                       type="text"
                       placeholder="Type a reply…"
                       value={replyText}
                       onChange={e => {
                         setReplyText(e.target.value);
-                        // Broadcast that agent is typing; auto-stop after 2 s of inactivity
                         broadcastTyping(true);
                         clearTimeout(agentTypingTimeoutRef.current ?? undefined);
                         agentTypingTimeoutRef.current = setTimeout(() => broadcastTyping(false), 2000);
@@ -1048,49 +713,22 @@ const LiveInbox = () => {
                       onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) sendReply(); }}
                       disabled={sending}
                       maxLength={2000}
-                      style={{
-                        flex: 1,
-                        padding: '10px 16px',
-                        border: '1.5px solid #e5e7eb',
-                        borderRadius: 24,
-                        outline: 'none',
-                        fontSize: 13.5,
-                        color: '#1f2937',
-                        background: '#f9fafb',
-                        transition: 'border-color 0.2s',
-                      }}
-                      onFocus={e => { (e.target as HTMLInputElement).style.borderColor = '#1d5c5c'; (e.target as HTMLInputElement).style.background = '#fff'; }}
-                      onBlur={e => { (e.target as HTMLInputElement).style.borderColor = '#e5e7eb'; (e.target as HTMLInputElement).style.background = '#f9fafb'; }}
+                      className="flex-1 px-4 py-2.5 border border-gray-200 rounded-full text-sm text-gray-900 bg-gray-50 focus:outline-none focus:bg-white focus:border-teal-500 focus:ring-2 focus:ring-teal-100 transition-all"
                     />
                     <button
                       onClick={sendReply}
                       disabled={sending || !replyText.trim()}
-                      style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: '50%',
-                        background: '#1d5c5c',
-                        color: '#fff',
-                        border: 'none',
-                        cursor: sending || !replyText.trim() ? 'not-allowed' : 'pointer',
-                        opacity: sending || !replyText.trim() ? 0.4 : 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 16,
-                        flexShrink: 0,
-                        transition: 'opacity 0.2s',
-                      }}
+                      className="w-10 h-10 rounded-full bg-teal-600 text-white flex items-center justify-center flex-shrink-0 hover:bg-teal-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
                       aria-label="Send"
                     >
                       <Send size={16} strokeWidth={2.25} />
                     </button>
                   </div>
-                  )}
-                </>
-              )}
-            </div>
+                )}
+              </>
+            )}
           </div>
+        </div>
       </div>
 
       {/* Create-ticket modal — prefilled with live-chat transcript */}

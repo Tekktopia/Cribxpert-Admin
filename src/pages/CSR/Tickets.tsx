@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sidebar } from "@/components/layout";
 import { Topbar } from "@/components/layout";
@@ -17,6 +17,13 @@ import {
   Mail,
   MessageSquare,
   Inbox,
+  Sparkles,
+  Ticket as TicketIconLg,
+  UserX,
+  Flame,
+  TrendingUp,
+  Plus,
+  RefreshCcw,
 } from "lucide-react";
 import type { Ticket } from "@/features/csr/tickets/types"; // use the actual Ticket type
 
@@ -201,6 +208,21 @@ export default function Tickets() {
   const totalItems = data?.data.pagination.total || 0;
   const totalPages = data?.data.pagination.totalPages || 1;
 
+  // KPIs use the stats payload from the API (full counts, not paginated)
+  const stats = data?.data.stats;
+  const kpis = useMemo(() => {
+    // Calculate from current page set for urgency/today (good enough; can promote to dedicated query later)
+    const all = data?.data.tickets ?? [];
+    const urgent = all.filter(t => t.priority === "urgent" || t.priority === "high").length;
+    const unassigned = all.filter(t => !t.assignedTo && (t.status === "pending" || t.status === "in-progress")).length;
+    const today = new Date();
+    const newToday = all.filter(t => {
+      const c = new Date(t.createdAt);
+      return c.getFullYear() === today.getFullYear() && c.getMonth() === today.getMonth() && c.getDate() === today.getDate();
+    }).length;
+    return { urgent, unassigned, newToday };
+  }, [data]);
+
   const getPriorityBadge = (priority: string) => {
     const colors = {
       High: "bg-red-100 text-red-800",
@@ -259,28 +281,51 @@ export default function Tickets() {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar navigationItems={sidebarItems} />
-      <div className="flex-1">
+      <div className="flex-1 flex flex-col min-w-0">
         <Topbar />
 
-        <div className="p-6">
-          {/* Header */}
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Tickets</h1>
-              <p className="text-sm text-gray-600">
-                Manage and track customer support tickets
-              </p>
+        <main className="flex-1 overflow-y-auto">
+          <div className="max-w-[1440px] mx-auto px-6 py-6 lg:px-8 lg:py-8 space-y-6">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 text-xs font-semibold text-teal-700 mb-1 uppercase tracking-wide">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Ticketing
+                </div>
+                <h1 className="text-2xl font-bold text-gray-900">Tickets</h1>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  Track, route, and resolve every customer request in one place.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => refetch()}
+                  className="px-3.5 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
+                >
+                  <RefreshCcw className="w-4 h-4" />
+                  Refresh
+                </button>
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="px-3.5 py-2 text-sm font-semibold text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition-colors flex items-center gap-2 shadow-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create Ticket
+                </button>
+              </div>
             </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700 transition-colors"
-            >
-              + Create Ticket
-            </button>
-          </div>
 
-          {/* Filters */}
-          <div className="flex gap-3 mb-4 flex-wrap">
+            {/* KPI strip */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <KpiCard icon={<TicketIconLg className="w-5 h-5" />} tint="teal"    label="All Tickets"   value={stats?.total ?? totalItems} hint={`${(stats?.pending ?? 0) + (stats?.inProgress ?? 0)} open`} />
+              <KpiCard icon={<UserX className="w-5 h-5" />}        tint="amber"   label="Unassigned"    value={kpis.unassigned}            hint="Need an owner" />
+              <KpiCard icon={<Flame className="w-5 h-5" />}        tint="red"     label="High / Urgent" value={kpis.urgent}                hint="Watch closely" />
+              <KpiCard icon={<TrendingUp className="w-5 h-5" />}   tint="emerald" label="New Today"     value={kpis.newToday}              hint="In the last 24h" />
+            </div>
+
+            {/* Filters */}
+            <div className="bg-white rounded-xl border border-gray-200 p-4 flex gap-3 flex-wrap">
             <select
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
               value={filters.group}
@@ -491,7 +536,8 @@ export default function Tickets() {
               </>
             )}
           </div>
-        </div>
+          </div>
+        </main>
       </div>
 
       {/* Modals and Drawers */}
@@ -519,6 +565,32 @@ export default function Tickets() {
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
       />
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────
+function KpiCard({ icon, tint, label, value, hint }: {
+  icon: React.ReactNode;
+  tint: "teal" | "amber" | "emerald" | "red";
+  label: string;
+  value: number | string;
+  hint?: string;
+}) {
+  const tints: Record<string, string> = {
+    teal:    "bg-teal-50 text-teal-700",
+    amber:   "bg-amber-50 text-amber-700",
+    emerald: "bg-emerald-50 text-emerald-700",
+    red:     "bg-red-50 text-red-700",
+  };
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-sm transition-shadow">
+      <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 ${tints[tint]}`}>
+        {icon}
+      </div>
+      <div className="text-2xl font-bold text-gray-900">{value}</div>
+      <div className="text-sm text-gray-500 mt-0.5">{label}</div>
+      {hint && <div className="text-xs text-gray-400 mt-1">{hint}</div>}
     </div>
   );
 }
