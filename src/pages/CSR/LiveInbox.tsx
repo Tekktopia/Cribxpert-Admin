@@ -14,7 +14,9 @@ import {
   CheckCheck,
   Star,
   Headphones,
+  Ticket as TicketIcon,
 } from 'lucide-react';
+import { CreateTicketModal, type CreateTicketInitialData } from '@/features/csr/tickets/CreateTicketModal';
 import '@/style(nicholas)/style.scss';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -96,6 +98,7 @@ const LiveInbox = () => {
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [userIsTyping, setUserIsTyping] = useState(false);
   const [ratings, setRatings] = useState<Record<string, SessionRating>>({});
+  const [ticketModalOpen, setTicketModalOpen] = useState(false);
   const messagesEndRef              = useRef<HTMLDivElement>(null);
   const typingChannelRef            = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const agentTypingTimeoutRef       = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -213,6 +216,37 @@ const LiveInbox = () => {
     const avg = list.reduce((s, r) => s + r.rating, 0) / list.length;
     return { count: list.length, avg };
   }, [ratings]);
+
+  // ── Build prefilled ticket data from the active live-chat session ────
+  const ticketPrefill = useMemo<CreateTicketInitialData | undefined>(() => {
+    if (!activeSession) return undefined;
+
+    const nameParts = (activeSession.name ?? '').trim().split(/\s+/);
+    const firstName = nameParts[0] || (activeSession.email?.split('@')[0] ?? 'Guest');
+    const lastName  = nameParts.slice(1).join(' ');
+
+    // Take the user's first message (if any) for the subject; fall back to a default
+    const firstUserMsg = messages.find(m => m.role === 'user')?.content?.trim();
+    const subject = firstUserMsg
+      ? `Live chat: ${firstUserMsg.slice(0, 60)}${firstUserMsg.length > 60 ? '…' : ''}`
+      : `Live chat with ${getDisplayName(activeSession.name, activeSession.email, activeSession.session_id)}`;
+
+    // Build a clean transcript for the ticket message body
+    const transcript = messages
+      .filter(m => m.role === 'user' || m.role === 'agent')
+      .map(m => {
+        const who = m.role === 'agent' ? 'CSR' : 'Customer';
+        const when = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return `[${when}] ${who}: ${m.content}`;
+      })
+      .join('\n');
+
+    const handedOff = new Date(activeSession.handed_off_at).toLocaleString();
+    const header = `--- Live chat transcript (handed off ${handedOff}) ---\n`;
+    const message = transcript ? `${header}${transcript}\n--- end of transcript ---` : '';
+
+    return { firstName, lastName, email: activeSession.email ?? '', subject, message };
+  }, [activeSession, messages]);
 
   // ── Load messages for active session ──────────────────────────────────
   const loadMessages = useCallback(async (sessionId: string) => {
@@ -726,6 +760,26 @@ const LiveInbox = () => {
 
                     {!isReadOnly && (
                       <div style={{ display: 'flex', gap: 8 }}>
+                        {/* Create a ticket prefilled with this chat's transcript */}
+                        <button
+                          onClick={() => setTicketModalOpen(true)}
+                          title="Create a support ticket from this conversation"
+                          style={{
+                            background: '#ffffff',
+                            border: '1.5px solid #1d5c5c',
+                            color: '#1d5c5c',
+                            fontWeight: 600,
+                            fontSize: 12.5,
+                            padding: '7px 14px',
+                            borderRadius: 8,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s',
+                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                          }}
+                        >
+                          <TicketIcon size={14} />
+                          Create Ticket
+                        </button>
                         {/* Leave without resolving — session stays open for other agents */}
                         <button
                           onClick={leaveChat}
@@ -1038,6 +1092,18 @@ const LiveInbox = () => {
             </div>
           </div>
       </div>
+
+      {/* Create-ticket modal — prefilled with live-chat transcript */}
+      <CreateTicketModal
+        isOpen={ticketModalOpen}
+        onClose={() => setTicketModalOpen(false)}
+        initialData={ticketPrefill}
+        contextLabel={
+          activeSession
+            ? `Created from live chat with ${getDisplayName(activeSession.name, activeSession.email, activeSession.session_id)}`
+            : undefined
+        }
+      />
     </div>
   );
 };

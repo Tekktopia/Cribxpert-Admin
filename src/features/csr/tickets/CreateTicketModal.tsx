@@ -1,23 +1,39 @@
 // features/csr/tickets/CreateTicketModal.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useCreateTicketMutation } from '@/api/features/ticket/ticketApiSlice';
+
+export interface CreateTicketInitialData {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  subject?: string;
+  message?: string;
+}
 
 interface CreateTicketModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Optional values used to prefill the form (e.g. from a live chat) */
+  initialData?: CreateTicketInitialData;
+  /** Optional header note (e.g. "Created from live chat with John") */
+  contextLabel?: string;
+  /** Called after a successful ticket creation, before close */
+  onCreated?: (ticketId: string) => void;
 }
 
-export function CreateTicketModal({ isOpen, onClose }: CreateTicketModalProps) {
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    subject: '',
-    message: '',
-  });
+const EMPTY = { firstName: '', lastName: '', email: '', phone: '', subject: '', message: '' };
+
+export function CreateTicketModal({ isOpen, onClose, initialData, contextLabel, onCreated }: CreateTicketModalProps) {
+  const [formData, setFormData] = useState({ ...EMPTY });
   const [createTicket, { isLoading }] = useCreateTicketMutation();
+
+  // Re-seed the form whenever the modal opens with fresh prefilled data
+  useEffect(() => {
+    if (!isOpen) return;
+    setFormData({ ...EMPTY, ...initialData });
+  }, [isOpen, initialData]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -26,9 +42,10 @@ export function CreateTicketModal({ isOpen, onClose }: CreateTicketModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await createTicket(formData).unwrap();
+      const ticket = await createTicket(formData).unwrap();
+      onCreated?.(ticket._id);
       onClose();
-      setFormData({ firstName: '', lastName: '', email: '', phone: '', subject: '', message: '' });
+      setFormData({ ...EMPTY });
     } catch (error) {
       console.error('Failed to create ticket', error);
     }
@@ -40,7 +57,12 @@ export function CreateTicketModal({ isOpen, onClose }: CreateTicketModalProps) {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex justify-between items-center">
-          <h2 className="text-xl font-semibold">Create New Ticket</h2>
+          <div>
+            <h2 className="text-xl font-semibold">Create New Ticket</h2>
+            {contextLabel && (
+              <p className="text-xs text-gray-500 mt-0.5">{contextLabel}</p>
+            )}
+          </div>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
             <X className="w-5 h-5" />
           </button>
