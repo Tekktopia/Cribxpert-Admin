@@ -25,6 +25,7 @@ const financeNavItems = [
 export const financeAdminNavigationItems = [
   { label: "Dashboard",    iconSrc: "/sidebar/dashboard-square-remove.svg",     href: "/finance-dashboard" },
   { label: "Tickets",      iconSrc: "/sidebar/ticket.svg",                      href: "/csr/tickets" },
+  { label: "Agent Performance", iconSrc: "/sidebar/pixel_analytics.svg",       href: "/csr/agents" },
   { label: "Transactions", iconSrc: "/sidebar/fluent-mdl2_financial.svg",       href: "/finance-transactions" },
   { label: "Payouts",      iconSrc: "/sidebar/fluent-mdl2_financial.svg",       href: "/finance-payouts" },
   { label: "Refunds",      iconSrc: "/sidebar/fluent-mdl2_financial.svg",       href: "/finance-refunds" },

@@ -22,6 +22,11 @@ import {
   Hash,
   Users as UsersIcon,
   Tag,
+  Clock,
+  ChevronDown,
+  ChevronRight,
+  Zap,
+  Lock,
 } from 'lucide-react';
 import {
   useGetTicketByIdQuery,
@@ -33,6 +38,10 @@ import {
   useUpdateTicketStatusMutation,
   useUpdateTicketPriorityMutation,
 } from '@/api/features/ticket/ticketApiSlice';
+import { useGetCannedResponsesQuery } from '@/api/features/cannedResponses/cannedResponsesApiSlice';
+import { computeSla, slaBadgeClass } from '@/utils/sla';
+import { canAssignTickets } from '@/utils/roles';
+import { cleanEmailBody } from '@/utils/email';
 import { supabase } from '@/lib/supabase';
 
 type ComposerMode = 'reply' | 'note';
@@ -85,6 +94,7 @@ function sourceLabel(source?: string) {
 export default function TicketDetails() {
   const { ticketId } = useParams<{ ticketId: string }>();
   const navigate = useNavigate();
+  const profileId = useAppSelector(s => s.auth.profile?.id) ?? '';
   const profileRole = (useAppSelector(s => s.auth.profile?.role) ?? '').toLowerCase();
   const sidebarItems = (profileRole === 'finance_admin' || profileRole === 'finance_agent')
     ? financeAdminNavigationItems
@@ -94,6 +104,7 @@ export default function TicketDetails() {
   const { data: messages = [], isLoading: messagesLoading, refetch: refetchMessages } = useGetTicketMessagesQuery(ticketId ?? '', { skip: !ticketId });
   const { data: groups = [] } = useGetTicketGroupsQuery();
   const { data: allAgents = [] } = useGetAssignableAgentsQuery(ticket?.assignedGroup ?? undefined);
+  const { data: cannedAll = [] } = useGetCannedResponsesQuery();
 
   const [assignTicket, { isLoading: assigning }] = useAssignTicketMutation();
   const [updateStatus] = useUpdateTicketStatusMutation();
@@ -101,9 +112,88 @@ export default function TicketDetails() {
   const [sendReply, { isLoading: sending }] = useSendTicketReplyMutation();
 
   const [composerMode, setComposerMode] = useState<ComposerMode>('reply');
-  const [body, setBody] = useState('');
+  // Separate drafts so switching tabs never mixes a reply with a note
+  const [replyBody, setReplyBody] = useState('');
+  const [noteBody, setNoteBody] = useState('');
+  const body = composerMode === 'reply' ? replyBody : noteBody;
+  const setBody = composerMode === 'reply' ? setReplyBody : setNoteBody;
   const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [cannedOpen, setCannedOpen] = useState(false);
+  const [signature, setSignature] = useState('');
+  const [now, setNow] = useState(() => Date.now());
+  const [expandedIds, setExpandedIds] = useState<Set<string> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const cannedRef = useRef<HTMLDivElement>(null);
+
+  const canAssign = canAssignTickets(profileRole);
+
+  // Tick every 60s so the SLA countdown stays live
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Load this agent's email signature once
+  useEffect(() => {
+    if (!profileId) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('email_signature')
+        .eq('id', profileId)
+        .single();
+      if (cancelled) return;
+      setSignature(((data as { email_signature?: string | null } | null)?.email_signature) ?? '');
+    })();
+    return () => { cancelled = true; };
+  }, [profileId]);
+
+  // Close canned-response menu on outside click
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      if (cannedRef.current && !cannedRef.current.contains(e.target as Node)) setCannedOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, []);
+
+  // Canned replies available for this ticket's group (or global)
+  const cannedForTicket = useMemo(
+    () => cannedAll.filter(c => !c.groupKey || c.groupKey === ticket?.assignedGroup),
+    [cannedAll, ticket?.assignedGroup],
+  );
+
+  // First outbound reply timestamp drives the response-SLA clock
+  const firstResponseAt = useMemo(() => {
+    const out = messages
+      .filter(m => m.direction === 'outbound')
+      .map(m => m.createdAt)
+      .sort();
+    return out[0] ?? null;
+  }, [messages]);
+
+  const sla = useMemo(() => {
+    if (!ticket) return null;
+    return computeSla(
+      {
+        createdAt: ticket.createdAt,
+        status: ticket.status,
+        firstResponseAt,
+        resolvedAt:
+          ticket.status === 'resolved' || ticket.status === 'closed'
+            ? (ticket.lastActivityAt ?? ticket.updatedAt)
+            : null,
+      },
+      now,
+    );
+  }, [ticket, firstResponseAt, now]);
+
+  const insertCanned = (text: string) => {
+    setComposerMode('reply');
+    setReplyBody(prev => (prev.trim() ? `${prev.trimEnd()}\n\n${text}` : text));
+    setCannedOpen(false);
+  };
 
   // ── Realtime: live-update messages + ticket as they change ───────────
   useEffect(() => {
@@ -128,12 +218,32 @@ export default function TicketDetails() {
 
   const customerName = ticket ? `${ticket.firstName ?? ''} ${ticket.lastName ?? ''}`.trim() || ticket.email : '';
 
+  // Accordion: by default only the most-recent message is expanded
+  const lastMsgId = messages.length ? messages[messages.length - 1].id : null;
+  const isMsgOpen = (id: string) =>
+    expandedIds ? expandedIds.has(id) : id === lastMsgId;
+  const toggleMsg = (id: string) => {
+    setExpandedIds(prev => {
+      const base = prev ?? new Set<string>(lastMsgId ? [lastMsgId] : []);
+      const next = new Set(base);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   // Submit reply or internal note
   const handleSend = async () => {
     const text = body.trim();
     if (!text || !ticketId) return;
+    // Append the agent's signature to customer-facing replies (not internal notes)
+    const sig = signature.trim();
+    const outgoing =
+      composerMode === 'reply' && sig && !text.includes(sig)
+        ? `${text}\n\n${sig}`
+        : text;
     try {
-      await sendReply({ ticketId, body: text, isInternalNote: composerMode === 'note' }).unwrap();
+      await sendReply({ ticketId, body: outgoing, isInternalNote: composerMode === 'note' }).unwrap();
       setBody('');
       setToast({ type: 'success', text: composerMode === 'reply' ? 'Reply sent to customer' : 'Internal note saved' });
       setTimeout(() => setToast(null), 3000);
@@ -144,22 +254,55 @@ export default function TicketDetails() {
     }
   };
 
+  // Surface mutation failures (e.g. RLS denials) instead of silently reverting
+  const reportError = (err: any, fallback: string) => {
+    const text =
+      err?.data?.error ?? err?.error ?? err?.message ?? fallback;
+    console.error(fallback, err);
+    setToast({ type: 'error', text });
+    setTimeout(() => setToast(null), 5000);
+  };
+  const reportOk = (text: string) => {
+    setToast({ type: 'success', text });
+    setTimeout(() => setToast(null), 2500);
+  };
+
   const handleGroupChange = async (group: string) => {
     if (!ticketId) return;
     // Changing group clears the agent (forces re-assignment within new group)
-    await assignTicket({ id: ticketId, assignedGroup: group || null, assignedTo: null });
+    try {
+      await assignTicket({ id: ticketId, assignedGroup: group || null, assignedTo: null }).unwrap();
+      reportOk('Group updated');
+    } catch (err) {
+      reportError(err, 'Failed to update group');
+    }
   };
   const handleAgentChange = async (agentId: string) => {
     if (!ticketId) return;
-    await assignTicket({ id: ticketId, assignedTo: agentId || null });
+    try {
+      await assignTicket({ id: ticketId, assignedTo: agentId || null }).unwrap();
+      reportOk('Agent updated');
+    } catch (err) {
+      reportError(err, 'Failed to assign agent');
+    }
   };
   const handleStatusChange = async (status: string) => {
     if (!ticketId) return;
-    await updateStatus({ id: ticketId, status });
+    try {
+      await updateStatus({ id: ticketId, status }).unwrap();
+      reportOk('Status updated');
+    } catch (err) {
+      reportError(err, 'Failed to update status');
+    }
   };
   const handlePriorityChange = async (priority: string) => {
     if (!ticketId) return;
-    await updatePriority({ id: ticketId, priority: priority as 'low' | 'medium' | 'high' | 'urgent' });
+    try {
+      await updatePriority({ id: ticketId, priority: priority as 'low' | 'medium' | 'high' | 'urgent' }).unwrap();
+      reportOk('Priority updated');
+    } catch (err) {
+      reportError(err, 'Failed to update priority');
+    }
   };
 
   if (ticketLoading) {
@@ -191,13 +334,13 @@ export default function TicketDetails() {
   const groupColor = groups.find(g => g.key === ticket.assignedGroup)?.color ?? '#9ca3af';
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
       <Sidebar navigationItems={sidebarItems} />
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0">
         <Topbar />
 
-        {/* Header bar */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        {/* Header bar — fixed */}
+        <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-4 min-w-0">
             <button
               onClick={() => navigate('/csr/tickets')}
@@ -220,16 +363,29 @@ export default function TicketDetails() {
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
+            {sla && (
+              <span
+                title={`First response target 4h · ${sla.response.label}`}
+                className={`px-2.5 py-1 text-xs font-semibold rounded-md border inline-flex items-center gap-1 ${slaBadgeClass(sla.response.state)}`}
+              >
+                <Clock className="w-3 h-3" />
+                {sla.response.state === 'breached'
+                  ? `SLA ${sla.response.label}`
+                  : sla.response.state === 'met'
+                    ? 'SLA met'
+                    : `SLA ${sla.response.label}`}
+              </span>
+            )}
             <span style={{ background: sPill.bg, color: sPill.text }} className="px-2.5 py-1 text-xs font-semibold rounded-md">{sPill.label}</span>
             <span style={{ background: pPill.bg, color: pPill.text }} className="px-2.5 py-1 text-xs font-semibold rounded-md capitalize">{ticket.priority}</span>
           </div>
         </div>
 
         {/* Body: mail trail + right sidebar */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden min-h-0">
           {/* Mail trail */}
-          <div className="flex-1 flex flex-col min-w-0">
-            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
+          <div className="flex-1 flex flex-col min-w-0 min-h-0">
+            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4 min-h-0">
               {messagesLoading ? (
                 <div className="text-center py-10 text-sm text-gray-500">Loading conversation…</div>
               ) : messages.length === 0 ? (
@@ -239,15 +395,22 @@ export default function TicketDetails() {
                 </div>
               ) : (
                 messages.map(m => (
-                  <MessageCard key={m.id} message={m} customerName={customerName} customerEmail={ticket.email} />
+                  <MessageCard
+                    key={m.id}
+                    message={m}
+                    customerName={customerName}
+                    customerEmail={ticket.email}
+                    open={isMsgOpen(m.id)}
+                    onToggle={() => toggleMsg(m.id)}
+                  />
                 ))
               )}
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Reply composer */}
-            <div className="border-t border-gray-200 bg-white">
-              <div className="flex border-b border-gray-200">
+            {/* Reply composer — fixed at the bottom of the trail column */}
+            <div className="border-t border-gray-200 bg-white flex-shrink-0">
+              <div className="flex border-b border-gray-200 items-center">
                 <button
                   onClick={() => setComposerMode('reply')}
                   className={`px-5 py-3 text-sm font-medium flex items-center gap-2 border-b-2 transition-colors ${
@@ -266,6 +429,44 @@ export default function TicketDetails() {
                   <StickyNote className="w-4 h-4" />
                   Internal Note
                 </button>
+
+                <div className="flex-1" />
+
+                {/* Canned response picker */}
+                <div className="relative pr-3" ref={cannedRef}>
+                  <button
+                    type="button"
+                    onClick={() => setCannedOpen(o => !o)}
+                    className="px-3 py-1.5 text-xs font-semibold text-teal-700 bg-teal-50 hover:bg-teal-100 rounded-lg flex items-center gap-1.5 transition-colors"
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    Canned reply
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  </button>
+                  {cannedOpen && (
+                    <div className="absolute right-3 bottom-full mb-2 w-80 max-h-72 overflow-y-auto bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+                      {cannedForTicket.length === 0 ? (
+                        <div className="px-4 py-6 text-center text-xs text-gray-500">
+                          No canned replies for this group yet.
+                          <br />
+                          Add them in Settings.
+                        </div>
+                      ) : (
+                        cannedForTicket.map(c => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => insertCanned(c.body)}
+                            className="w-full text-left px-4 py-2.5 hover:bg-teal-50/60 border-b border-gray-100 last:border-0"
+                          >
+                            <div className="text-sm font-semibold text-gray-900 truncate">{c.title}</div>
+                            <div className="text-xs text-gray-500 truncate mt-0.5">{c.body}</div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className={composerMode === 'note' ? 'bg-amber-50/40' : 'bg-white'}>
@@ -286,7 +487,7 @@ export default function TicketDetails() {
                 <div className="px-5 py-3 flex justify-between items-center border-t border-gray-100">
                   <div className="text-xs text-gray-500">
                     {composerMode === 'reply'
-                      ? 'Will be sent as an email + saved to the mail trail.'
+                      ? `Sent as an email + saved to the mail trail.${signature.trim() ? ' Your signature is added automatically.' : ''}`
                       : 'Visible only to agents. No email will be sent.'}
                   </div>
                   <button
@@ -331,7 +532,20 @@ export default function TicketDetails() {
 
             {/* Properties */}
             <div className="p-5 border-b border-gray-200 space-y-4">
-              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Properties</div>
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Properties</div>
+                {!canAssign && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-400">
+                    <Lock className="w-3 h-3" />
+                    Agent view
+                  </span>
+                )}
+              </div>
+              {!canAssign && (
+                <p className="text-[11px] text-gray-400 -mt-2">
+                  Only supervisors can change priority, group or re-assign. You can update the status as you work the ticket.
+                </p>
+              )}
 
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">Status</label>
@@ -355,7 +569,8 @@ export default function TicketDetails() {
                 <select
                   value={ticket.priority}
                   onChange={(e) => handlePriorityChange(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  disabled={!canAssign}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
                 >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
@@ -374,8 +589,8 @@ export default function TicketDetails() {
                   <select
                     value={ticket.assignedGroup ?? ''}
                     onChange={(e) => handleGroupChange(e.target.value)}
-                    disabled={assigning}
-                    className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    disabled={assigning || !canAssign}
+                    className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
                   >
                     <option value="">Unassigned</option>
                     {groups.map(g => (
@@ -393,9 +608,9 @@ export default function TicketDetails() {
                 <select
                   value={ticket.assignedTo ?? ''}
                   onChange={(e) => handleAgentChange(e.target.value)}
-                  disabled={assigning || !ticket.assignedGroup}
-                  title={!ticket.assignedGroup ? 'Pick a group first' : undefined}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-gray-50"
+                  disabled={assigning || !canAssign || !ticket.assignedGroup}
+                  title={!canAssign ? 'Only supervisors can re-assign' : !ticket.assignedGroup ? 'Pick a group first' : undefined}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
                 >
                   <option value="">{ticket.assignedGroup ? 'Unassigned' : 'Pick a group first'}</option>
                   {allAgents.map(a => (
@@ -434,10 +649,12 @@ export default function TicketDetails() {
 // ─────────────────────────────────────────────────────────────────────
 // Message card — renders one item in the mail trail
 // ─────────────────────────────────────────────────────────────────────
-function MessageCard({ message, customerName, customerEmail }: {
+function MessageCard({ message, customerName, customerEmail, open, onToggle }: {
   message: import('@/api/features/ticket/ticketApiSlice').TicketMessage;
   customerName: string;
   customerEmail: string;
+  open: boolean;
+  onToggle: () => void;
 }) {
   const isInbound  = message.direction === 'inbound';
   const isOutbound = message.direction === 'outbound';
@@ -447,14 +664,28 @@ function MessageCard({ message, customerName, customerEmail }: {
     ? (message.fromName ?? customerName ?? customerEmail)
     : (message.fromName ?? 'Support');
 
-  const bg     = isNote ? 'bg-amber-50 border-amber-200' : isOutbound ? 'bg-white border-gray-200' : 'bg-white border-gray-200';
+  const bg     = isNote ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-200';
   const accent = isNote ? 'text-amber-700' : isOutbound ? 'text-teal-700' : 'text-gray-700';
   const Icon   = isNote ? StickyNote : isOutbound ? ArrowUpRight : ArrowDownLeft;
 
+  // Show only the actual message — strip quoted reply chains + template footer
+  const cleaned = cleanEmailBody(message.bodyText);
+  const preview = (cleaned || message.bodyText || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 90);
+
   return (
     <div className={`rounded-xl border ${bg} overflow-hidden`}>
-      <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100 bg-gray-50/50">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full px-4 py-3 flex items-center justify-between border-b border-gray-100 bg-gray-50/50 text-left hover:bg-gray-100/60 transition-colors"
+      >
         <div className="flex items-center gap-2.5 min-w-0">
+          <span className="text-gray-400 flex-shrink-0">
+            {open ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          </span>
           <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
             isNote ? 'bg-amber-100' : isOutbound ? 'bg-teal-100' : 'bg-gray-200'
           }`}>
@@ -466,23 +697,27 @@ function MessageCard({ message, customerName, customerEmail }: {
               {isNote && <span className="ml-2 text-xs text-amber-700 font-medium">· Internal note</span>}
             </div>
             <div className="text-xs text-gray-500 truncate">
-              {message.fromEmail ?? (isNote ? 'Private to agents' : '')}
-              {message.toEmail && (
+              {open
+                ? (message.fromEmail ?? (isNote ? 'Private to agents' : ''))
+                : (preview || '(no content)')}
+              {open && message.toEmail && (
                 <span className="text-gray-400"> → {message.toEmail}</span>
               )}
             </div>
           </div>
         </div>
-        <div className="text-xs text-gray-500 flex-shrink-0">{formatDateTime(message.createdAt)}</div>
-      </div>
+        <div className="text-xs text-gray-500 flex-shrink-0 ml-3">{formatDateTime(message.createdAt)}</div>
+      </button>
 
-      <div className="px-4 py-4 text-sm text-gray-800 leading-relaxed">
-        {message.bodyText
-          ? <pre className="whitespace-pre-wrap font-sans">{message.bodyText}</pre>
-          : message.bodyHtml
-            ? <div dangerouslySetInnerHTML={{ __html: message.bodyHtml }} />
-            : <span className="text-gray-400 italic">(no content)</span>}
-      </div>
+      {open && (
+        <div className="px-4 py-4 text-sm text-gray-800 leading-relaxed">
+          {cleaned
+            ? <pre className="whitespace-pre-wrap font-sans">{cleaned}</pre>
+            : message.bodyHtml
+              ? <div dangerouslySetInnerHTML={{ __html: message.bodyHtml }} />
+              : <span className="text-gray-400 italic">(no content)</span>}
+        </div>
+      )}
     </div>
   );
 }

@@ -2,6 +2,10 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Topbar } from '@/components/layout/Topbar';
 import { csrNavigationItems } from '@/components/layout/csrSidebar';
+import { financeAdminNavigationItems } from '@/components/layout/FinanceSidebar';
+import { useAppSelector } from '@/store/hooks';
+import { useGetAssignableAgentsQuery } from '@/api/features/ticket/ticketApiSlice';
+import { canAssignLiveChats, isAgent } from '@/utils/roles';
 import { supabase } from '@/lib/supabase';
 import {
   MessageSquare,
@@ -28,6 +32,7 @@ interface ChatSession {
   resolved_at: string | null;
   email: string | null;
   name: string | null;
+  assigned_agent_id: string | null;
 }
 
 interface ChatMessage {
@@ -87,6 +92,19 @@ function showAdminNotification(title: string, body: string) {
 
 // ── Component ──────────────────────────────────────────────────────────────
 const LiveInbox = () => {
+  const profileId = useAppSelector(s => s.auth.profile?.id) ?? '';
+  const profileRole = (useAppSelector(s => s.auth.profile?.role) ?? '').toLowerCase();
+  const viewerIsAgent = isAgent(profileRole);
+  const canAssign = canAssignLiveChats(profileRole);
+  const liveSidebar = (profileRole === 'finance_admin' || profileRole === 'finance_agent')
+    ? financeAdminNavigationItems
+    : csrNavigationItems;
+  const { data: agents = [] } = useGetAssignableAgentsQuery();
+  const agentName = useCallback(
+    (id?: string | null) => (id ? (agents.find(a => a.id === id)?.fullName ?? null) : null),
+    [agents],
+  );
+
   const [tab, setTab]             = useState<'active' | 'resolved'>('active');
   const [activeSessions, setActiveSessions]     = useState<ChatSession[]>([]);
   const [resolvedSessions, setResolvedSessions] = useState<ChatSession[]>([]);
@@ -134,15 +152,21 @@ const LiveInbox = () => {
         .limit(200),
     ]);
 
-    if (activeRes.data)   setActiveSessions(activeRes.data as ChatSession[]);
-    if (resolvedRes.data) setResolvedSessions(resolvedRes.data as ChatSession[]);
+    // Agents only see chats assigned to them; supervisors/admins see all.
+    const scope = (rows: ChatSession[]) =>
+      viewerIsAgent && profileId
+        ? rows.filter(r => r.assigned_agent_id === profileId)
+        : rows;
+
+    if (activeRes.data)   setActiveSessions(scope(activeRes.data as ChatSession[]));
+    if (resolvedRes.data) setResolvedSessions(scope(resolvedRes.data as ChatSession[]));
     if (ratingsRes.data) {
       const map: Record<string, SessionRating> = {};
       (ratingsRes.data as SessionRating[]).forEach(r => { map[r.session_id] = r; });
       setRatings(map);
     }
     setSessionsLoading(false);
-  }, []);
+  }, [viewerIsAgent, profileId]);
 
   useEffect(() => { loadSessions(); }, [loadSessions]);
 
@@ -424,12 +448,49 @@ const LiveInbox = () => {
     setResolving(false);
   }, [activeSessionId, resolving, activeSessions]);
 
+  // ── Supervisor assigns a live chat to an agent + sends a greeting ─────
+  const [assigningChat, setAssigningChat] = useState(false);
+  const assignChatToAgent = useCallback(async (sessionId: string, agentId: string) => {
+    if (!agentId || assigningChat) return;
+    setAssigningChat(true);
+    const name = agents.find(a => a.id === agentId)?.fullName?.trim() || 'your support agent';
+
+    await (supabase as any)
+      .from('conversation_sessions')
+      .update({ assigned_agent_id: agentId, mode: 'agent' })
+      .eq('session_id', sessionId);
+
+    // Auto-introduce the assigned agent to the customer
+    const greeting = `Hello, Nice to meet you. My name is ${name}, how may I be of help to you?`;
+    await (supabase as any).from('session_messages').insert({
+      session_id: sessionId,
+      role: 'agent',
+      content: greeting,
+    });
+
+    // Notify the user (push trigger fires on insert)
+    const sess = activeSessions.find(s => s.session_id === sessionId);
+    if (sess?.user_id) {
+      await (supabase as any).from('notifications').insert({
+        user_id: sess.user_id,
+        title: 'A support agent has joined your chat',
+        description: greeting.slice(0, 200),
+        category: 'live_chat',
+        status: 'unread',
+        is_read: false,
+      });
+    }
+
+    setAssigningChat(false);
+    loadSessions();
+  }, [agents, activeSessions, assigningChat, loadSessions]);
+
   // ── Unread badge: count sessions that received a new user message ─────
   // (Simple approach — sessions list always shows live count)
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
-      <Sidebar navigationItems={csrNavigationItems} />
+      <Sidebar navigationItems={liveSidebar} />
 
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         <Topbar />
@@ -530,6 +591,18 @@ const LiveInbox = () => {
                           <div className="text-sm font-semibold text-gray-900 truncate">{displayName}</div>
                           <div className="text-[11px] text-gray-500 mt-0.5 flex items-center gap-1.5">
                             <span>{formatTime(tab === 'resolved' && session.resolved_at ? session.resolved_at : session.handed_off_at)}</span>
+                            {session.assigned_agent_id ? (
+                              <span className="inline-flex items-center gap-1 text-teal-700 font-medium truncate">
+                                <span className="text-gray-300">·</span>
+                                <UserIcon className="w-2.5 h-2.5" />
+                                {agentName(session.assigned_agent_id) ?? 'Assigned'}
+                              </span>
+                            ) : tab === 'active' ? (
+                              <span className="inline-flex items-center gap-1 text-amber-600 font-medium">
+                                <span className="text-gray-300">·</span>
+                                Unassigned
+                              </span>
+                            ) : null}
                             {tab === 'resolved' && rating && (
                               <span className="inline-flex items-center gap-0.5">
                                 <span className="text-gray-300">·</span>
@@ -576,12 +649,35 @@ const LiveInbox = () => {
                       <div className="text-[11px] text-gray-500 flex items-center gap-1.5 mt-0.5">
                         <span className={`w-1.5 h-1.5 rounded-full ${isReadOnly ? 'bg-gray-400' : 'bg-red-500 animate-pulse'}`} />
                         {isReadOnly ? 'Resolved' : 'Live'} · handed off {formatTime(activeSession.handed_off_at)}
+                        {agentName(activeSession.assigned_agent_id) && (
+                          <>
+                            <span className="text-gray-300">·</span>
+                            <span className="inline-flex items-center gap-1 text-teal-700 font-medium">
+                              <UserIcon className="w-3 h-3" />
+                              {agentName(activeSession.assigned_agent_id)}
+                            </span>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
 
                   {!isReadOnly && (
                     <div className="flex items-center gap-2 flex-shrink-0">
+                      {canAssign && (
+                        <select
+                          value={activeSession.assigned_agent_id ?? ''}
+                          onChange={(e) => assignChatToAgent(activeSession.session_id, e.target.value)}
+                          disabled={assigningChat}
+                          title="Assign this chat to an agent"
+                          className="px-3 py-1.5 text-xs font-semibold text-gray-700 border border-gray-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50"
+                        >
+                          <option value="">Assign agent…</option>
+                          {agents.map(a => (
+                            <option key={a.id} value={a.id}>{a.fullName}{a.email ? ` (${a.email})` : ''}</option>
+                          ))}
+                        </select>
+                      )}
                       <button
                         onClick={() => setTicketModalOpen(true)}
                         title="Create a support ticket from this conversation"

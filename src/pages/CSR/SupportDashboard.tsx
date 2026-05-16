@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { csrNavigationItems } from "@/components/layout/csrSidebar";
+import { financeAdminNavigationItems } from "@/components/layout/FinanceSidebar";
+import { isAgent } from "@/utils/roles";
 import {
   Inbox,
   Headphones,
@@ -46,13 +48,6 @@ function timeAgo(iso: string): string {
   const d = Math.floor(h / 24);
   return `${d}d ago`;
 }
-function formatHm(minutes: number): string {
-  if (minutes < 1) return "< 1m";
-  if (minutes < 60) return `${Math.round(minutes)}m`;
-  const h = Math.floor(minutes / 60);
-  const m = Math.round(minutes - h * 60);
-  return m ? `${h}h ${m}m` : `${h}h`;
-}
 
 // ── types ─────────────────────────────────────────────────────────────
 interface ActivityItem {
@@ -73,8 +68,18 @@ const SupportDashboard = () => {
   const profile = useAppSelector((s) => s.auth.profile);
   const currentUserId = profile?.id ?? "";
   const currentUserName = profile?.full_name?.split(" ")[0] || "there";
+  const role = (profile?.role ?? "").toLowerCase();
+  // Agents see ONLY their own data; supervisors/admins see the full group view.
+  const viewerIsAgent = isAgent(role);
+  const sidebarItems =
+    role === "finance_admin" || role === "finance_agent"
+      ? financeAdminNavigationItems
+      : csrNavigationItems;
 
-  const { data: ticketsData, refetch: refetchTickets } = useGetTicketsQuery({ limit: 100 });
+  const { data: ticketsData, refetch: refetchTickets } = useGetTicketsQuery({
+    limit: 100,
+    assignedTo: viewerIsAgent && currentUserId ? currentUserId : undefined,
+  });
   const { data: groups = [] } = useGetTicketGroupsQuery();
 
   const tickets = ticketsData?.data.tickets ?? [];
@@ -88,11 +93,16 @@ const SupportDashboard = () => {
 
   // Recent activity feed
   const fetchActivity = useCallback(async () => {
-    const { data } = await (supabase as any)
+    let q = (supabase as any)
       .from("ticket_messages")
-      .select("id, ticket_id, direction, from_name, from_email, body_text, created_at, subject, tickets!inner(ticket_number)")
+      .select("id, ticket_id, direction, from_name, from_email, body_text, created_at, subject, tickets!inner(ticket_number, assigned_to)")
       .order("created_at", { ascending: false })
       .limit(8);
+    // Agents: only activity on tickets assigned to them
+    if (viewerIsAgent && currentUserId) {
+      q = q.eq("tickets.assigned_to", currentUserId);
+    }
+    const { data } = await q;
     if (!data) return;
     setActivity(
       data.map((r: any) => ({
@@ -107,15 +117,20 @@ const SupportDashboard = () => {
         subject: r.subject,
       })),
     );
-  }, []);
+  }, [viewerIsAgent, currentUserId]);
 
   const fetchLiveChats = useCallback(async () => {
-    const { count } = await supabase
+    let q = supabase
       .from("conversation_sessions")
       .select("*", { count: "exact", head: true })
       .eq("mode", "agent");
+    // Agents: only chats assigned to them
+    if (viewerIsAgent && currentUserId) {
+      q = q.eq("assigned_agent_id", currentUserId);
+    }
+    const { count } = await q;
     setActiveLiveChats(count ?? 0);
-  }, []);
+  }, [viewerIsAgent, currentUserId]);
 
   const fetchCsat = useCallback(async () => {
     const { data } = await supabase
@@ -198,7 +213,7 @@ const SupportDashboard = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar navigationItems={csrNavigationItems} />
+      <Sidebar navigationItems={sidebarItems} />
 
       <div className="flex-1 flex flex-col min-w-0">
         <Topbar />
@@ -243,7 +258,7 @@ const SupportDashboard = () => {
               <KpiCard
                 icon={<Inbox className="w-5 h-5" />}
                 tint="teal"
-                label="Open Tickets"
+                label={viewerIsAgent ? "My Open Tickets" : "Open Tickets"}
                 value={metrics.openCount}
                 hint={`${metrics.openedToday} opened today`}
                 trend={renderTrend(metrics.openedToday, metrics.openedYesterday)}
@@ -260,16 +275,22 @@ const SupportDashboard = () => {
               <KpiCard
                 icon={<CheckCircle2 className="w-5 h-5" />}
                 tint="emerald"
-                label="Resolved Today"
+                label={viewerIsAgent ? "My Resolved Today" : "Resolved Today"}
                 value={metrics.resolvedToday}
                 trend={renderTrend(metrics.resolvedToday, metrics.resolvedYesterday)}
               />
               <KpiCard
                 icon={<Star className="w-5 h-5" />}
                 tint="gold"
-                label="Customer Rating"
+                label={viewerIsAgent ? "Team Rating" : "Customer Rating"}
                 value={csat.count > 0 ? csat.avg.toFixed(1) : "—"}
-                hint={csat.count > 0 ? `${csat.count} ${csat.count === 1 ? "rating" : "ratings"}` : "No ratings yet"}
+                hint={
+                  viewerIsAgent
+                    ? "Team-wide CSAT"
+                    : csat.count > 0
+                      ? `${csat.count} ${csat.count === 1 ? "rating" : "ratings"}`
+                      : "No ratings yet"
+                }
               />
             </div>
 
@@ -285,8 +306,10 @@ const SupportDashboard = () => {
                       <p className="text-xs text-gray-500 mt-0.5">Prioritised by urgency · click any ticket to open the mail trail</p>
                     </div>
                     <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-                      <FilterPill active={filterMode === "queue"}      onClick={() => setFilterMode("queue")}      count={metrics.myOpen}>My Queue</FilterPill>
-                      <FilterPill active={filterMode === "unassigned"} onClick={() => setFilterMode("unassigned")} count={metrics.unassigned}>Unassigned</FilterPill>
+                      <FilterPill active={filterMode === "queue"}      onClick={() => setFilterMode("queue")}      count={metrics.myOpen}>{viewerIsAgent ? "My Tickets" : "My Queue"}</FilterPill>
+                      {!viewerIsAgent && (
+                        <FilterPill active={filterMode === "unassigned"} onClick={() => setFilterMode("unassigned")} count={metrics.unassigned}>Unassigned</FilterPill>
+                      )}
                       <FilterPill active={filterMode === "urgent"}     onClick={() => setFilterMode("urgent")}     count={metrics.urgent}>Urgent</FilterPill>
                     </div>
                   </div>

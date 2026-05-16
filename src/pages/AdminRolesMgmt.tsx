@@ -4,16 +4,17 @@ import { Button } from "@/components/ui/button";
 import { SearchAndFilters, type FilterConfig } from "@/components/ui/SearchAndFilters";
 import { Modal } from "@/components/ui/Modal";
 import { CustomSelect } from "@/components/ui/CustomSelect";
-import { Trash2, UserPlus, MoreVertical } from "lucide-react";
+import { Trash2, UserPlus, MoreVertical, KeyRound } from "lucide-react";
 import { cn } from "@/utils/cn";
 import {
   useGetAdminsQuery,
   useCreateAdminMutation,
   useDisableAdminMutation,
   useDeleteAdminMutation,
+  useResetUserPasswordMutation,
   type AdminManagementAdmin,
-  type CreateAdminRole,
 } from "@/api/features/adminManagement/adminManagementApiSlice";
+import { useGetTicketGroupsQuery } from "@/api/features/ticket/ticketApiSlice";
 import LoadingPage from "@/components/ui/LoadingPage";
 import { supabase } from "@/lib/supabase";
 import { GroupsManager } from "@/features/groups/GroupsManager";
@@ -21,19 +22,21 @@ import { useAppSelector } from "@/store/hooks";
 
 type AdminStatus = "Active" | "Disabled";
 
-const CREATE_ADMIN_ROLES: { value: CreateAdminRole; label: string; group: 'Admins' | 'Agents' }[] = [
-  { value: "Admin",        label: "Admin",          group: 'Admins' },
-  { value: "FinanceAdmin", label: "Finance Admin",  group: 'Admins' },
-  { value: "CSRAdmin",     label: "CSR Admin",      group: 'Admins' },
-  { value: "CSRAgent",     label: "CSR Agent",      group: 'Agents' },
-  { value: "FinanceAgent", label: "Finance Agent",  group: 'Agents' },
-];
+// "platform_admin" = no group, full dashboard admin.
+// "group_member"  = belongs to one ticket group, as supervisor or agent.
+type AccountType = "platform_admin" | "group_member";
+type Tier = "supervisor" | "agent";
 
 interface AdminFormState {
   fullName: string;
   email: string;
-  adminType: CreateAdminRole;
+  password: string;
+  accountType: AccountType;
+  groupKey: string;
+  tier: Tier;
 }
+
+const MIN_PASSWORD_LEN = 8;
 
 function mapApiAdminToLocal(admin: AdminManagementAdmin) {
   const status: AdminStatus =
@@ -55,18 +58,61 @@ function mapApiAdminToLocal(admin: AdminManagementAdmin) {
     name: admin.fullName,
     email: admin.email,
     role: admin.role,
+    agentGroup: admin.agentGroup ?? null,
     status,
     lastActive,
   };
+}
+
+// Human label for a role badge. Group members show their group name + tier.
+function roleLabel(
+  role: AdminManagementAdmin["role"],
+  agentGroup: string | null,
+  groupName: (key: string) => string
+): string {
+  switch (role) {
+    case "SuperAdmin":      return "Super Admin";
+    case "Admin":           return "Admin";
+    case "CSRAdmin":        return "CSR Supervisor";
+    case "CSRAgent":        return "CSR Agent";
+    case "FinanceAdmin":    return "Finance Supervisor";
+    case "FinanceAgent":    return "Finance Agent";
+    case "GroupSupervisor": return `${agentGroup ? groupName(agentGroup) : "Group"} Supervisor`;
+    case "GroupAgent":      return `${agentGroup ? groupName(agentGroup) : "Group"} Agent`;
+    default:                return role;
+  }
+}
+
+// Colour class for a role badge.
+function roleBadgeClass(role: AdminManagementAdmin["role"]): string {
+  switch (role) {
+    case "SuperAdmin":   return "bg-purple-50 text-purple-700 border-purple-200";
+    case "Admin":        return "bg-slate-50 text-slate-700 border-slate-200";
+    case "FinanceAdmin":
+    case "FinanceAgent": return "bg-amber-50 text-amber-700 border-amber-200";
+    case "CSRAdmin":
+    case "CSRAgent":     return "bg-teal-50 text-teal-700 border-teal-200";
+    case "GroupSupervisor":
+    case "GroupAgent":   return "bg-indigo-50 text-indigo-700 border-indigo-200";
+    default:             return "bg-gray-50 text-gray-700 border-gray-200";
+  }
 }
 
 export default function AdminRolesMgmt() {
   const myRole = (useAppSelector(s => s.auth.profile?.role) ?? '').toLowerCase();
   const isSuperAdmin = myRole === 'superadmin';
   const { data, isLoading, error, refetch } = useGetAdminsQuery();
+  const { data: groups = [] } = useGetTicketGroupsQuery();
   const [createAdmin] = useCreateAdminMutation();
   const [disableAdmin] = useDisableAdminMutation();
   const [deleteAdmin] = useDeleteAdminMutation();
+  const [resetUserPassword, { isLoading: resettingPwd }] = useResetUserPasswordMutation();
+
+  // key → display name lookup for group badges/labels
+  const groupName = useMemo(() => {
+    const m = new Map(groups.map((g) => [g.key, g.name]));
+    return (key: string) => m.get(key) ?? key;
+  }, [groups]);
 
   const [admins, setAdmins] = useState<ReturnType<typeof mapApiAdminToLocal>[]>(
     []
@@ -79,6 +125,10 @@ export default function AdminRolesMgmt() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [adminToRemove, setAdminToRemove] =
     useState<ReturnType<typeof mapApiAdminToLocal> | null>(null);
+  const [adminToResetPwd, setAdminToResetPwd] =
+    useState<ReturnType<typeof mapApiAdminToLocal> | null>(null);
+  const [newPwd, setNewPwd] = useState("");
+  const [resetMsg, setResetMsg] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [isCreatingAdmin, setIsCreatingAdmin] = useState(false);
 
@@ -98,11 +148,15 @@ export default function AdminRolesMgmt() {
     };
   }, []);
 
-  const [formState, setFormState] = useState<AdminFormState>({
+  const emptyForm: AdminFormState = {
     fullName: "",
     email: "",
-    adminType: "Admin",
-  });
+    password: "",
+    accountType: "platform_admin",
+    groupKey: "",
+    tier: "supervisor",
+  };
+  const [formState, setFormState] = useState<AdminFormState>(emptyForm);
 
   // Sync local admins with API data
   useEffect(() => {
@@ -125,20 +179,33 @@ export default function AdminRolesMgmt() {
   }, [refetch]);
 
   const handleOpenAddModal = () => {
-    setFormState({ fullName: "", email: "", adminType: "Admin" });
+    setFormState({ ...emptyForm, groupKey: groups[0]?.key ?? "" });
     setIsAddModalOpen(true);
   };
 
   const handleAddAdmin = async () => {
     const trimmedName = formState.fullName.trim();
     const trimmedEmail = formState.email.trim();
-    if (!trimmedName || !trimmedEmail) return;
+    const password = formState.password;
+    if (!trimmedName || !trimmedEmail || password.length < MIN_PASSWORD_LEN) return;
 
-    const newAdminPayload = {
-      fullName: trimmedName,
-      email: trimmedEmail,
-      adminType: formState.adminType,
-    };
+    // Platform admin → legacy adminType path (no group).
+    // Group member → dynamic { groupKey, tier } path (works for any group).
+    const newAdminPayload =
+      formState.accountType === "group_member"
+        ? {
+            fullName: trimmedName,
+            email: trimmedEmail,
+            password,
+            groupKey: formState.groupKey,
+            tier: formState.tier,
+          }
+        : {
+            fullName: trimmedName,
+            email: trimmedEmail,
+            password,
+            adminType: "Admin" as const,
+          };
 
     try {
       setIsCreatingAdmin(true);
@@ -164,6 +231,28 @@ export default function AdminRolesMgmt() {
       });
   };
 
+  const openResetPwd = (admin: ReturnType<typeof mapApiAdminToLocal>) => {
+    setAdminToResetPwd(admin);
+    setNewPwd("");
+    setResetMsg(null);
+  };
+
+  const handleConfirmResetPwd = async () => {
+    if (!adminToResetPwd || newPwd.length < MIN_PASSWORD_LEN) return;
+    setResetMsg(null);
+    try {
+      await resetUserPassword({ userId: adminToResetPwd.id, password: newPwd }).unwrap();
+      setResetMsg(`Password updated for ${adminToResetPwd.name}.`);
+      setNewPwd("");
+      setTimeout(() => {
+        setAdminToResetPwd(null);
+        setResetMsg(null);
+      }, 1800);
+    } catch (err: any) {
+      setResetMsg(err?.data?.error ?? err?.error ?? err?.message ?? "Failed to reset password");
+    }
+  };
+
   const filters: FilterConfig[] = [
     {
       key: "role",
@@ -171,12 +260,10 @@ export default function AdminRolesMgmt() {
       value: roleFilter,
       onChange: setRoleFilter,
       options: [
-        { value: "superadmin",   label: "Super Admin" },
-        { value: "admin",        label: "Admin" },
-        { value: "financeadmin", label: "Finance Admin" },
-        { value: "csradmin",     label: "CSR Admin" },
-        { value: "csragent",     label: "CSR Agent" },
-        { value: "financeagent", label: "Finance Agent" },
+        { value: "superadmin", label: "Super Admin" },
+        { value: "admin",      label: "Admin" },
+        // One entry per group — covers CSR, Finance and any custom group
+        ...groups.map((g) => ({ value: `group:${g.key}`, label: g.name })),
       ],
     },
     {
@@ -198,14 +285,22 @@ export default function AdminRolesMgmt() {
         admin.name.toLowerCase().includes(searchValue.toLowerCase()) ||
         admin.email.toLowerCase().includes(searchValue.toLowerCase());
 
+      // Effective group key for an admin (covers built-in CSR/Finance roles
+      // whose agent_group may also be set, plus any custom group).
+      const effectiveGroup =
+        admin.agentGroup ??
+        (admin.role === "CSRAdmin" || admin.role === "CSRAgent"
+          ? "csr"
+          : admin.role === "FinanceAdmin" || admin.role === "FinanceAgent"
+          ? "finance"
+          : null);
+
       const matchesRole =
         roleFilter === "all" ||
-        (roleFilter === "admin"        && admin.role === "Admin") ||
-        (roleFilter === "superadmin"   && admin.role === "SuperAdmin") ||
-        (roleFilter === "financeadmin" && admin.role === "FinanceAdmin") ||
-        (roleFilter === "csradmin"     && admin.role === "CSRAdmin") ||
-        (roleFilter === "csragent"     && admin.role === "CSRAgent") ||
-        (roleFilter === "financeagent" && admin.role === "FinanceAgent");
+        (roleFilter === "admin" && admin.role === "Admin") ||
+        (roleFilter === "superadmin" && admin.role === "SuperAdmin") ||
+        (roleFilter.startsWith("group:") &&
+          effectiveGroup === roleFilter.slice("group:".length));
 
       const matchesStatus =
         statusFilter === "all" ||
@@ -303,21 +398,10 @@ export default function AdminRolesMgmt() {
                       <span
                         className={cn(
                           'inline-flex items-center rounded-full px-3 py-1 text-xs font-medium border',
-                          admin.role === 'SuperAdmin'   ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                          admin.role === 'Admin'        ? 'bg-slate-50 text-slate-700 border-slate-200' :
-                          admin.role === 'FinanceAdmin' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                          admin.role === 'CSRAdmin'     ? 'bg-teal-50 text-teal-700 border-teal-200' :
-                          admin.role === 'FinanceAgent' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                          admin.role === 'CSRAgent'     ? 'bg-teal-50 text-teal-700 border-teal-200' :
-                                                          'bg-gray-50 text-gray-700 border-gray-200'
+                          roleBadgeClass(admin.role)
                         )}
                       >
-                        {admin.role === 'CSRAdmin'     ? 'CSR Admin' :
-                         admin.role === 'FinanceAdmin' ? 'Finance Admin' :
-                         admin.role === 'CSRAgent'     ? 'CSR Agent' :
-                         admin.role === 'FinanceAgent' ? 'Finance Agent' :
-                         admin.role === 'SuperAdmin'   ? 'Super Admin' :
-                         admin.role}
+                        {roleLabel(admin.role, admin.agentGroup, groupName)}
                       </span>
                     </div>
 
@@ -373,6 +457,19 @@ export default function AdminRolesMgmt() {
                                 ? "Deactivate admin"
                                 : "Activate admin"}
                             </button>
+                            {isSuperAdmin && (
+                              <button
+                                type='button'
+                                className='w-full px-3 py-2 text-left text-xs text-gray-700 hover:bg-gray-50 border-t border-gray-100 flex items-center gap-2'
+                                onClick={() => {
+                                  setOpenMenuId(null);
+                                  openResetPwd(admin);
+                                }}
+                              >
+                                <KeyRound className='w-3.5 h-3.5' />
+                                <span>Reset password</span>
+                              </button>
+                            )}
                             <button
                               type='button'
                               className='w-full px-3 py-2 text-left text-xs text-red-600 hover:bg-red-50 border-t border-gray-100 flex items-center gap-2'
@@ -427,7 +524,10 @@ export default function AdminRolesMgmt() {
             disabled:
               isCreatingAdmin ||
               !formState.fullName.trim() ||
-              !formState.email.trim(),
+              !formState.email.trim() ||
+              formState.password.length < MIN_PASSWORD_LEN ||
+              (formState.accountType === "group_member" &&
+                !formState.groupKey),
           },
         ]}
       >
@@ -472,37 +572,114 @@ export default function AdminRolesMgmt() {
 
           <div>
             <label
-              htmlFor='admin-role'
+              htmlFor='admin-password'
               className='block text-sm font-medium text-gray-700 mb-1'
             >
-              Role
+              Password
+            </label>
+            <input
+              id='admin-password'
+              type='text'
+              autoComplete='new-password'
+              value={formState.password}
+              onChange={(e) =>
+                setFormState((prev) => ({ ...prev, password: e.target.value }))
+              }
+              placeholder='Set a password for this admin'
+              className='w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent'
+            />
+            <p className='mt-1 text-xs text-gray-500'>
+              At least {MIN_PASSWORD_LEN} characters. Share it with the admin —
+              no email is sent. They can change it later from Settings.
+            </p>
+          </div>
+
+          <div>
+            <label
+              htmlFor='admin-account-type'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
+              Account type
             </label>
             <CustomSelect
-              id='admin-role'
-              value={formState.adminType}
+              id='admin-account-type'
+              value={formState.accountType}
               onChange={(e) =>
                 setFormState((prev) => ({
                   ...prev,
-                  adminType: e.target.value as CreateAdminRole,
+                  accountType: e.target.value as AccountType,
                 }))
               }
             >
-              <optgroup label='Supervisors'>
-                {CREATE_ADMIN_ROLES.filter(o => o.group === 'Admins').map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </optgroup>
-              <optgroup label='Agents'>
-                {CREATE_ADMIN_ROLES.filter(o => o.group === 'Agents').map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </optgroup>
+              <option value='platform_admin'>Platform Admin (full access)</option>
+              <option value='group_member'>Group member (CSR, Finance, etc.)</option>
             </CustomSelect>
             <p className='mt-1 text-xs text-gray-500'>
-              <strong>Supervisors</strong> manage their group (assign tickets to agents).{' '}
-              <strong>Agents</strong> handle tickets assigned to them.
+              <strong>Platform Admins</strong> have full dashboard access.{' '}
+              <strong>Group members</strong> only work on their group's tickets.
             </p>
           </div>
+
+          {formState.accountType === "group_member" && (
+            <>
+              <div>
+                <label
+                  htmlFor='admin-group'
+                  className='block text-sm font-medium text-gray-700 mb-1'
+                >
+                  Group
+                </label>
+                {groups.length === 0 ? (
+                  <p className='text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2'>
+                    No groups exist yet. Create one in <strong>Ticket Groups</strong> below first.
+                  </p>
+                ) : (
+                  <CustomSelect
+                    id='admin-group'
+                    value={formState.groupKey}
+                    onChange={(e) =>
+                      setFormState((prev) => ({
+                        ...prev,
+                        groupKey: e.target.value,
+                      }))
+                    }
+                  >
+                    {groups.map((g) => (
+                      <option key={g.key} value={g.key}>
+                        {g.name}
+                      </option>
+                    ))}
+                  </CustomSelect>
+                )}
+              </div>
+
+              <div>
+                <label
+                  htmlFor='admin-tier'
+                  className='block text-sm font-medium text-gray-700 mb-1'
+                >
+                  Tier
+                </label>
+                <CustomSelect
+                  id='admin-tier'
+                  value={formState.tier}
+                  onChange={(e) =>
+                    setFormState((prev) => ({
+                      ...prev,
+                      tier: e.target.value as Tier,
+                    }))
+                  }
+                >
+                  <option value='supervisor'>Supervisor</option>
+                  <option value='agent'>Agent</option>
+                </CustomSelect>
+                <p className='mt-1 text-xs text-gray-500'>
+                  <strong>Supervisors</strong> manage their group (assign tickets to agents).{' '}
+                  <strong>Agents</strong> handle tickets assigned to them.
+                </p>
+              </div>
+            </>
+          )}
         </div>
       </Modal>
 
@@ -532,6 +709,64 @@ export default function AdminRolesMgmt() {
           },
         ]}
       />
+
+      {/* Reset password (SuperAdmin only) */}
+      <Modal
+        isOpen={!!adminToResetPwd}
+        onClose={() => setAdminToResetPwd(null)}
+        title='Reset password'
+        description={
+          adminToResetPwd
+            ? `Set a new password for ${adminToResetPwd.name} (${adminToResetPwd.email}). No email is sent — share the new password with them directly.`
+            : ""
+        }
+        size='md'
+        headerAlign='left'
+        actionsAlign='right'
+        actions={[
+          {
+            label: "Cancel",
+            onClick: () => setAdminToResetPwd(null),
+            variant: "secondary",
+          },
+          {
+            label: resettingPwd ? "Resetting..." : "Reset password",
+            onClick: handleConfirmResetPwd,
+            variant: "primary",
+            disabled: resettingPwd || newPwd.length < MIN_PASSWORD_LEN,
+          },
+        ]}
+      >
+        <div className='space-y-2 text-left'>
+          <label
+            htmlFor='reset-pwd'
+            className='block text-sm font-medium text-gray-700'
+          >
+            New password
+          </label>
+          <input
+            id='reset-pwd'
+            type='text'
+            autoComplete='new-password'
+            value={newPwd}
+            onChange={(e) => setNewPwd(e.target.value)}
+            placeholder={`At least ${MIN_PASSWORD_LEN} characters`}
+            className='w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent'
+          />
+          {resetMsg && (
+            <p
+              className={`text-xs ${
+                resetMsg.toLowerCase().includes("fail") ||
+                resetMsg.toLowerCase().includes("only")
+                  ? "text-red-600"
+                  : "text-emerald-600"
+              }`}
+            >
+              {resetMsg}
+            </p>
+          )}
+        </div>
+      </Modal>
     </PageWrapper>
   );
 }

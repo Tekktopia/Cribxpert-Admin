@@ -30,6 +30,11 @@ export const csrNavigationItems = [
     href: "/csr/reports", // Changed from "/support/reports"
   },
   {
+    label: "Agent Performance",
+    iconSrc: "/sidebar/pixel_analytics.svg",
+    href: "/csr/agents",
+  },
+  {
     label: "Notification",
     iconSrc: "/sidebar/notification-block-03.svg",
     href: "/csr/notifications", // Changed from "/support/notifications"

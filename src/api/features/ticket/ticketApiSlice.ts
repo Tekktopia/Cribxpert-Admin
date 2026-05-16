@@ -314,24 +314,45 @@ export const ticketApiSlice = apiSlice.injectEndpoints({
     }),
 
     // ── Agents you can assign tickets to (filter by group if provided) ─
+    // Returns BOTH supervisors and agents of the group, not just supervisors.
     getAssignableAgents: builder.query<AssignableAgent[], string | void>({
       queryFn: async (group) => {
-        let query = supabase
+        const SUPPORT_ROLES = [
+          'admin', 'superadmin',
+          'csr_admin', 'csr_agent',
+          'finance_admin', 'finance_agent',
+          'group_supervisor', 'group_agent',
+        ];
+        const { data, error } = await supabase
           .from('profiles')
           .select('id, full_name, email, role, agent_group')
-          .in('role', ['admin', 'superadmin', 'csr_admin', 'finance_admin']);
-        if (group) query = query.or(`agent_group.eq.${group},role.eq.${group === 'finance' ? 'finance_admin' : 'csr_admin'}`);
-        const { data, error } = await query;
+          .in('role', SUPPORT_ROLES);
         if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
-        return {
-          data: (data ?? []).map((p: any) => ({
-            id: p.id,
-            fullName: p.full_name ?? p.email ?? '',
-            email: p.email ?? '',
-            role: p.role ?? '',
-            agentGroup: p.agent_group ?? null,
-          })),
-        };
+
+        let list = (data ?? []).map((p: any) => ({
+          id: p.id,
+          fullName: p.full_name ?? p.email ?? '',
+          email: p.email ?? '',
+          role: (p.role ?? '') as string,
+          agentGroup: (p.agent_group ?? null) as string | null,
+        }));
+
+        if (group) {
+          // A profile belongs to a group if its agent_group matches, OR (for the
+          // built-in CSR/Finance groups) its role implies that group.
+          list = list.filter((a) =>
+            a.agentGroup === group ||
+            (group === 'csr' && (a.role === 'csr_admin' || a.role === 'csr_agent')) ||
+            (group === 'finance' && (a.role === 'finance_admin' || a.role === 'finance_agent')),
+          );
+        }
+
+        // Supervisors first, then agents, then by name
+        const rank = (r: string) =>
+          r.endsWith('_admin') || r === 'group_supervisor' || r === 'superadmin' || r === 'admin' ? 0 : 1;
+        list.sort((a, b) => rank(a.role) - rank(b.role) || a.fullName.localeCompare(b.fullName));
+
+        return { data: list };
       },
     }),
 

@@ -32,27 +32,6 @@ const formatRoleLabel = (role: string): string => {
   return r;
 };
 
-const getRoleDisplay = (roles: unknown): string => {
-  if (roles == null) return "User";
-  let rolesObj: Record<string, number> | undefined;
-  if (typeof roles === "object" && !Array.isArray(roles)) {
-    rolesObj = roles as Record<string, number>;
-  } else if (typeof roles === "string") {
-    try {
-      const parsed = JSON.parse(roles) as Record<string, number>;
-      if (parsed && typeof parsed === "object") rolesObj = parsed;
-    } catch {
-      return "User";
-    }
-  }
-  if (!rolesObj) return "User";
-  if (rolesObj.SuperAdmin != null && rolesObj.SuperAdmin !== 0) return "Super Admin";
-  if (rolesObj.Admin != null && rolesObj.Admin !== 0) return "Admin";
-  if (rolesObj.FinanceAdmin != null && rolesObj.FinanceAdmin !== 0) return "Finance Admin";
-  if (rolesObj.CSRAdmin != null && rolesObj.CSRAdmin !== 0) return "CSR Admin";
-  return "User";
-};
-
 export const Topbar = memo(function Topbar({ onMenuClick }: TopbarProps) {
   const dispatch = useDispatch();
   const { user } = useAppSelector((state) => state.auth);

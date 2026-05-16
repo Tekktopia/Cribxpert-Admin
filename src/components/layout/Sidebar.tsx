@@ -40,12 +40,15 @@ export const Sidebar = memo(function Sidebar({
   const location = useLocation();
   const profileRole = useAppSelector((state) => state.auth.profile?.role ?? "");
 
-  // Hide "CSR Tickets" sidebar entry for everyone except superadmin
+  // Hide the admin sidebar's "CSR Tickets" shortcut for everyone except
+  // superadmin. NOTE: match on the label, not the href — the CSR sidebar's
+  // own "Dashboard" entry also points at /csr/dashboard and must stay visible
+  // for Supervisors and Agents.
   const baseItems = customNavigationItems ?? navigationItems;
   const items = useMemo(
     () =>
       baseItems.filter(
-        (item) => item.href !== "/csr/dashboard" || profileRole === "superadmin"
+        (item) => item.label !== "CSR Tickets" || profileRole === "superadmin"
       ),
     [baseItems, profileRole]
   );

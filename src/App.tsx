@@ -47,6 +47,7 @@ const Reports = lazy(() => import("./pages/CSR/Reports"));
 const CSRNotifications = lazy(() => import("./pages/CSR/Notifications"));
 const CSRSettings = lazy(() => import("./pages/CSR/Settings"));
 const LiveInbox = lazy(() => import("./pages/CSR/LiveInbox"));
+const AgentPerformance = lazy(() => import("./pages/CSR/AgentPerformance"));
 
 function App() {
   useEffect(() => {
@@ -108,6 +109,7 @@ function App() {
                 <Route path="csr/disputes" element={<Disputes />} />
                 <Route path="csr/reports" element={<Reports />} />
                 <Route path="csr/notifications" element={<CSRNotifications />} />
+                <Route path="csr/agents" element={<AgentPerformance />} />
                 <Route path="csr/settings" element={<CSRSettings />} />
                 <Route path="csr/live-inbox" element={<LiveInbox />} />
               </Route>

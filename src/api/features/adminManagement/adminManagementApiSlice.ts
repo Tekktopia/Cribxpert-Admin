@@ -1,7 +1,15 @@
 import { apiSlice } from "@/api/apiSlice";
 import { supabase } from "@/lib/supabase";
 
-export type AdminRole = "Admin" | "SuperAdmin" | "FinanceAdmin" | "CSRAdmin" | "CSRAgent" | "FinanceAgent";
+export type AdminRole =
+  | "Admin"
+  | "SuperAdmin"
+  | "FinanceAdmin"
+  | "CSRAdmin"
+  | "CSRAgent"
+  | "FinanceAgent"
+  | "GroupSupervisor"
+  | "GroupAgent";
 
 export interface AdminManagementAdmin {
   id: string;
@@ -15,19 +23,37 @@ export interface AdminManagementAdmin {
 
 export interface GetAdminsResponse { admins: AdminManagementAdmin[] }
 export type CreateAdminRole = "Admin" | "FinanceAdmin" | "CSRAdmin" | "CSRAgent" | "FinanceAgent";
-export interface CreateAdminRequest { email: string; fullName: string; adminType?: CreateAdminRole }
+export interface CreateAdminRequest {
+  email: string;
+  fullName: string;
+  // Password is set directly — no invite email is sent.
+  password: string;
+  // Legacy: keep working for code that hasn't migrated yet
+  adminType?: CreateAdminRole;
+  // New: dynamic group + tier — works for ANY ticket_group
+  groupKey?: string;
+  tier?: "supervisor" | "agent";
+}
 export interface CreateAdminResponse { message: string }
 export interface DisableAdminResponse { message: string }
 export interface DeleteAdminResponse { message: string }
+export interface ResetPasswordResponse { message: string }
 
 const ROLE_MAP: Record<string, AdminRole> = {
-  admin:         'Admin',
-  superadmin:    'SuperAdmin',
-  finance_admin: 'FinanceAdmin',
-  csr_admin:     'CSRAdmin',
-  csr_agent:     'CSRAgent',
-  finance_agent: 'FinanceAgent',
+  admin:            'Admin',
+  superadmin:       'SuperAdmin',
+  finance_admin:    'FinanceAdmin',
+  csr_admin:        'CSRAdmin',
+  csr_agent:        'CSRAgent',
+  finance_agent:    'FinanceAgent',
+  group_supervisor: 'GroupSupervisor',
+  group_agent:      'GroupAgent',
 };
+
+const ADMIN_DB_ROLES = [
+  'admin', 'superadmin', 'finance_admin', 'csr_admin',
+  'csr_agent', 'finance_agent', 'group_supervisor', 'group_agent',
+];
 
 export const adminManagementApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
@@ -36,7 +62,7 @@ export const adminManagementApiSlice = apiSlice.injectEndpoints({
         const { data, error } = await supabase
           .from('profiles')
           .select('id, full_name, email, role, agent_group, account_disabled, created_at')
-          .in('role', ['admin', 'superadmin', 'finance_admin', 'csr_admin', 'csr_agent', 'finance_agent'])
+          .in('role', ADMIN_DB_ROLES)
           .order('created_at', { ascending: false }) as { data: any[] | null; error: any };
         if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
         return {
@@ -63,12 +89,20 @@ export const adminManagementApiSlice = apiSlice.injectEndpoints({
     }),
 
     createAdmin: builder.mutation<CreateAdminResponse, CreateAdminRequest>({
-      queryFn: async ({ email, fullName, adminType = 'Admin' }) => {
+      queryFn: async ({ email, fullName, password, adminType, groupKey, tier }) => {
         // Uses the create-admin edge function which runs with the service role
-        // key — required for auth.admin.inviteUserByEmail and correct profile
-        // upsert with the real auth user UUID.
+        // key — required for auth.admin.createUser and correct profile upsert
+        // with the real auth user UUID. The password is set directly; no invite
+        // email is sent and the account is usable immediately.
+        //
+        // Prefer the dynamic { groupKey, tier } shape (works for ANY group).
+        // Fall back to legacy { adminType } when no group is provided.
+        const body =
+          groupKey && tier
+            ? { email, fullName, password, groupKey, tier }
+            : { email, fullName, password, adminType: adminType ?? 'Admin' };
         const { data, error } = await supabase.functions.invoke('create-admin', {
-          body: { email, fullName, adminType },
+          body,
         });
         if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
         if (data?.error) return { error: { status: 'CUSTOM_ERROR', error: data.error } };
@@ -105,6 +139,19 @@ export const adminManagementApiSlice = apiSlice.injectEndpoints({
       },
       invalidatesTags: [{ type: "User", id: "ADMIN_LIST" }],
     }),
+
+    // SuperAdmin-only: set a new password for ANY user. The edge function
+    // re-verifies the caller is a superadmin server-side before applying.
+    resetUserPassword: builder.mutation<ResetPasswordResponse, { userId: string; password: string }>({
+      queryFn: async ({ userId, password }) => {
+        const { data, error } = await supabase.functions.invoke('reset-password', {
+          body: { userId, password },
+        });
+        if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
+        if (data?.error) return { error: { status: 'CUSTOM_ERROR', error: data.error } };
+        return { data: { message: data?.message ?? 'Password reset successfully' } };
+      },
+    }),
   }),
   overrideExisting: true,
 });
@@ -114,4 +161,5 @@ export const {
   useCreateAdminMutation,
   useDisableAdminMutation,
   useDeleteAdminMutation,
+  useResetUserPasswordMutation,
 } = adminManagementApiSlice;

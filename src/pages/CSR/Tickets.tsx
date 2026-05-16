@@ -24,8 +24,15 @@ import {
   TrendingUp,
   Plus,
   RefreshCcw,
+  Clock,
+  Download,
+  Bell,
+  X,
 } from "lucide-react";
 import type { Ticket } from "@/features/csr/tickets/types"; // use the actual Ticket type
+import { computeSla, slaBadgeClass } from "@/utils/sla";
+import { canExport, isAgent } from "@/utils/roles";
+import { exportCsv } from "@/utils/csv";
 
 import { EscalateModal } from "@/features/csr/tickets/EscalateModal";
 import { ResolveModal } from "@/features/csr/tickets/ResolveModal";
@@ -36,6 +43,7 @@ import {
   useGetTicketsQuery,
   useUpdateTicketStatusMutation,
   useGetTicketGroupsQuery,
+  useGetAssignableAgentsQuery,
 } from "@/api/features/ticket/ticketApiSlice";
 import { supabase } from "@/lib/supabase";
 
@@ -142,6 +150,8 @@ export default function Tickets() {
   const navigate = useNavigate();
   // Pick the right sidebar based on the user's role so Finance team also feels at home
   const profileRole = (useAppSelector(s => s.auth.profile?.role) ?? '').toLowerCase();
+  const profileId = useAppSelector(s => s.auth.profile?.id) ?? '';
+  const viewerIsAgent = isAgent(profileRole);
   const sidebarItems = (profileRole === 'finance_admin' || profileRole === 'finance_agent')
     ? financeAdminNavigationItems
     : csrNavigationItems;
@@ -161,9 +171,21 @@ export default function Tickets() {
     search: "",
   });
 
-  const { data: groups = [] } = useGetTicketGroupsQuery();
+  // New-ticket awareness: we DON'T auto-reorder the list under the agent —
+  // instead we surface a pill + toast and let them refresh on their terms.
+  const [newTicketCount, setNewTicketCount] = useState(0);
+  const [newTicketToast, setNewTicketToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Build query params
+  const { data: groups = [] } = useGetTicketGroupsQuery();
+  // All support staff — used to resolve assigned_to → a display name
+  const { data: allAgents = [] } = useGetAssignableAgentsQuery();
+  const agentNameById = useMemo(() => {
+    const m = new Map(allAgents.map(a => [a.id, a.fullName || a.email]));
+    return (id?: string | null) => (id ? m.get(id) ?? null : null);
+  }, [allAgents]);
+
+  // Build query params. Agents are scoped to ONLY their own assigned tickets.
   const queryParams = {
     page: currentPage,
     limit: rowsPerPage,
@@ -172,38 +194,132 @@ export default function Tickets() {
     status: filters.status ? (filters.status === 'Open' ? 'pending,in-progress' : filters.status.toLowerCase()) : undefined,
     assignedGroup: filters.group || undefined,
     source: filters.source || undefined,
+    assignedTo: viewerIsAgent && profileId ? profileId : undefined,
   };
 
   // Fetch tickets from backend
   const { data, isLoading, isError, refetch } = useGetTicketsQuery(queryParams);
   const [] = useUpdateTicketStatusMutation(); // will be used in modals
 
-  // Supabase Realtime — refetch on any ticket INSERT or UPDATE
+  // Supabase Realtime:
+  //  • INSERT  → surface a "refresh" pill + toast (no silent reorder)
+  //  • UPDATE/DELETE → keep the list fresh quietly
   useEffect(() => {
     const channel = supabase
       .channel('csr-tickets')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tickets' }, () => refetch())
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'tickets' },
+        (payload) => {
+          setNewTicketCount((c) => c + 1);
+          const row = payload.new as { subject?: string } | null;
+          const subj = row?.subject?.trim();
+          setNewTicketToast(
+            subj ? `New ticket: ${subj}` : 'A new ticket just came in',
+          );
+          if (toastTimer.current) clearTimeout(toastTimer.current);
+          toastTimer.current = setTimeout(() => setNewTicketToast(null), 6000);
+        },
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'tickets' },
+        () => refetch(),
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'tickets' },
+        () => refetch(),
+      )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+      supabase.removeChannel(channel);
+    };
   }, [refetch]);
 
+  const handleRefreshNewTickets = () => {
+    setNewTicketCount(0);
+    setNewTicketToast(null);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setCurrentPage(1);
+    refetch();
+  };
+
   // Transform backend tickets to UI format
-  const tickets = data?.data.tickets.map(t => ({
-    id: t._id,
-    ticketId: t.ticketId,
-    ticketNumber: t.ticketNumber,
-    user: `${t.firstName} ${t.lastName}`.trim() || t.email,
-    email: t.email,
-    subject: t.subject,
-    category: t.subject,
-    priority: mapPriority(t.priority),
-    status: mapStatus(t.status),
-    source: t.source ?? 'admin',
-    created: new Date(t.createdAt).toLocaleDateString(),
-    lastActivityAt: t.lastActivityAt ?? t.createdAt,
-    assignedTo: t.assignedTo,
-    assignedGroup: t.assignedGroup,
-  })) || [];
+  const tickets = data?.data.tickets.map(t => {
+    const sla = computeSla({
+      createdAt: t.createdAt,
+      status: t.status,
+      resolvedAt:
+        t.status === 'resolved' || t.status === 'closed'
+          ? (t.lastActivityAt ?? t.updatedAt)
+          : null,
+    });
+    return {
+      id: t._id,
+      ticketId: t.ticketId,
+      ticketNumber: t.ticketNumber,
+      user: `${t.firstName} ${t.lastName}`.trim() || t.email,
+      email: t.email,
+      subject: t.subject,
+      category: t.subject,
+      priority: mapPriority(t.priority),
+      status: mapStatus(t.status),
+      source: t.source ?? 'admin',
+      created: new Date(t.createdAt).toLocaleDateString(),
+      lastActivityAt: t.lastActivityAt ?? t.createdAt,
+      assignedTo: t.assignedTo,
+      assignedGroup: t.assignedGroup,
+      slaInfo: sla,
+    };
+  }) || [];
+
+  // Who can export (SuperAdmin / Admin / Supervisors)
+  const allowExport = canExport(profileRole);
+
+  const handleExportCsv = () => {
+    const rows = (data?.data.tickets ?? []).map(t => {
+      const s = computeSla({
+        createdAt: t.createdAt,
+        status: t.status,
+        resolvedAt:
+          t.status === 'resolved' || t.status === 'closed'
+            ? (t.lastActivityAt ?? t.updatedAt)
+            : null,
+      });
+      return {
+        ticket: t.ticketNumber ? `#${String(t.ticketNumber).padStart(6, '0')}` : t.ticketId,
+        subject: t.subject,
+        customer: `${t.firstName} ${t.lastName}`.trim() || t.email,
+        email: t.email,
+        status: t.status,
+        priority: t.priority,
+        group: groups.find(g => g.key === t.assignedGroup)?.name ?? '',
+        agent: agentNameById(t.assignedTo) ?? '',
+        source: t.source ?? 'admin',
+        sla_response: s.response.state,
+        sla_response_detail: s.response.label,
+        created_at: t.createdAt,
+        last_activity_at: t.lastActivityAt ?? t.createdAt,
+      };
+    });
+    exportCsv(`tickets-${new Date().toISOString().slice(0, 10)}.csv`, rows, [
+      { key: 'ticket', label: 'Ticket' },
+      { key: 'subject', label: 'Subject' },
+      { key: 'customer', label: 'Customer' },
+      { key: 'email', label: 'Email' },
+      { key: 'status', label: 'Status' },
+      { key: 'priority', label: 'Priority' },
+      { key: 'group', label: 'Group' },
+      { key: 'agent', label: 'Agent' },
+      { key: 'source', label: 'Source' },
+      { key: 'sla_response', label: 'SLA State' },
+      { key: 'sla_response_detail', label: 'SLA Detail' },
+      { key: 'created_at', label: 'Created' },
+      { key: 'last_activity_at', label: 'Last Activity' },
+    ]);
+  };
 
   const totalItems = data?.data.pagination.total || 0;
   const totalPages = data?.data.pagination.totalPages || 1;
@@ -220,7 +336,17 @@ export default function Tickets() {
       const c = new Date(t.createdAt);
       return c.getFullYear() === today.getFullYear() && c.getMonth() === today.getMonth() && c.getDate() === today.getDate();
     }).length;
-    return { urgent, unassigned, newToday };
+    const slaBreached = all.filter(t =>
+      computeSla({
+        createdAt: t.createdAt,
+        status: t.status,
+        resolvedAt:
+          t.status === 'resolved' || t.status === 'closed'
+            ? (t.lastActivityAt ?? t.updatedAt)
+            : null,
+      }).anyBreached,
+    ).length;
+    return { urgent, unassigned, newToday, slaBreached };
   }, [data]);
 
   const getPriorityBadge = (priority: string) => {
@@ -280,6 +406,45 @@ export default function Tickets() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
+      {/* Floating "refresh tickets" pill — appears when new tickets arrive */}
+      {newTicketCount > 0 && (
+        <button
+          onClick={handleRefreshNewTickets}
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-[60] px-4 py-2 rounded-full bg-teal-600 text-white text-sm font-semibold shadow-lg hover:bg-teal-700 transition-colors flex items-center gap-2 animate-bounce"
+        >
+          <RefreshCcw className="w-4 h-4" />
+          {newTicketCount === 1
+            ? "1 new ticket — Refresh"
+            : `${newTicketCount} new tickets — Refresh`}
+        </button>
+      )}
+
+      {/* Toast — new ticket notification */}
+      {newTicketToast && (
+        <div className="fixed top-4 right-4 z-[60] max-w-sm bg-white border border-teal-200 rounded-xl shadow-xl px-4 py-3 flex items-start gap-3">
+          <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center flex-shrink-0">
+            <Bell className="w-4 h-4 text-teal-700" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold text-gray-900">New ticket received</div>
+            <div className="text-xs text-gray-500 truncate mt-0.5">{newTicketToast}</div>
+            <button
+              onClick={handleRefreshNewTickets}
+              className="mt-2 text-xs font-semibold text-teal-700 hover:text-teal-800"
+            >
+              Refresh now
+            </button>
+          </div>
+          <button
+            onClick={() => setNewTicketToast(null)}
+            className="p-1 text-gray-400 hover:text-gray-600 flex-shrink-0"
+            aria-label="Dismiss"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       <Sidebar navigationItems={sidebarItems} />
       <div className="flex-1 flex flex-col min-w-0">
         <Topbar />
@@ -299,6 +464,16 @@ export default function Tickets() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
+                {allowExport && (
+                  <button
+                    onClick={handleExportCsv}
+                    className="px-3.5 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
+                    title="Export the current view to CSV"
+                  >
+                    <Download className="w-4 h-4" />
+                    Export CSV
+                  </button>
+                )}
                 <button
                   onClick={() => refetch()}
                   className="px-3.5 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
@@ -317,10 +492,11 @@ export default function Tickets() {
             </div>
 
             {/* KPI strip */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
               <KpiCard icon={<TicketIconLg className="w-5 h-5" />} tint="teal"    label="All Tickets"   value={stats?.total ?? totalItems} hint={`${(stats?.pending ?? 0) + (stats?.inProgress ?? 0)} open`} />
               <KpiCard icon={<UserX className="w-5 h-5" />}        tint="amber"   label="Unassigned"    value={kpis.unassigned}            hint="Need an owner" />
               <KpiCard icon={<Flame className="w-5 h-5" />}        tint="red"     label="High / Urgent" value={kpis.urgent}                hint="Watch closely" />
+              <KpiCard icon={<Clock className="w-5 h-5" />}        tint="red"     label="SLA Breached"  value={kpis.slaBreached}           hint="Past 4h response target" />
               <KpiCard icon={<TrendingUp className="w-5 h-5" />}   tint="emerald" label="New Today"     value={kpis.newToday}              hint="In the last 24h" />
             </div>
 
@@ -395,8 +571,10 @@ export default function Tickets() {
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Customer</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Source</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Group</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Agent</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Priority</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Status</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">SLA</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Updated</th>
                         <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wide">Actions</th>
                       </tr>
@@ -443,6 +621,18 @@ export default function Tickets() {
                               )}
                             </td>
                             <td className="px-6 py-4">
+                              {agentNameById(ticket.assignedTo) ? (
+                                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-700">
+                                  <span className="w-5 h-5 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center text-[9px] font-bold">
+                                    {(agentNameById(ticket.assignedTo) || '?').slice(0, 2).toUpperCase()}
+                                  </span>
+                                  {agentNameById(ticket.assignedTo)}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-gray-400 italic">Unassigned</span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4">
                               <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPriorityBadge(ticket.priority)}`}>
                                 {ticket.priority}
                               </span>
@@ -450,6 +640,21 @@ export default function Tickets() {
                             <td className="px-6 py-4">
                               <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadge(ticket.status)}`}>
                                 {ticket.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span
+                                title={`First-response target 4h · ${ticket.slaInfo.response.label}`}
+                                className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full border ${slaBadgeClass(ticket.slaInfo.response.state)}`}
+                              >
+                                <Clock className="w-3 h-3" />
+                                {ticket.slaInfo.response.state === 'breached'
+                                  ? 'Breached'
+                                  : ticket.slaInfo.response.state === 'soon'
+                                    ? 'Due soon'
+                                    : ticket.slaInfo.response.state === 'met'
+                                      ? 'Met'
+                                      : 'On track'}
                               </span>
                             </td>
                             <td className="px-6 py-4 text-xs text-gray-500">
@@ -463,7 +668,7 @@ export default function Tickets() {
                       })}
                       {tickets.length === 0 && (
                         <tr>
-                          <td colSpan={8} className="px-6 py-16 text-center text-sm text-gray-500">
+                          <td colSpan={10} className="px-6 py-16 text-center text-sm text-gray-500">
                             <Inbox className="w-10 h-10 mx-auto mb-3 text-gray-300" />
                             No tickets match your filters yet.
                           </td>

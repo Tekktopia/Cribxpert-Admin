@@ -27,21 +27,9 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar — all nav arrays already conform to { label, iconSrc, href } */}
       <Sidebar
-        navigationItems={getSidebarItems().map(item => {
-          // Ensure iconSrc exists for each item (for type safety)
-          if ('iconSrc' in item) {
-            return item;
-          } else if ('icon' in item) {
-            // Convert icon to iconSrc if required by Sidebar's prop type
-            return {
-              ...item,
-              iconSrc: "", // Provide a fallback src or handle this accordingly
-            };
-          }
-          return item;
-        })}
+        navigationItems={getSidebarItems()}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         className="fixed inset-y-0 left-0 z-50 lg:static lg:z-auto"

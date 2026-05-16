@@ -70,9 +70,10 @@ export default function CSRUsers() {
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "disabled">("all");
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [inviteForm, setInviteForm] = useState<{ fullName: string; email: string; adminType: CreateAdminRole }>({
+  const [inviteForm, setInviteForm] = useState<{ fullName: string; email: string; password: string; adminType: CreateAdminRole }>({
     fullName: "",
     email: "",
+    password: "",
     adminType: "CSRAgent",
   });
   const [toast, setToast] = useState<{ kind: "success" | "error"; text: string } | null>(null);
@@ -163,14 +164,15 @@ export default function CSRUsers() {
   const handleInvite = async () => {
     const name = inviteForm.fullName.trim();
     const email = inviteForm.email.trim();
-    if (!name || !email) return;
+    const password = inviteForm.password;
+    if (!name || !email || password.length < 8) return;
     try {
-      await createAdmin({ fullName: name, email, adminType: inviteForm.adminType }).unwrap();
-      flashToast("success", `Invite sent to ${email}`);
+      await createAdmin({ fullName: name, email, password, adminType: inviteForm.adminType }).unwrap();
+      flashToast("success", `${email} created — they can log in now`);
       setInviteOpen(false);
-      setInviteForm({ fullName: "", email: "", adminType: "CSRAgent" });
+      setInviteForm({ fullName: "", email: "", password: "", adminType: "CSRAgent" });
     } catch (err: any) {
-      flashToast("error", err?.data?.error ?? err?.message ?? "Failed to send invite");
+      flashToast("error", err?.data?.error ?? err?.message ?? "Failed to create member");
     }
   };
 
@@ -357,6 +359,17 @@ export default function CSRUsers() {
                 />
               </div>
               <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Password</label>
+                <input
+                  type="text"
+                  autoComplete="new-password"
+                  value={inviteForm.password}
+                  onChange={(e) => setInviteForm(f => ({ ...f, password: e.target.value }))}
+                  placeholder="At least 8 characters"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
+              </div>
+              <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1.5">Role on CSR team</label>
                 <div className="grid grid-cols-2 gap-2">
                   <RoleCard
@@ -378,7 +391,8 @@ export default function CSRUsers() {
               <div className="bg-teal-50 border border-teal-200 rounded-lg p-3 text-xs text-teal-800 flex gap-2">
                 <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
                 <div>
-                  They'll get a magic-link invite. After they accept, they'll only see the CSR module.
+                  No email is sent — share the password with them directly. They
+                  can log in immediately and will only see the CSR module.
                 </div>
               </div>
             </div>
@@ -391,10 +405,10 @@ export default function CSRUsers() {
               </button>
               <button
                 onClick={handleInvite}
-                disabled={creating || !inviteForm.fullName.trim() || !inviteForm.email.trim()}
+                disabled={creating || !inviteForm.fullName.trim() || !inviteForm.email.trim() || inviteForm.password.length < 8}
                 className="px-3.5 py-2 text-sm font-semibold text-white bg-teal-600 rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                {creating ? "Sending…" : (<><Mail className="w-4 h-4" />Send invite</>)}
+                {creating ? "Creating…" : (<><Mail className="w-4 h-4" />Create member</>)}
               </button>
             </div>
           </div>

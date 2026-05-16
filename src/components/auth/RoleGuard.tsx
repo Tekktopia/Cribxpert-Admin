@@ -9,6 +9,7 @@ const FINANCE_ADMIN_PATHS = [
   "/finance-reports",
   // Finance team also needs access to shared ticket pages
   "/csr/tickets",
+  "/csr/agents",
   "/settings",
   "/log-out",
 ];
@@ -18,6 +19,7 @@ const CSR_PATHS = [
   "/csr/dashboard",
   "/csr/users",
   "/csr/tickets",
+  "/csr/agents",
   "/csr/disputes",
   "/csr/reports",
   "/csr/notifications",
