@@ -717,7 +717,8 @@ const LiveInbox = () => {
                                 fontSize: 13.5,
                                 lineHeight: 1.55,
                                 wordBreak: 'break-word',
-                                background: isAgent ? '#1d4ed8' : msg.role === 'assistant' ? '#ffffff' : '#f3f4f6',
+                                // Sender (agent) = green; receiver (user/bot) = secondary
+                                background: isAgent ? '#10b981' : '#E6EFF1',
                                 color: isAgent ? '#ffffff' : '#1f2937',
                                 borderBottomRightRadius: isAgent ? 4 : 14,
                                 borderBottomLeftRadius: isAgent ? 14 : 4,
@@ -742,7 +743,7 @@ const LiveInbox = () => {
                                   width: 28,
                                   height: 28,
                                   borderRadius: '50%',
-                                  background: '#1d4ed8',
+                                  background: '#10b981',
                                   color: '#fff',
                                   display: 'flex',
                                   alignItems: 'center',
