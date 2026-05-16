@@ -475,10 +475,10 @@ export default function AdminRolesMgmt() {
       <Modal
         isOpen={!!adminToRemove}
         onClose={() => setAdminToRemove(null)}
-        title='Remove admin'
+        title='Remove admin access'
         description={
           adminToRemove
-            ? `Are you sure you want to remove ${adminToRemove.name} from admin access? They will no longer be able to log in to the admin dashboard.`
+            ? `This will downgrade ${adminToRemove.name} to a regular user. They will lose admin dashboard access but can still log in to the CribXpert app with their existing password.`
             : ""
         }
         size='md'
@@ -491,7 +491,7 @@ export default function AdminRolesMgmt() {
             variant: "secondary",
           },
           {
-            label: "Remove admin",
+            label: "Remove admin access",
             onClick: handleConfirmRemove,
             variant: "destructive",
           },
