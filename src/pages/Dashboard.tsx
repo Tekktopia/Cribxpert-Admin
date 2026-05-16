@@ -10,6 +10,7 @@ import {
   useGetUserManagementQuery,
   useGetRecentActivityQuery,
   useGetListingSummaryQuery,
+  useGetTotalRevenueQuery,
 } from "@/api/features/adminDashboard/adminDashboardApiSlice";
 import { dashboardData } from "../data/dashboardData";
 import type {
@@ -40,11 +41,13 @@ export function DashboardPage() {
   const { data: userMgmtData, isLoading: userMgmtLoading, refetch: refetchUsers } = useGetUserManagementQuery();
   const { data: activityData, isLoading: activityLoading, refetch: refetchActivity } = useGetRecentActivityQuery({ limit: 20 });
   const { data: listingSummaryData, isLoading: listingSummaryLoading, refetch: refetchListings } = useGetListingSummaryQuery();
+  const { data: revenueData, refetch: refetchRevenue } = useGetTotalRevenueQuery();
 
   useRealtimeRefetch(['listings'], refetchListings, 'listings');
   useRealtimeRefetch(['profiles'], refetchUsers, 'users');
   useRealtimeRefetch(['bookings', 'listings', 'profiles'], refetchCards, 'cards');
   useRealtimeRefetch(['bookings', 'listings', 'profiles'], refetchActivity, 'activity');
+  useRealtimeRefetch(['bookings'], refetchRevenue, 'revenue');
 
   const uiMetrics: DashboardUIMetrics = useMemo(() => {
     if (!cardsData) {
@@ -66,9 +69,8 @@ export function DashboardPage() {
           parse(m.weeklyBookings),
           m.weeklyBookings.changeText,
         ),
-        // For now keep revenue from sample data
         totalRevenue: toUIMetric(
-          parse(m.totalRevenue),
+          revenueData?.totalRevenue ?? parse(m.totalRevenue),
           m.totalRevenue.changeText,
         ),
       };
@@ -82,11 +84,8 @@ export function DashboardPage() {
       ),
       activeListings: toUIMetric(cardsData.activeListings, "this week"),
       weeklyBookings: toUIMetric(cardsData.weeklyBookings, "vs last week"),
-      // Backend doesn't yet send revenue, so keep sample revenue
       totalRevenue: toUIMetric(
-        Number(
-          dashboardData.metrics.totalRevenue.value.replace(/[^0-9.-]+/g, ""),
-        ) || 0,
+        revenueData?.totalRevenue ?? 0,
         dashboardData.metrics.totalRevenue.changeText,
       ),
     };

@@ -25,10 +25,10 @@ const formatRoleLabel = (role: string): string => {
   if (!role) return "User";
   const r = role.trim();
   const lower = r.toLowerCase();
-  if (lower === "superadmin") return "Super Admin";
+  if (lower === "superadmin" || lower === "super_admin") return "Super Admin";
   if (lower === "admin") return "Admin";
-  if (lower === "financeadmin") return "Finance Admin";
-  if (lower === "csradmin") return "CSR Admin";
+  if (lower === "financeadmin" || lower === "finance_admin") return "Finance Admin";
+  if (lower === "csradmin" || lower === "csr_admin") return "CSR Admin";
   return r;
 };
 
@@ -56,6 +56,7 @@ const getRoleDisplay = (roles: unknown): string => {
 export const Topbar = memo(function Topbar({ onMenuClick }: TopbarProps) {
   const dispatch = useDispatch();
   const { user } = useAppSelector((state) => state.auth);
+  const profile  = useAppSelector((state) => state.auth.profile);
   const location = useLocation();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -91,37 +92,32 @@ export const Topbar = memo(function Topbar({ onMenuClick }: TopbarProps) {
   }, [dispatch, closeProfileMenu]);
 
   const userDisplay = useMemo(() => {
-    if (!user) {
-      return {
-        name: "Guest",
-        role: "User",
-        initials: "GU",
-        email: "",
-      };
+    if (!user && !profile) {
+      return { name: "Guest", role: "User", initials: "GU", email: "" };
     }
 
-    const u = user as any;
-    const fullName = u.fullName || u.name || u.email || "User";
-    let role = "User";
-    const roleStr = u.role && typeof u.role === "string" ? u.role.trim() : "";
-    if (roleStr) {
-      role = formatRoleLabel(roleStr);
-    } else if (u.roles != null) {
-      role = getRoleDisplay(u.roles);
-    }
+    // Prefer profile data (has the real app role); fall back to auth user metadata
+    const fullName =
+      profile?.full_name ||
+      (user as any)?.user_metadata?.full_name ||
+      (user as any)?.fullName ||
+      user?.email ||
+      "User";
 
-    const initials = getInitials(fullName);
+    // profile.role is the authoritative app role (superadmin / admin / csr_admin …)
+    const roleStr = profile?.role || (user as any)?.role || "";
+    const role = roleStr ? formatRoleLabel(roleStr) : "User";
 
     return {
       name: fullName,
       role,
-      initials,
-      email: user.email || "",
+      initials: getInitials(fullName),
+      email: profile?.email || user?.email || "",
     };
-  }, [user]);
+  }, [user, profile]);
 
-  // Determine if we should show the "Back to Main Dashboard" button
-  const isSuperAdmin = userDisplay.role === "Super Admin";
+  // Show "Back to Main Dashboard" when a superadmin is browsing a CSR page
+  const isSuperAdmin = (profile?.role ?? "") === "superadmin";
   const isOnCSRPage = location.pathname.startsWith("/csr");
   const showBackButton = isSuperAdmin && isOnCSRPage;
 

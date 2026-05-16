@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { memo, useMemo, useCallback } from "react";
 import { cn } from "../../utils/cn";
 import { SvgIcon } from "@/components/ui/SvgIcon";
+import { useAppSelector } from "@/store/hooks";
 
 interface SidebarProps {
   className?: string;
@@ -37,7 +38,17 @@ export const Sidebar = memo(function Sidebar({
   navigationItems: customNavigationItems, // csr sidebar modification
 }: SidebarProps) {
   const location = useLocation();
-  const items = customNavigationItems ?? navigationItems; // csr sidebar mods
+  const profileRole = useAppSelector((state) => state.auth.profile?.role ?? "");
+
+  // Hide "CSR Tickets" sidebar entry for everyone except superadmin
+  const baseItems = customNavigationItems ?? navigationItems;
+  const items = useMemo(
+    () =>
+      baseItems.filter(
+        (item) => item.href !== "/csr/dashboard" || profileRole === "superadmin"
+      ),
+    [baseItems, profileRole]
+  );
 
   // Memoize the close handler to prevent unnecessary re-renders of child components
   const handleClose = useCallback(() => {

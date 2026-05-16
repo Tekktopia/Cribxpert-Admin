@@ -72,10 +72,14 @@ const LiveInbox = () => {
   const [activeSessionId, setActiveSessionId]   = useState<string | null>(null);
   const [messages, setMessages]   = useState<ChatMessage[]>([]);
   const [replyText, setReplyText] = useState('');
-  const [sending, setSending]     = useState(false);
-  const [resolving, setResolving] = useState(false);
+  const [sending, setSending]       = useState(false);
+  const [resolving, setResolving]   = useState(false);
   const [sessionsLoading, setSessionsLoading] = useState(true);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [userIsTyping, setUserIsTyping] = useState(false);
+  const messagesEndRef              = useRef<HTMLDivElement>(null);
+  const typingChannelRef            = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const agentTypingTimeoutRef       = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const userTypingTimeoutRef        = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Stable ref so the global notification subscription always sees latest active sessions
   const activeSessionsRef = useRef<ChatSession[]>([]);
   useEffect(() => { activeSessionsRef.current = activeSessions; }, [activeSessions]);
@@ -199,10 +203,60 @@ const LiveInbox = () => {
     return () => { supabase.removeChannel(ch); };
   }, [activeSessionId]);
 
+  // ── Typing indicator channel ──────────────────────────────────────────
+  useEffect(() => {
+    if (!activeSessionId) {
+      setUserIsTyping(false);
+      typingChannelRef.current = null;
+      return;
+    }
+
+    const ch = supabase
+      .channel(`typing-${activeSessionId}`)
+      .on('broadcast', { event: 'typing' }, ({ payload }: { payload: { role: string; typing: boolean } }) => {
+        if (payload?.role !== 'user') return;
+        if (payload.typing) {
+          setUserIsTyping(true);
+          // Auto-clear after 3 s in case the "stop typing" broadcast is missed
+          clearTimeout(userTypingTimeoutRef.current ?? undefined);
+          userTypingTimeoutRef.current = setTimeout(() => setUserIsTyping(false), 3000);
+        } else {
+          clearTimeout(userTypingTimeoutRef.current ?? undefined);
+          setUserIsTyping(false);
+        }
+      })
+      .subscribe();
+
+    typingChannelRef.current = ch;
+
+    return () => {
+      supabase.removeChannel(ch);
+      typingChannelRef.current = null;
+      setUserIsTyping(false);
+      clearTimeout(userTypingTimeoutRef.current ?? undefined);
+      clearTimeout(agentTypingTimeoutRef.current ?? undefined);
+    };
+  }, [activeSessionId]);
+
   // ── Scroll to bottom ──────────────────────────────────────────────────
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, userIsTyping]);
+
+  // ── Broadcast CSR typing ──────────────────────────────────────────────
+  const broadcastTyping = useCallback((typing: boolean) => {
+    typingChannelRef.current?.send({
+      type: 'broadcast',
+      event: 'typing',
+      payload: { role: 'agent', typing },
+    });
+  }, []);
+
+  // ── Leave chat without resolving (session stays active) ───────────────
+  const leaveChat = useCallback(() => {
+    broadcastTyping(false);
+    setActiveSessionId(null);
+  }, [broadcastTyping]);
 
   // ── Send reply ────────────────────────────────────────────────────────
   const sendReply = useCallback(async () => {
@@ -210,6 +264,9 @@ const LiveInbox = () => {
     setSending(true);
     const text = replyText.trim();
     setReplyText('');
+    // Stop typing broadcast immediately
+    clearTimeout(agentTypingTimeoutRef.current ?? undefined);
+    broadcastTyping(false);
 
     // Insert and retrieve the saved row so we can show it immediately
     // without waiting for the Realtime echo
@@ -241,7 +298,7 @@ const LiveInbox = () => {
     }
 
     setSending(false);
-  }, [replyText, activeSessionId, sending, activeSession]);
+  }, [replyText, activeSessionId, sending, activeSession, broadcastTyping]);
 
   // ── Resolve session ────────────────────────────────────────────────────
   const resolveSession = useCallback(async () => {
@@ -546,24 +603,44 @@ const LiveInbox = () => {
                     </div>
 
                     {!isReadOnly && (
-                      <button
-                        onClick={resolveSession}
-                        disabled={resolving}
-                        style={{
-                          background: resolving ? '#f3f4f6' : '#f0fdf4',
-                          border: '1.5px solid',
-                          borderColor: resolving ? '#d1d5db' : '#86efac',
-                          color: resolving ? '#9ca3af' : '#15803d',
-                          fontWeight: 600,
-                          fontSize: 12.5,
-                          padding: '7px 16px',
-                          borderRadius: 20,
-                          cursor: resolving ? 'not-allowed' : 'pointer',
-                          transition: 'all 0.2s',
-                        }}
-                      >
-                        {resolving ? 'Resolving…' : '✅ Resolve & Close'}
-                      </button>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        {/* Leave without resolving — session stays open for other agents */}
+                        <button
+                          onClick={leaveChat}
+                          title="Leave this chat — the session stays active for other agents"
+                          style={{
+                            background: '#f9fafb',
+                            border: '1.5px solid #e5e7eb',
+                            color: '#374151',
+                            fontWeight: 600,
+                            fontSize: 12.5,
+                            padding: '7px 14px',
+                            borderRadius: 20,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                          }}
+                        >
+                          ← Leave
+                        </button>
+                        <button
+                          onClick={resolveSession}
+                          disabled={resolving}
+                          style={{
+                            background: resolving ? '#f3f4f6' : '#f0fdf4',
+                            border: '1.5px solid',
+                            borderColor: resolving ? '#d1d5db' : '#86efac',
+                            color: resolving ? '#9ca3af' : '#15803d',
+                            fontWeight: 600,
+                            fontSize: 12.5,
+                            padding: '7px 16px',
+                            borderRadius: 20,
+                            cursor: resolving ? 'not-allowed' : 'pointer',
+                            transition: 'all 0.2s',
+                          }}
+                        >
+                          {resolving ? 'Resolving…' : '✅ Resolve & Close'}
+                        </button>
+                      </div>
                     )}
                     {isReadOnly && (
                       <span
@@ -682,6 +759,26 @@ const LiveInbox = () => {
                         );
                       })
                     )}
+                    {/* Typing indicator */}
+                    {userIsTyping && (
+                      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
+                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}>👤</div>
+                        <div style={{ background: '#f3f4f6', borderRadius: '14px 14px 14px 4px', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 5, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+                          {[0, 0.2, 0.4].map((delay, i) => (
+                            <span
+                              key={i}
+                              style={{
+                                width: 7, height: 7, borderRadius: '50%', background: '#9ca3af',
+                                display: 'inline-block',
+                                animation: 'typingDot 1.2s ease-in-out infinite',
+                                animationDelay: `${delay}s`,
+                              }}
+                            />
+                          ))}
+                          <style>{`@keyframes typingDot { 0%,80%,100%{transform:scale(0.7);opacity:0.4} 40%{transform:scale(1);opacity:1} }`}</style>
+                        </div>
+                      </div>
+                    )}
                     <div ref={messagesEndRef} />
                   </div>
 
@@ -716,7 +813,13 @@ const LiveInbox = () => {
                       type="text"
                       placeholder="Type a reply…"
                       value={replyText}
-                      onChange={e => setReplyText(e.target.value)}
+                      onChange={e => {
+                        setReplyText(e.target.value);
+                        // Broadcast that agent is typing; auto-stop after 2 s of inactivity
+                        broadcastTyping(true);
+                        clearTimeout(agentTypingTimeoutRef.current ?? undefined);
+                        agentTypingTimeoutRef.current = setTimeout(() => broadcastTyping(false), 2000);
+                      }}
                       onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) sendReply(); }}
                       disabled={sending}
                       maxLength={2000}

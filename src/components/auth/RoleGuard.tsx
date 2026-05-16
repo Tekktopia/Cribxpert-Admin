@@ -53,10 +53,10 @@ export function RoleGuard() {
     }
   }
 
-  // csr_admin: only CSR paths, settings, logout
+  // csr_admin: only CSR paths, settings, logout — land on tickets
   if (role === "csr_admin") {
     if (!isCSRPath(pathname)) {
-      return <Navigate to="/csr/dashboard" replace />;
+      return <Navigate to="/csr/tickets" replace />;
     }
   }
 

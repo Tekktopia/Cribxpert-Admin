@@ -35,6 +35,10 @@ export interface ListingSummaryResponse {
   flaggedListings: number;
 }
 
+export interface TotalRevenueResponse {
+  totalRevenue: number;
+}
+
 export const adminDashboardApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getDashboardCards: builder.query<DashboardCardsResponse, void>({
@@ -111,6 +115,25 @@ export const adminDashboardApiSlice = apiSlice.injectEndpoints({
         };
       },
     }),
+
+    getTotalRevenue: builder.query<TotalRevenueResponse, void>({
+      queryFn: async () => {
+        const { data } = await supabase
+          .from('bookings')
+          .select('total_price, escrow_status, status') as { data: any[] | null };
+        // Sum all bookings that have been confirmed/completed or where escrow was released
+        const rows = data ?? [];
+        const totalRevenue = rows
+          .filter((b: any) =>
+            b.escrow_status === 'released' ||
+            b.escrow_status === 'completed' ||
+            b.status === 'confirmed' ||
+            b.status === 'completed'
+          )
+          .reduce((sum: number, b: any) => sum + (Number(b.total_price) || 0), 0);
+        return { data: { totalRevenue } };
+      },
+    }),
   }),
   overrideExisting: true,
 });
@@ -120,4 +143,5 @@ export const {
   useGetUserManagementQuery,
   useGetRecentActivityQuery,
   useGetListingSummaryQuery,
+  useGetTotalRevenueQuery,
 } = adminDashboardApiSlice;
