@@ -1,8 +1,20 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Topbar } from '@/components/layout/Topbar';
 import { csrNavigationItems } from '@/components/layout/csrSidebar';
 import { supabase } from '@/lib/supabase';
+import {
+  MessageSquare,
+  CheckCircle2,
+  ArrowLeftCircle,
+  User as UserIcon,
+  Bot,
+  Send,
+  Inbox,
+  CheckCheck,
+  Star,
+  Headphones,
+} from 'lucide-react';
 import '@/style(nicholas)/style.scss';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -21,6 +33,13 @@ interface ChatMessage {
   session_id: string;
   role: 'user' | 'agent' | 'assistant';
   content: string;
+  created_at: string;
+}
+
+interface SessionRating {
+  session_id: string;
+  rating: number;
+  comment: string | null;
   created_at: string;
 }
 
@@ -76,6 +95,7 @@ const LiveInbox = () => {
   const [resolving, setResolving]   = useState(false);
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [userIsTyping, setUserIsTyping] = useState(false);
+  const [ratings, setRatings] = useState<Record<string, SessionRating>>({});
   const messagesEndRef              = useRef<HTMLDivElement>(null);
   const typingChannelRef            = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const agentTypingTimeoutRef       = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -90,9 +110,9 @@ const LiveInbox = () => {
   // In resolved tab the conversation is read-only
   const isReadOnly = tab === 'resolved';
 
-  // ── Load sessions (both tabs) ─────────────────────────────────────────
+  // ── Load sessions (both tabs) + ratings ───────────────────────────────
   const loadSessions = useCallback(async () => {
-    const [activeRes, resolvedRes] = await Promise.all([
+    const [activeRes, resolvedRes, ratingsRes] = await Promise.all([
       supabase
         .from('conversation_sessions')
         .select('*')
@@ -104,10 +124,20 @@ const LiveInbox = () => {
         .not('resolved_at', 'is', null)
         .order('resolved_at', { ascending: false })
         .limit(50),
+      supabase
+        .from('session_ratings')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(200),
     ]);
 
     if (activeRes.data)   setActiveSessions(activeRes.data as ChatSession[]);
     if (resolvedRes.data) setResolvedSessions(resolvedRes.data as ChatSession[]);
+    if (ratingsRes.data) {
+      const map: Record<string, SessionRating> = {};
+      (ratingsRes.data as SessionRating[]).forEach(r => { map[r.session_id] = r; });
+      setRatings(map);
+    }
     setSessionsLoading(false);
   }, []);
 
@@ -136,7 +166,7 @@ const LiveInbox = () => {
           if (!sess) return; // not one of our active sessions
 
           const name = getDisplayName(sess.name, sess.email, sess.session_id);
-          showAdminNotification(`💬 New message — ${name}`, msg.content);
+          showAdminNotification(`New message — ${name}`, msg.content);
         }
       )
       .subscribe();
@@ -147,9 +177,9 @@ const LiveInbox = () => {
   // Clear selected session when switching tabs
   useEffect(() => { setActiveSessionId(null); }, [tab]);
 
-  // ── Realtime: session list updates ─────────────────────────────────────
+  // ── Realtime: session list + ratings updates ──────────────────────────
   useEffect(() => {
-    const ch = supabase
+    const sessionsCh = supabase
       .channel('admin-live-sessions')
       .on(
         'postgres_changes',
@@ -157,8 +187,32 @@ const LiveInbox = () => {
         () => loadSessions(),
       )
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+
+    const ratingsCh = supabase
+      .channel('admin-session-ratings')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'session_ratings' },
+        (payload) => {
+          const r = payload.new as SessionRating;
+          setRatings(prev => ({ ...prev, [r.session_id]: r }));
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(sessionsCh);
+      supabase.removeChannel(ratingsCh);
+    };
   }, [loadSessions]);
+
+  // ── Average rating summary (shown in header on resolved tab) ──────────
+  const ratingSummary = useMemo(() => {
+    const list = Object.values(ratings);
+    if (list.length === 0) return null;
+    const avg = list.reduce((s, r) => s + r.rating, 0) / list.length;
+    return { count: list.length, avg };
+  }, [ratings]);
 
   // ── Load messages for active session ──────────────────────────────────
   const loadMessages = useCallback(async (sessionId: string) => {
@@ -317,7 +371,7 @@ const LiveInbox = () => {
     await (supabase as any).from('session_messages').insert({
       session_id: activeSessionId,
       role: 'agent',
-      content: '✅ This support session has been resolved. You have been returned to CribBot. Feel free to reach out again if you need help!',
+      content: 'This support session has been resolved. You have been returned to CribBot. Feel free to reach out again if you need help.',
     });
 
     // ── Push notification to the user that the session was resolved ──
@@ -358,32 +412,59 @@ const LiveInbox = () => {
           }}
         >
           <div>
-            <h1 style={{ fontSize: 20, fontWeight: 700, color: '#111827', margin: 0 }}>Live Chat Inbox</h1>
-            <p style={{ fontSize: 13, color: '#6b7280', margin: '2px 0 0' }}>
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: '#111827', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Headphones size={20} color='#1d5c5c' strokeWidth={2.25} />
+              Live Chat Inbox
+            </h1>
+            <p style={{ fontSize: 13, color: '#6b7280', margin: '4px 0 0' }}>
               Real-time support conversations handed off from CribBot
             </p>
           </div>
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '5px 14px',
-              borderRadius: 20,
-              fontSize: 12,
-              fontWeight: 600,
-              background: activeSessions.length > 0 ? '#fef2f2' : '#f0fdf4',
-              color: activeSessions.length > 0 ? '#dc2626' : '#15803d',
-            }}
-          >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {ratingSummary && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '6px 12px',
+                  borderRadius: 20,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  background: '#fffbeb',
+                  color: '#92400e',
+                  border: '1px solid #fde68a',
+                }}
+                title={`${ratingSummary.count} customer ${ratingSummary.count === 1 ? 'rating' : 'ratings'}`}
+              >
+                <Star size={13} fill='#f59e0b' color='#f59e0b' />
+                {ratingSummary.avg.toFixed(1)}
+                <span style={{ color: '#a16207', fontWeight: 500 }}>· {ratingSummary.count}</span>
+              </span>
+            )}
             <span
               style={{
-                width: 7, height: 7, borderRadius: '50%', display: 'inline-block',
-                background: activeSessions.length > 0 ? '#ef4444' : '#4ade80',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '6px 14px',
+                borderRadius: 20,
+                fontSize: 12,
+                fontWeight: 600,
+                background: activeSessions.length > 0 ? '#fef2f2' : '#f0fdf4',
+                color: activeSessions.length > 0 ? '#dc2626' : '#15803d',
+                border: `1px solid ${activeSessions.length > 0 ? '#fecaca' : '#bbf7d0'}`,
               }}
-            />
-            {activeSessions.length} Live {activeSessions.length === 1 ? 'Chat' : 'Chats'}
-          </span>
+            >
+              <span
+                style={{
+                  width: 7, height: 7, borderRadius: '50%', display: 'inline-block',
+                  background: activeSessions.length > 0 ? '#ef4444' : '#4ade80',
+                }}
+              />
+              {activeSessions.length} Live {activeSessions.length === 1 ? 'Chat' : 'Chats'}
+            </span>
+          </div>
         </div>
 
         {/* Main inbox layout — fills rest of page height */}
@@ -434,7 +515,17 @@ const LiveInbox = () => {
                       gap: 6,
                     }}
                   >
-                    {t === 'active' ? '🟢 Active' : '✅ Resolved'}
+                    {t === 'active' ? (
+                      <>
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: tab === t ? '#10b981' : '#9ca3af', display: 'inline-block' }} />
+                        Active
+                      </>
+                    ) : (
+                      <>
+                        <CheckCheck size={14} />
+                        Resolved
+                      </>
+                    )}
                     <span
                       style={{
                         background: t === 'active'
@@ -463,9 +554,17 @@ const LiveInbox = () => {
                     Loading sessions…
                   </div>
                 ) : sessions.length === 0 ? (
-                  <div style={{ padding: 32, textAlign: 'center' }}>
-                    <div style={{ fontSize: 36, marginBottom: 8 }}>{tab === 'active' ? '💬' : '✅'}</div>
-                    <div style={{ color: '#6b7280', fontSize: 13, fontWeight: 500 }}>
+                  <div style={{ padding: 36, textAlign: 'center' }}>
+                    <div style={{
+                      width: 56, height: 56, borderRadius: '50%',
+                      background: '#E6EFF1', display: 'inline-flex',
+                      alignItems: 'center', justifyContent: 'center', marginBottom: 12,
+                    }}>
+                      {tab === 'active'
+                        ? <Inbox size={26} color='#1d5c5c' strokeWidth={2} />
+                        : <CheckCheck size={26} color='#1d5c5c' strokeWidth={2} />}
+                    </div>
+                    <div style={{ color: '#374151', fontSize: 13.5, fontWeight: 600 }}>
                       {tab === 'active' ? 'No active chats' : 'No resolved chats yet'}
                     </div>
                     <div style={{ color: '#9ca3af', fontSize: 12, marginTop: 4 }}>
@@ -520,20 +619,36 @@ const LiveInbox = () => {
                           <div style={{ fontWeight: 600, fontSize: 13, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {displayName}
                           </div>
-                          <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>
-                            {formatTime(session.handed_off_at)}
+                          <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span>{formatTime(tab === 'resolved' && session.resolved_at ? session.resolved_at : session.handed_off_at)}</span>
+                            {tab === 'resolved' && ratings[session.session_id] && (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                                <span style={{ color: '#d1d5db' }}>·</span>
+                                {[1, 2, 3, 4, 5].map(n => (
+                                  <Star
+                                    key={n}
+                                    size={10}
+                                    fill={n <= ratings[session.session_id].rating ? '#f59e0b' : 'transparent'}
+                                    color={n <= ratings[session.session_id].rating ? '#f59e0b' : '#d1d5db'}
+                                    strokeWidth={2}
+                                  />
+                                ))}
+                              </span>
+                            )}
                           </div>
                         </div>
-                        {/* Live dot */}
-                        <span
-                          style={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: '50%',
-                            background: '#ef4444',
-                            flexShrink: 0,
-                          }}
-                        />
+                        {/* Status dot — live red if active, check if resolved */}
+                        {tab === 'active' ? (
+                          <span
+                            style={{
+                              width: 8, height: 8, borderRadius: '50%',
+                              background: '#ef4444', flexShrink: 0,
+                              boxShadow: '0 0 0 3px rgba(239, 68, 68, 0.15)',
+                            }}
+                          />
+                        ) : (
+                          <CheckCircle2 size={16} color='#10b981' style={{ flexShrink: 0 }} />
+                        )}
                       </button>
                     );
                   })
@@ -552,12 +667,19 @@ const LiveInbox = () => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: '#9ca3af',
+                    background: '#fafafa',
                   }}
                 >
-                  <div style={{ fontSize: 48, marginBottom: 12 }}>💬</div>
+                  <div style={{
+                    width: 72, height: 72, borderRadius: '50%',
+                    background: '#E6EFF1', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center', marginBottom: 16,
+                  }}>
+                    <MessageSquare size={32} color='#1d5c5c' strokeWidth={1.75} />
+                  </div>
                   <div style={{ fontWeight: 600, fontSize: 15, color: '#374151' }}>Select a conversation</div>
-                  <div style={{ fontSize: 13, marginTop: 4 }}>
-                    Choose an active session from the left to start chatting
+                  <div style={{ fontSize: 13, marginTop: 4, color: '#9ca3af' }}>
+                    Choose a session from the left to start chatting
                   </div>
                 </div>
               ) : (
@@ -609,58 +731,102 @@ const LiveInbox = () => {
                           onClick={leaveChat}
                           title="Leave this chat — the session stays active for other agents"
                           style={{
-                            background: '#f9fafb',
+                            background: '#ffffff',
                             border: '1.5px solid #e5e7eb',
                             color: '#374151',
                             fontWeight: 600,
                             fontSize: 12.5,
                             padding: '7px 14px',
-                            borderRadius: 20,
+                            borderRadius: 8,
                             cursor: 'pointer',
-                            transition: 'all 0.2s',
+                            transition: 'all 0.15s',
+                            display: 'inline-flex', alignItems: 'center', gap: 6,
                           }}
                         >
-                          ← Leave
+                          <ArrowLeftCircle size={14} />
+                          Leave
                         </button>
                         <button
                           onClick={resolveSession}
                           disabled={resolving}
                           style={{
-                            background: resolving ? '#f3f4f6' : '#f0fdf4',
+                            background: resolving ? '#f3f4f6' : '#10b981',
                             border: '1.5px solid',
-                            borderColor: resolving ? '#d1d5db' : '#86efac',
-                            color: resolving ? '#9ca3af' : '#15803d',
+                            borderColor: resolving ? '#d1d5db' : '#10b981',
+                            color: resolving ? '#9ca3af' : '#ffffff',
                             fontWeight: 600,
                             fontSize: 12.5,
-                            padding: '7px 16px',
-                            borderRadius: 20,
+                            padding: '7px 14px',
+                            borderRadius: 8,
                             cursor: resolving ? 'not-allowed' : 'pointer',
-                            transition: 'all 0.2s',
+                            transition: 'all 0.15s',
+                            display: 'inline-flex', alignItems: 'center', gap: 6,
                           }}
                         >
-                          {resolving ? 'Resolving…' : '✅ Resolve & Close'}
+                          <CheckCircle2 size={14} />
+                          {resolving ? 'Resolving…' : 'Resolve & Close'}
                         </button>
                       </div>
                     )}
                     {isReadOnly && (
-                      <span
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 5,
-                          background: '#f0fdf4',
-                          border: '1px solid #86efac',
-                          color: '#15803d',
-                          fontWeight: 600,
-                          fontSize: 11.5,
-                          padding: '5px 12px',
-                          borderRadius: 20,
-                        }}
-                      >
-                        ✅ Resolved {activeSession?.resolved_at ? formatTime(activeSession.resolved_at) : ''}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        {ratings[activeSession.session_id] && (
+                          <div style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                            background: '#fffbeb', border: '1px solid #fde68a',
+                            padding: '5px 10px', borderRadius: 8,
+                          }}>
+                            {[1, 2, 3, 4, 5].map(n => (
+                              <Star
+                                key={n}
+                                size={13}
+                                fill={n <= ratings[activeSession.session_id].rating ? '#f59e0b' : 'transparent'}
+                                color={n <= ratings[activeSession.session_id].rating ? '#f59e0b' : '#fcd34d'}
+                                strokeWidth={2}
+                              />
+                            ))}
+                          </div>
+                        )}
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            background: '#f0fdf4',
+                            border: '1px solid #86efac',
+                            color: '#15803d',
+                            fontWeight: 600,
+                            fontSize: 11.5,
+                            padding: '5px 12px',
+                            borderRadius: 8,
+                          }}
+                        >
+                          <CheckCircle2 size={12} />
+                          Resolved {activeSession?.resolved_at ? formatTime(activeSession.resolved_at) : ''}
+                        </span>
+                      </div>
                     )}
                   </div>
+
+                  {/* Rating comment banner (only when viewing a resolved session that has one) */}
+                  {isReadOnly && ratings[activeSession.session_id]?.comment && (
+                    <div style={{
+                      padding: '10px 20px',
+                      borderBottom: '1px solid #fde68a',
+                      background: '#fffbeb',
+                      fontSize: 12.5,
+                      color: '#78350f',
+                      display: 'flex',
+                      gap: 8,
+                      alignItems: 'flex-start',
+                    }}>
+                      <Star size={14} fill='#f59e0b' color='#f59e0b' style={{ flexShrink: 0, marginTop: 2 }} />
+                      <div>
+                        <strong style={{ fontWeight: 700 }}>Customer feedback:</strong>{' '}
+                        <span style={{ fontStyle: 'italic' }}>"{ratings[activeSession.session_id].comment}"</span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Messages area */}
                   <div
@@ -706,7 +872,9 @@ const LiveInbox = () => {
                                   flexShrink: 0,
                                 }}
                               >
-                                {isUser ? '👤' : '🏠'}
+                                {isUser
+                                  ? <UserIcon size={14} color='#6b7280' strokeWidth={2.25} />
+                                  : <Bot size={14} color='#C18B3F' strokeWidth={2.25} />}
                               </div>
                             )}
                             <div
@@ -763,7 +931,9 @@ const LiveInbox = () => {
                     {/* Typing indicator */}
                     {userIsTyping && (
                       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
-                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#C18B3F', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}>👤</div>
+                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <UserIcon size={14} color='#6b7280' strokeWidth={2.25} />
+                        </div>
                         <div style={{ background: '#C18B3F', borderRadius: '14px 14px 14px 4px', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 5, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
                           {[0, 0.2, 0.4].map((delay, i) => (
                             <span
@@ -859,7 +1029,7 @@ const LiveInbox = () => {
                       }}
                       aria-label="Send"
                     >
-                      ➤
+                      <Send size={16} strokeWidth={2.25} />
                     </button>
                   </div>
                   )}
