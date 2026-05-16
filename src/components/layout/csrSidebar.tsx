@@ -17,7 +17,7 @@ export const csrNavigationItems = [
   {
     label: "Tickets",
     iconSrc: "/sidebar/ticket.svg",
-    href: "/csr/tickets", // Changed from "/support/tickets"
+    href: "/csr/tickets",
   },
   {
     label: "Disputes & Complaints",

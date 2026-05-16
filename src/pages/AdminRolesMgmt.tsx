@@ -19,10 +19,12 @@ import { supabase } from "@/lib/supabase";
 
 type AdminStatus = "Active" | "Disabled";
 
-const CREATE_ADMIN_ROLES: { value: CreateAdminRole; label: string }[] = [
-  { value: "Admin", label: "Admin" },
-  { value: "FinanceAdmin", label: "Finance Admin" },
-  { value: "CSRAdmin", label: "CSR Admin" },
+const CREATE_ADMIN_ROLES: { value: CreateAdminRole; label: string; group: 'Admins' | 'Agents' }[] = [
+  { value: "Admin",        label: "Admin",          group: 'Admins' },
+  { value: "FinanceAdmin", label: "Finance Admin",  group: 'Admins' },
+  { value: "CSRAdmin",     label: "CSR Admin",      group: 'Admins' },
+  { value: "CSRAgent",     label: "CSR Agent",      group: 'Agents' },
+  { value: "FinanceAgent", label: "Finance Agent",  group: 'Agents' },
 ];
 
 interface AdminFormState {
@@ -165,10 +167,12 @@ export default function AdminRolesMgmt() {
       value: roleFilter,
       onChange: setRoleFilter,
       options: [
-        { value: "superadmin", label: "Super Admin" },
-        { value: "admin", label: "Admin" },
+        { value: "superadmin",   label: "Super Admin" },
+        { value: "admin",        label: "Admin" },
         { value: "financeadmin", label: "Finance Admin" },
-        { value: "csradmin", label: "CSR Admin" },
+        { value: "csradmin",     label: "CSR Admin" },
+        { value: "csragent",     label: "CSR Agent" },
+        { value: "financeagent", label: "Finance Agent" },
       ],
     },
     {
@@ -192,10 +196,12 @@ export default function AdminRolesMgmt() {
 
       const matchesRole =
         roleFilter === "all" ||
-        (roleFilter === "admin" && admin.role === "Admin") ||
-        (roleFilter === "superadmin" && admin.role === "SuperAdmin") ||
+        (roleFilter === "admin"        && admin.role === "Admin") ||
+        (roleFilter === "superadmin"   && admin.role === "SuperAdmin") ||
         (roleFilter === "financeadmin" && admin.role === "FinanceAdmin") ||
-        (roleFilter === "csradmin" && admin.role === "CSRAdmin");
+        (roleFilter === "csradmin"     && admin.role === "CSRAdmin") ||
+        (roleFilter === "csragent"     && admin.role === "CSRAgent") ||
+        (roleFilter === "financeagent" && admin.role === "FinanceAgent");
 
       const matchesStatus =
         statusFilter === "all" ||
@@ -290,8 +296,24 @@ export default function AdminRolesMgmt() {
                     </div>
 
                     <div className='md:col-span-2 w-full'>
-                      <span className='inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-slate-50 text-slate-700 border border-slate-200'>
-                        {admin.role}
+                      <span
+                        className={cn(
+                          'inline-flex items-center rounded-full px-3 py-1 text-xs font-medium border',
+                          admin.role === 'SuperAdmin'   ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                          admin.role === 'Admin'        ? 'bg-slate-50 text-slate-700 border-slate-200' :
+                          admin.role === 'FinanceAdmin' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                          admin.role === 'CSRAdmin'     ? 'bg-teal-50 text-teal-700 border-teal-200' :
+                          admin.role === 'FinanceAgent' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                          admin.role === 'CSRAgent'     ? 'bg-teal-50 text-teal-700 border-teal-200' :
+                                                          'bg-gray-50 text-gray-700 border-gray-200'
+                        )}
+                      >
+                        {admin.role === 'CSRAdmin'     ? 'CSR Admin' :
+                         admin.role === 'FinanceAdmin' ? 'Finance Admin' :
+                         admin.role === 'CSRAgent'     ? 'CSR Agent' :
+                         admin.role === 'FinanceAgent' ? 'Finance Agent' :
+                         admin.role === 'SuperAdmin'   ? 'Super Admin' :
+                         admin.role}
                       </span>
                     </div>
 
@@ -458,14 +480,20 @@ export default function AdminRolesMgmt() {
                 }))
               }
             >
-              {CREATE_ADMIN_ROLES.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
+              <optgroup label='Supervisors'>
+                {CREATE_ADMIN_ROLES.filter(o => o.group === 'Admins').map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </optgroup>
+              <optgroup label='Agents'>
+                {CREATE_ADMIN_ROLES.filter(o => o.group === 'Agents').map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </optgroup>
             </CustomSelect>
             <p className='mt-1 text-xs text-gray-500'>
-              Admins can manage platform operations based on their assigned role.
+              <strong>Supervisors</strong> manage their group (assign tickets to agents).{' '}
+              <strong>Agents</strong> handle tickets assigned to them.
             </p>
           </div>
         </div>

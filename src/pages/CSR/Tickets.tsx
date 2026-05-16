@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Sidebar } from "@/components/layout";
 import { Topbar } from "@/components/layout";
 import { csrNavigationItems } from "@/components/layout/csrSidebar";
+import { financeAdminNavigationItems } from "@/components/layout/FinanceSidebar";
+import { useAppSelector } from "@/store/hooks";
 import {
   Search,
   MoreVertical,
@@ -131,6 +133,11 @@ function TicketActionsDropdown({ ticket, onAction }: { ticket: Ticket; onAction:
 
 export default function Tickets() {
   const navigate = useNavigate();
+  // Pick the right sidebar based on the user's role so Finance team also feels at home
+  const profileRole = (useAppSelector(s => s.auth.profile?.role) ?? '').toLowerCase();
+  const sidebarItems = (profileRole === 'finance_admin' || profileRole === 'finance_agent')
+    ? financeAdminNavigationItems
+    : csrNavigationItems;
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [showEscalateModal, setShowEscalateModal] = useState(false);
   const [showResolveModal, setShowResolveModal] = useState(false);
@@ -251,7 +258,7 @@ export default function Tickets() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar navigationItems={csrNavigationItems} />
+      <Sidebar navigationItems={sidebarItems} />
       <div className="flex-1">
         <Topbar />
 

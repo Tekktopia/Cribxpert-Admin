@@ -6,39 +6,32 @@ import {
   RefreshCcw,
   FileText,
   LogOut,
+  Ticket,
 } from "lucide-react";
 import { cn } from "../../utils/cn";
 import { SvgIcon } from "@/components/ui/SvgIcon";
 
+// Used by the local FinanceSidebar component below
 const financeNavItems = [
-  {
-    label: "Dashboard",
-    icon: LayoutGrid,
-    href: "/finance-admin/financials",
-  },
-  {
-    label: "Transactions",
-    icon: ArrowLeftRight,
-    href: "/finance-admin/transactions",
-  },
-  {
-    label: "Payouts",
-    icon: Wallet,
-    href: "/finance-admin/payouts",
-  },
-  {
-    label: "Refunds",
-    icon: RefreshCcw,
-    href: "/finance-admin/refunds",
-  },
-  {
-    label: "Reports",
-    icon: FileText,
-    href: "/finance-admin/reports",
-  },
+  { label: "Dashboard",    icon: LayoutGrid,     href: "/finance-dashboard" },
+  { label: "Tickets",      icon: Ticket,         href: "/csr/tickets" },
+  { label: "Transactions", icon: ArrowLeftRight, href: "/finance-transactions" },
+  { label: "Payouts",      icon: Wallet,         href: "/finance-payouts" },
+  { label: "Refunds",      icon: RefreshCcw,     href: "/finance-refunds" },
+  { label: "Reports",      icon: FileText,       href: "/finance-reports" },
 ];
 
-export const financeAdminNavigationItems = financeNavItems;
+// Shape compatible with the main Sidebar component (iconSrc-based)
+export const financeAdminNavigationItems = [
+  { label: "Dashboard",    iconSrc: "/sidebar/dashboard-square-remove.svg",     href: "/finance-dashboard" },
+  { label: "Tickets",      iconSrc: "/sidebar/ticket.svg",                      href: "/csr/tickets" },
+  { label: "Transactions", iconSrc: "/sidebar/fluent-mdl2_financial.svg",       href: "/finance-transactions" },
+  { label: "Payouts",      iconSrc: "/sidebar/fluent-mdl2_financial.svg",       href: "/finance-payouts" },
+  { label: "Refunds",      iconSrc: "/sidebar/fluent-mdl2_financial.svg",       href: "/finance-refunds" },
+  { label: "Reports",      iconSrc: "/sidebar/material-symbols_report-outline.svg", href: "/finance-reports" },
+  { label: "Settings",     iconSrc: "/sidebar/setting-2.svg",                   href: "/settings" },
+  { label: "Logout",       iconSrc: "/sidebar/logout-01.svg",                   href: "/log-out" },
+];
 
 export default function FinanceSidebar() {
   const location = useLocation();

@@ -7,6 +7,8 @@ const FINANCE_ADMIN_PATHS = [
   "/finance-refunds",
   "/finance-transactions",
   "/finance-reports",
+  // Finance team also needs access to shared ticket pages
+  "/csr/tickets",
   "/settings",
   "/log-out",
 ];
@@ -20,6 +22,7 @@ const CSR_PATHS = [
   "/csr/reports",
   "/csr/notifications",
   "/csr/settings",
+  "/csr/live-inbox",
   "/settings",
   "/log-out",
 ];
@@ -39,22 +42,28 @@ export function RoleGuard() {
 
   if (pathname === "/") return <Outlet />;
 
-  // finance_admin: only finance paths
-  if (role === "finance_admin") {
+  // finance_admin / finance_agent: only finance paths + shared tickets
+  if (role === "finance_admin" || role === "finance_agent") {
     if (!isFinancePath(pathname)) {
       return <Navigate to="/finance-dashboard" replace />;
     }
   }
 
-  // admin or csr_admin: block /admin-management (superadmin only)
-  if (role === "admin" || role === "csr_admin") {
+  // admin/csr_admin/csr_agent/finance_agent: block /admin-management (superadmin only)
+  if (
+    role === "admin" ||
+    role === "csr_admin" ||
+    role === "csr_agent" ||
+    role === "finance_admin" ||
+    role === "finance_agent"
+  ) {
     if (pathname === "/admin-management") {
       return <Navigate to="/dashboard" replace />;
     }
   }
 
-  // csr_admin: only CSR paths, settings, logout — land on tickets
-  if (role === "csr_admin") {
+  // csr_admin / csr_agent: only CSR paths — land on tickets
+  if (role === "csr_admin" || role === "csr_agent") {
     if (!isCSRPath(pathname)) {
       return <Navigate to="/csr/tickets" replace />;
     }

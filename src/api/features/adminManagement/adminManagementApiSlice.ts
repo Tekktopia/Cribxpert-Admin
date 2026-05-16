@@ -1,35 +1,32 @@
 import { apiSlice } from "@/api/apiSlice";
 import { supabase } from "@/lib/supabase";
 
-export type AdminRole = "Admin" | "SuperAdmin" | "FinanceAdmin" | "CSRAdmin";
+export type AdminRole = "Admin" | "SuperAdmin" | "FinanceAdmin" | "CSRAdmin" | "CSRAgent" | "FinanceAgent";
 
 export interface AdminManagementAdmin {
   id: string;
   fullName: string;
   email: string;
   role: AdminRole;
+  agentGroup?: string | null;
   accountDisabled?: boolean;
   lastActive?: string | null;
 }
 
 export interface GetAdminsResponse { admins: AdminManagementAdmin[] }
-export type CreateAdminRole = "Admin" | "FinanceAdmin" | "CSRAdmin";
+export type CreateAdminRole = "Admin" | "FinanceAdmin" | "CSRAdmin" | "CSRAgent" | "FinanceAgent";
 export interface CreateAdminRequest { email: string; fullName: string; adminType?: CreateAdminRole }
 export interface CreateAdminResponse { message: string }
 export interface DisableAdminResponse { message: string }
 export interface DeleteAdminResponse { message: string }
 
 const ROLE_MAP: Record<string, AdminRole> = {
-  admin: 'Admin',
-  superadmin: 'SuperAdmin',
+  admin:         'Admin',
+  superadmin:    'SuperAdmin',
   finance_admin: 'FinanceAdmin',
-  csr_admin: 'CSRAdmin',
-};
-
-const ROLE_TO_DB: Record<string, string> = {
-  Admin: 'admin',
-  FinanceAdmin: 'finance_admin',
-  CSRAdmin: 'csr_admin',
+  csr_admin:     'CSRAdmin',
+  csr_agent:     'CSRAgent',
+  finance_agent: 'FinanceAgent',
 };
 
 export const adminManagementApiSlice = apiSlice.injectEndpoints({
@@ -38,8 +35,8 @@ export const adminManagementApiSlice = apiSlice.injectEndpoints({
       queryFn: async () => {
         const { data, error } = await supabase
           .from('profiles')
-          .select('id, full_name, email, role, account_disabled, created_at')
-          .in('role', ['admin', 'superadmin', 'finance_admin', 'csr_admin'])
+          .select('id, full_name, email, role, agent_group, account_disabled, created_at')
+          .in('role', ['admin', 'superadmin', 'finance_admin', 'csr_admin', 'csr_agent', 'finance_agent'])
           .order('created_at', { ascending: false }) as { data: any[] | null; error: any };
         if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
         return {
@@ -49,6 +46,7 @@ export const adminManagementApiSlice = apiSlice.injectEndpoints({
               fullName: p.full_name ?? p.email ?? '',
               email: p.email ?? '',
               role: ROLE_MAP[p.role] ?? 'Admin',
+              agentGroup: p.agent_group ?? null,
               accountDisabled: p.account_disabled ?? false,
               lastActive: null,
             })),

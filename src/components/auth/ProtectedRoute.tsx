@@ -2,7 +2,7 @@ import { Navigate } from "react-router-dom";
 import { useAppSelector } from "@/store/hooks";
 import LoadingPage from "@/components/ui/LoadingPage";
 
-const ADMIN_ROLES = ['admin', 'superadmin', 'finance_admin', 'csr_admin'];
+const ADMIN_ROLES = ['admin', 'superadmin', 'finance_admin', 'csr_admin', 'csr_agent', 'finance_agent'];
 
 interface ProtectedRouteProps {
   children: React.ReactNode;

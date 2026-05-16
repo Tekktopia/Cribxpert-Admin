@@ -8,18 +8,13 @@ import { financeAdminNavigationItems } from "./FinanceSidebar"; // adjust import
 
 export function MainLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const role = useAppSelector(state => state.auth.user?.role);
+  // Use the authoritative profile role (Supabase user.role is just 'authenticated')
+  const role = (useAppSelector(state => state.auth.profile?.role) ?? '').toLowerCase();
 
   const getSidebarItems = () => {
-    switch (role) {
-      case "FinanceAdmin":
-        return financeAdminNavigationItems;
-      case "CSR":
-      case "CSRAdmin":          // if your backend returns CSRAdmin
-        return csrNavigationItems;
-      default:
-        return adminNavigationItems;   // Admin, SuperAdmin
-    }
+    if (role === 'finance_admin' || role === 'finance_agent') return financeAdminNavigationItems;
+    if (role === 'csr_admin'     || role === 'csr_agent')     return csrNavigationItems;
+    return adminNavigationItems; // admin, superadmin (also fallback)
   };
 
   return (

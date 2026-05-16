@@ -4,6 +4,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Sidebar } from '@/components/layout';
 import { Topbar } from '@/components/layout';
 import { csrNavigationItems } from '@/components/layout/csrSidebar';
+import { financeAdminNavigationItems } from '@/components/layout/FinanceSidebar';
+import { useAppSelector } from '@/store/hooks';
 import {
   ArrowLeft,
   Mail,
@@ -82,6 +84,10 @@ function sourceLabel(source?: string) {
 export default function TicketDetails() {
   const { ticketId } = useParams<{ ticketId: string }>();
   const navigate = useNavigate();
+  const profileRole = (useAppSelector(s => s.auth.profile?.role) ?? '').toLowerCase();
+  const sidebarItems = (profileRole === 'finance_admin' || profileRole === 'finance_agent')
+    ? financeAdminNavigationItems
+    : csrNavigationItems;
 
   const { data: ticket, isLoading: ticketLoading, refetch: refetchTicket } = useGetTicketByIdQuery(ticketId ?? '', { skip: !ticketId });
   const { data: messages = [], isLoading: messagesLoading, refetch: refetchMessages } = useGetTicketMessagesQuery(ticketId ?? '', { skip: !ticketId });
@@ -153,7 +159,7 @@ export default function TicketDetails() {
   if (ticketLoading) {
     return (
       <div className="flex min-h-screen bg-gray-50">
-        <Sidebar navigationItems={csrNavigationItems} />
+        <Sidebar navigationItems={sidebarItems} />
         <div className="flex-1">
           <Topbar />
           <div className="p-10 text-center text-gray-500">Loading ticket…</div>
@@ -165,7 +171,7 @@ export default function TicketDetails() {
   if (!ticket) {
     return (
       <div className="flex min-h-screen bg-gray-50">
-        <Sidebar navigationItems={csrNavigationItems} />
+        <Sidebar navigationItems={sidebarItems} />
         <div className="flex-1">
           <Topbar />
           <div className="p-10 text-center text-gray-500">Ticket not found.</div>
@@ -180,7 +186,7 @@ export default function TicketDetails() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar navigationItems={csrNavigationItems} />
+      <Sidebar navigationItems={sidebarItems} />
       <div className="flex-1 flex flex-col">
         <Topbar />
 
