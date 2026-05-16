@@ -425,8 +425,8 @@ const LiveInbox = () => {
                       border: 'none',
                       background: 'transparent',
                       cursor: 'pointer',
-                      color: tab === t ? '#1d4ed8' : '#6b7280',
-                      borderBottom: tab === t ? '2.5px solid #1d4ed8' : '2.5px solid transparent',
+                      color: tab === t ? '#1d5c5c' : '#6b7280',
+                      borderBottom: tab === t ? '2.5px solid #1d5c5c' : '2.5px solid transparent',
                       transition: 'color 0.15s, border-color 0.15s',
                       display: 'flex',
                       alignItems: 'center',
@@ -492,10 +492,10 @@ const LiveInbox = () => {
                           gap: 12,
                           border: 'none',
                           borderBottom: '1px solid #f5f5f5',
-                          background: isActive ? '#eff6ff' : 'transparent',
+                          background: isActive ? '#E6EFF1' : 'transparent',
                           cursor: 'pointer',
                           transition: 'background 0.15s',
-                          borderLeft: isActive ? '3px solid #1d4ed8' : '3px solid transparent',
+                          borderLeft: isActive ? '3px solid #1d5c5c' : '3px solid transparent',
                         }}
                       >
                         {/* Avatar */}
@@ -504,7 +504,7 @@ const LiveInbox = () => {
                             width: 38,
                             height: 38,
                             borderRadius: '50%',
-                            background: isActive ? '#1d4ed8' : '#e5e7eb',
+                            background: isActive ? '#1d5c5c' : '#e5e7eb',
                             color: isActive ? '#fff' : '#374151',
                             display: 'flex',
                             alignItems: 'center',
@@ -580,7 +580,7 @@ const LiveInbox = () => {
                           width: 40,
                           height: 40,
                           borderRadius: '50%',
-                          background: '#1d4ed8',
+                          background: '#1d5c5c',
                           color: '#fff',
                           display: 'flex',
                           alignItems: 'center',
@@ -835,7 +835,7 @@ const LiveInbox = () => {
                         background: '#f9fafb',
                         transition: 'border-color 0.2s',
                       }}
-                      onFocus={e => { (e.target as HTMLInputElement).style.borderColor = '#1d4ed8'; (e.target as HTMLInputElement).style.background = '#fff'; }}
+                      onFocus={e => { (e.target as HTMLInputElement).style.borderColor = '#1d5c5c'; (e.target as HTMLInputElement).style.background = '#fff'; }}
                       onBlur={e => { (e.target as HTMLInputElement).style.borderColor = '#e5e7eb'; (e.target as HTMLInputElement).style.background = '#f9fafb'; }}
                     />
                     <button
@@ -845,7 +845,7 @@ const LiveInbox = () => {
                         width: 40,
                         height: 40,
                         borderRadius: '50%',
-                        background: '#1d4ed8',
+                        background: '#1d5c5c',
                         color: '#fff',
                         border: 'none',
                         cursor: sending || !replyText.trim() ? 'not-allowed' : 'pointer',
