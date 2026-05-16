@@ -15,6 +15,7 @@ import {
   type CreateAdminRole,
 } from "@/api/features/adminManagement/adminManagementApiSlice";
 import LoadingPage from "@/components/ui/LoadingPage";
+import { supabase } from "@/lib/supabase";
 
 type AdminStatus = "Active" | "Disabled";
 
@@ -56,7 +57,7 @@ function mapApiAdminToLocal(admin: AdminManagementAdmin) {
 }
 
 export default function AdminRolesMgmt() {
-  const { data, isLoading, error } = useGetAdminsQuery();
+  const { data, isLoading, error, refetch } = useGetAdminsQuery();
   const [createAdmin] = useCreateAdminMutation();
   const [disableAdmin] = useDisableAdminMutation();
   const [deleteAdmin] = useDeleteAdminMutation();
@@ -103,6 +104,19 @@ export default function AdminRolesMgmt() {
       setAdmins(data.admins.map(mapApiAdminToLocal));
     }
   }, [data?.admins]);
+
+  // ── Realtime: re-fetch whenever any profile row changes ──────────────────
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-profiles-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        () => { refetch(); }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [refetch]);
 
   const handleOpenAddModal = () => {
     setFormState({ fullName: "", email: "", adminType: "Admin" });

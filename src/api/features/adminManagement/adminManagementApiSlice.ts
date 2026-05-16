@@ -81,11 +81,13 @@ export const adminManagementApiSlice = apiSlice.injectEndpoints({
 
     disableAdmin: builder.mutation<DisableAdminResponse, string>({
       queryFn: async (adminId) => {
-        const { data: current } = await ((supabase.from('profiles') as any).select('account_disabled').eq('id', adminId).single());
-        const newDisabled = !(current?.account_disabled ?? false);
-        const { error } = await ((supabase.from('profiles') as any).update({ account_disabled: newDisabled }).eq('id', adminId));
+        // Uses edge function — needs service role to ban/unban in auth.users
+        const { data, error } = await supabase.functions.invoke('toggle-admin', {
+          body: { userId: adminId },
+        });
         if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
-        return { data: { message: newDisabled ? 'Admin disabled successfully' : 'Admin enabled successfully' } };
+        if (data?.error) return { error: { status: 'CUSTOM_ERROR', error: data.error } };
+        return { data: { message: data?.message ?? 'Admin status updated' } };
       },
       invalidatesTags: (_result, _error, id) => [
         { type: "User", id },
@@ -95,9 +97,13 @@ export const adminManagementApiSlice = apiSlice.injectEndpoints({
 
     deleteAdmin: builder.mutation<DeleteAdminResponse, string>({
       queryFn: async (adminId) => {
-        const { error } = await supabase.from('profiles').delete().eq('id', adminId);
+        // Uses edge function — needs service role to delete from auth.users
+        const { data, error } = await supabase.functions.invoke('delete-admin', {
+          body: { userId: adminId },
+        });
         if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
-        return { data: { message: 'Admin deleted successfully' } };
+        if (data?.error) return { error: { status: 'CUSTOM_ERROR', error: data.error } };
+        return { data: { message: data?.message ?? 'Admin deleted successfully' } };
       },
       invalidatesTags: [{ type: "User", id: "ADMIN_LIST" }],
     }),
