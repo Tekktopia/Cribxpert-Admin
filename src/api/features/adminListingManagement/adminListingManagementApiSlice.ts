@@ -1,3 +1,4 @@
+// src/api/features/listings/listingsManagementApiSlice.ts
 import { apiSlice } from "@/api/apiSlice";
 import { supabase } from "@/lib/supabase";
 
@@ -32,7 +33,7 @@ export interface ApiListing {
   basePrice: number;
   cleaningFee?: number;
   securityDeposit?: number;
-  status: "pending" | "approved" | "rejected" | "flagged";
+  status: "pending" | "approved" | "rejected" | "flagged" | "hidden";
   createdAt: string;
   latitude?: number;
   longitude?: number;
@@ -57,8 +58,29 @@ export interface ApiListing {
   hideStatus?: boolean;
 }
 
-export interface GetListingsResponse { listings: ApiListing[] }
-export interface GetListingsParams { status?: "pending" | "approved" | "rejected" | "flagged" }
+export interface GetListingsResponse { 
+  listings: ApiListing[];
+  totalCount: number;
+  currentPage: number;
+  totalPages: number;
+}
+
+export interface GetListingsParams { 
+  status?: "pending" | "approved" | "rejected" | "flagged" | "hidden";
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface ListingStats {
+  all: number;
+  approved: number;
+  pending: number;
+  flagged: number;
+  rejected: number;
+  hidden: number;
+}
+
 export interface ApproveListingResponse { message: string; listing: ApiListing }
 export interface RejectListingRequest { rejectionReason?: string }
 export interface RejectListingResponse { message: string; listing: ApiListing }
@@ -101,7 +123,7 @@ function mapRow(r: Record<string, unknown>): ApiListing {
     basePrice: r.base_price as number ?? 0,
     cleaningFee: r.cleaning_fee as number | undefined,
     securityDeposit: r.security_deposit as number | undefined,
-    status: r.status as ApiListing['status'],
+    status: (r.hide_status === true ? 'hidden' : r.status) as ApiListing['status'],
     createdAt: r.created_at as string,
     latitude: r.latitude as number | undefined,
     longitude: r.longitude as number | undefined,
@@ -121,52 +143,147 @@ function mapRow(r: Record<string, unknown>): ApiListing {
 
 export const adminListingManagementApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
+    // Get listings with pagination, filtering, and search
     getListings: builder.query<GetListingsResponse, GetListingsParams | void>({
       queryFn: async (params) => {
-        let query = supabase.from('listings').select(LISTING_SELECT).order('created_at', { ascending: false });
-        if (params?.status) query = query.eq('status', params.status);
-        const { data, error } = await query;
-        if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
-        return { data: { listings: (data ?? []).map(mapRow) } };
+        try {
+          const page = params?.page || 1;
+          const limit = params?.limit || 10;
+          const offset = (page - 1) * limit;
+          
+          let query = supabase
+            .from('listings')
+            .select(LISTING_SELECT, { count: 'exact' })
+            .order('created_at', { ascending: false });
+
+          // Apply status filter
+          if (params?.status) {
+            if (params.status === 'hidden') {
+              query = query.eq('hide_status', true);
+            } else {
+              query = query.eq('status', params.status);
+            }
+          }
+
+          // Apply search filter
+          if (params?.search && params.search.trim() !== '') {
+            const searchTerm = params.search.trim();
+            query = query.or(`name.ilike.%${searchTerm}%,city.ilike.%${searchTerm}%`);
+          }
+
+          // Apply pagination
+          query = query.range(offset, offset + limit - 1);
+
+          const { data, error, count } = await query;
+          
+          if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
+          
+          return { 
+            data: { 
+              listings: (data ?? []).map(mapRow),
+              totalCount: count || 0,
+              currentPage: page,
+              totalPages: Math.ceil((count || 0) / limit),
+            } 
+          };
+        } catch (error) {
+          return { error: { status: 'CUSTOM_ERROR', error: String(error) } };
+        }
       },
       providesTags: [{ type: "Listing", id: "LIST" }],
     }),
 
+    // Get listing statistics for tabs
+    getListingStats: builder.query<ListingStats, void>({
+      queryFn: async () => {
+        try {
+          const { data: listings, error } = await supabase
+            .from('listings')
+            .select('status, hide_status');
+
+          if (error) throw error;
+
+          const stats: ListingStats = {
+            all: listings?.length || 0,
+            approved: 0,
+            pending: 0,
+            flagged: 0,
+            rejected: 0,
+            hidden: 0,
+          };
+
+          listings?.forEach(listing => {
+            if (listing.hide_status === true) {
+              stats.hidden++;
+            } else if (listing.status === 'approved') {
+              stats.approved++;
+            } else if (listing.status === 'pending') {
+              stats.pending++;
+            } else if (listing.status === 'flagged') {
+              stats.flagged++;
+            } else if (listing.status === 'rejected') {
+              stats.rejected++;
+            }
+          });
+
+          return { data: stats };
+        } catch (error) {
+          return { error: { status: 'CUSTOM_ERROR', error: String(error) } };
+        }
+      },
+      providesTags: [{ type: "Listing", id: "STATS" }],
+    }),
+
+    // Approve listing
     approveListing: builder.mutation<ApproveListingResponse, string>({
       queryFn: async (listingId) => {
-        const { data, error } = await ((supabase.from('listings') as any)
+        const { data, error } = await supabase
+          .from('listings')
           .update({ status: 'approved', approved_at: new Date().toISOString() })
           .eq('id', listingId)
           .select(LISTING_SELECT)
-          .single());
+          .single();
+          
         if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
+        
         const listing = mapRow(data as Record<string, unknown>);
-        await (supabase.from('notifications') as any).insert({
+        
+        // Send notification to host
+        await supabase.from('notifications').insert({
           user_id: listing.userId._id,
           title: 'Listing Approved',
           description: `Your listing "${listing.name}" has been approved and is now live.`,
           category: 'listing',
           is_read: false,
         });
+        
+        // Send email notification
         await sendEmail('listing_approved', listing.userId.email, {
           userName: listing.userId.fullName || listing.userId.email,
           listingName: listing.name,
         });
+        
         return { data: { message: 'Listing approved successfully', listing } };
       },
-      invalidatesTags: [{ type: "Listing", id: "LIST" }],
+      invalidatesTags: [{ type: "Listing", id: "LIST" }, { type: "Listing", id: "STATS" }],
     }),
 
+    // Reject listing
     rejectListing: builder.mutation<RejectListingResponse, { listingId: string; rejectionReason?: string }>({
       queryFn: async ({ listingId, rejectionReason }) => {
-        const { data, error } = await ((supabase.from('listings') as any)
+        const { data, error } = await supabase
+          .from('listings')
           .update({ status: 'rejected' })
           .eq('id', listingId)
           .select(LISTING_SELECT)
-          .single());
+          .single();
+          
         if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
+        
         const listing = mapRow(data as Record<string, unknown>);
-        await (supabase.from('notifications') as any).insert({
+        
+        // Send notification to host
+        await supabase.from('notifications').insert({
           user_id: listing.userId._id,
           title: 'Listing Rejected',
           description: rejectionReason
@@ -175,26 +292,35 @@ export const adminListingManagementApiSlice = apiSlice.injectEndpoints({
           category: 'listing',
           is_read: false,
         });
+        
+        // Send email notification
         await sendEmail('listing_rejected', listing.userId.email, {
           userName: listing.userId.fullName || listing.userId.email,
           listingName: listing.name,
           ...(rejectionReason ? { reason: rejectionReason } : {}),
         });
+        
         return { data: { message: 'Listing rejected successfully', listing } };
       },
-      invalidatesTags: [{ type: "Listing", id: "LIST" }],
+      invalidatesTags: [{ type: "Listing", id: "LIST" }, { type: "Listing", id: "STATS" }],
     }),
 
+    // Flag listing
     flagListing: builder.mutation<FlagListingResponse, { listingId: string; flagReason?: string }>({
       queryFn: async ({ listingId, flagReason }) => {
-        const { data, error } = await ((supabase.from('listings') as any)
+        const { data, error } = await supabase
+          .from('listings')
           .update({ status: 'flagged' })
           .eq('id', listingId)
           .select(LISTING_SELECT)
-          .single());
+          .single();
+          
         if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
+        
         const listing = mapRow(data as Record<string, unknown>);
-        await (supabase.from('notifications') as any).insert({
+        
+        // Send notification to host
+        await supabase.from('notifications').insert({
           user_id: listing.userId._id,
           title: 'Listing Flagged',
           description: flagReason
@@ -203,38 +329,123 @@ export const adminListingManagementApiSlice = apiSlice.injectEndpoints({
           category: 'listing',
           is_read: false,
         });
+        
+        // Send email notification
         await sendEmail('listing_flagged', listing.userId.email, {
           userName: listing.userId.fullName || listing.userId.email,
           listingName: listing.name,
           ...(flagReason ? { reason: flagReason } : {}),
         });
+        
         return { data: { message: 'Listing flagged successfully', listing } };
       },
-      invalidatesTags: [{ type: "Listing", id: "LIST" }],
+      invalidatesTags: [{ type: "Listing", id: "LIST" }, { type: "Listing", id: "STATS" }],
     }),
 
+    // Hide/Unhide listing
     hideListing: builder.mutation<HideListingResponse, string>({
       queryFn: async (listingId) => {
-        const { data: current } = await ((supabase.from('listings') as any).select('hide_status').eq('id', listingId).single());
+        const { data: current } = await supabase
+          .from('listings')
+          .select('hide_status')
+          .eq('id', listingId)
+          .single();
+          
         const newStatus = !(current?.hide_status ?? false);
-        const { data, error } = await ((supabase.from('listings') as any)
+        
+        const { data, error } = await supabase
+          .from('listings')
           .update({ hide_status: newStatus })
           .eq('id', listingId)
           .select(LISTING_SELECT)
-          .single());
+          .single();
+          
         if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
-        return { data: { message: newStatus ? 'Listing hidden successfully' : 'Listing unhidden successfully', listing: mapRow(data as Record<string, unknown>) } };
+        
+        return { 
+          data: { 
+            message: newStatus ? 'Listing hidden successfully' : 'Listing unhidden successfully', 
+            listing: mapRow(data as Record<string, unknown>) 
+          } 
+        };
       },
-      invalidatesTags: [{ type: "Listing", id: "LIST" }],
+      invalidatesTags: [{ type: "Listing", id: "LIST" }, { type: "Listing", id: "STATS" }],
+    }),
+
+    // Export listings to CSV
+    exportListings: builder.query<string, GetListingsParams | void>({
+      queryFn: async (params) => {
+        try {
+          let query = supabase
+            .from('listings')
+            .select(`
+              id,
+              name,
+              city,
+              state,
+              country,
+              base_price,
+              status,
+              hide_status,
+              created_at,
+              profiles!user_id(full_name, email)
+            `);
+
+          if (params?.status) {
+            if (params.status === 'hidden') {
+              query = query.eq('hide_status', true);
+            } else {
+              query = query.eq('status', params.status);
+            }
+          }
+
+          if (params?.search && params.search.trim() !== '') {
+            const searchTerm = params.search.trim();
+            query = query.or(`name.ilike.%${searchTerm}%,profiles.full_name.ilike.%${searchTerm}%`);
+          }
+
+          const { data: listings, error } = await query;
+          if (error) throw error;
+
+          const headers = ['Listing ID', 'Name', 'Host Name', 'Email', 'Location', 'Price/Night', 'Status', 'Created Date'];
+          const rows = listings?.map(listing => {
+            let status = listing.status;
+            if (listing.hide_status === true) status = 'hidden';
+            
+            return [
+              listing.id.slice(0, 8).toUpperCase(),
+              listing.name,
+              listing.profiles?.full_name || 'Unknown',
+              listing.profiles?.email || '',
+              [listing.city, listing.state, listing.country].filter(Boolean).join(', '),
+              listing.base_price || 0,
+              status,
+              new Date(listing.created_at).toLocaleDateString()
+            ];
+          }) || [];
+
+          const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+          ].join('\n');
+
+          return { data: csvContent };
+        } catch (error) {
+          return { error: { status: 'CUSTOM_ERROR', error: String(error) } };
+        }
+      },
     }),
   }),
   overrideExisting: true,
 });
 
+// Export hooks
 export const {
   useGetListingsQuery,
+  useGetListingStatsQuery,
   useApproveListingMutation,
   useRejectListingMutation,
   useFlagListingMutation,
   useHideListingMutation,
+  useExportListingsQuery,
 } = adminListingManagementApiSlice;

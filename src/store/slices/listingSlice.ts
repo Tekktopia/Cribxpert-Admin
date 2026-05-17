@@ -37,6 +37,43 @@ const initialState: ListingState = {
   error: null,
 };
 
+// Helper function to filter listings based on tab
+const filterListingsByTab = (
+  listings: ListingRecord[],
+  tab: string,
+): ListingRecord[] => {
+  if (!listings) return [];
+
+  switch (tab) {
+    case "approved":
+      // Approved/Active = status is 'active' AND not hidden
+      return listings.filter(
+        (l) =>
+          (l.status === "active" || l.status === "approved") && !l.hideStatus,
+      );
+
+    case "pending":
+      // Pending = status is 'pending' AND not hidden
+      return listings.filter((l) => l.status === "pending" && !l.hideStatus);
+
+    case "flagged":
+      // Flagged = status is 'flagged' AND not hidden
+      return listings.filter((l) => l.status === "flagged" && !l.hideStatus);
+
+    case "rejected":
+      // Rejected = status is 'rejected' AND not hidden
+      return listings.filter((l) => l.status === "rejected" && !l.hideStatus);
+
+    case "hidden":
+      // ✅ FIX: Hidden = hideStatus is true (regardless of status)
+      return listings.filter((l) => l.hideStatus === true);
+
+    case "all":
+    default:
+      return listings;
+  }
+};
+
 export const listingSlice = createSlice({
   name: "listing",
   initialState,
@@ -44,61 +81,26 @@ export const listingSlice = createSlice({
     // Set listings data
     setListings: (state, action: PayloadAction<ListingRecord[]>) => {
       state.listings = action.payload;
-      // Re-apply active tab filter so a refetch doesn't reset the current tab
-      switch (state.activeTab) {
-        case "approved":
-          state.filteredListings = action.payload.filter(
-            (l) => l.status === "active" || l.status === "approved"
-          );
-          break;
-        case "pending":
-          state.filteredListings = action.payload.filter((l) => l.status === "pending");
-          break;
-        case "flagged":
-          state.filteredListings = action.payload.filter((l) => l.status === "flagged");
-          break;
-        case "rejected":
-          state.filteredListings = action.payload.filter((l) => l.status === "rejected");
-          break;
-        default:
-          state.filteredListings = action.payload;
-      }
+      // Re-apply active tab filter
+      state.filteredListings = filterListingsByTab(
+        state.listings,
+        state.activeTab,
+      );
     },
 
     // Filter listings by tab
     setActiveTab: (state, action: PayloadAction<string>) => {
       state.activeTab = action.payload;
-
-      switch (action.payload) {
-        case "approved":
-          state.filteredListings = state.listings.filter(
-            (listing) => listing.status === "active" || listing.status === "approved"
-          );
-          break;
-        case "pending":
-          state.filteredListings = state.listings.filter(
-            (listing) => listing.status === "pending"
-          );
-          break;
-        case "flagged":
-          state.filteredListings = state.listings.filter(
-            (listing) => listing.status === "flagged"
-          );
-          break;
-        case "rejected":
-          state.filteredListings = state.listings.filter(
-            (listing) => listing.status === "rejected"
-          );
-          break;
-        default:
-          state.filteredListings = state.listings;
-      }
+      state.filteredListings = filterListingsByTab(
+        state.listings,
+        action.payload,
+      );
     },
 
     // Set selected listing
     setSelectedListing: (
       state,
-      action: PayloadAction<ListingRecord | null>
+      action: PayloadAction<ListingRecord | null>,
     ) => {
       state.selectedListing = action.payload;
     },
@@ -110,7 +112,7 @@ export const listingSlice = createSlice({
 
     closeModal: (
       state,
-      action: PayloadAction<keyof ListingState["modals"]>
+      action: PayloadAction<keyof ListingState["modals"]>,
     ) => {
       state.modals[action.payload] = false;
     },
@@ -135,61 +137,56 @@ export const listingSlice = createSlice({
       state.error = action.payload;
     },
 
-    // Listing actions
+    // Listing actions - update local state after API success
     approveListing: (state, action: PayloadAction<string>) => {
       const listing = state.listings.find((l) => l.id === action.payload);
       if (listing) {
-        listing.status = "approved" as ListingRecord["status"];  // was "active"
+        listing.status = "active";
+        listing.hideStatus = false;
       }
-      if (state.activeTab !== "all") {
-        listingSlice.caseReducers.setActiveTab(state, {
-          payload: state.activeTab,
-          type: "listing/setActiveTab",
-        });
-      }
+      // Refresh filtered listings
+      state.filteredListings = filterListingsByTab(
+        state.listings,
+        state.activeTab,
+      );
     },
 
     rejectListing: (state, action: PayloadAction<string>) => {
       const listing = state.listings.find((l) => l.id === action.payload);
       if (listing) {
         listing.status = "rejected";
+        listing.hideStatus = false;
       }
-      // Update filtered listings if needed
-      if (state.activeTab !== "all") {
-        listingSlice.caseReducers.setActiveTab(state, {
-          payload: state.activeTab,
-          type: "listing/setActiveTab",
-        });
-      }
+      // Refresh filtered listings
+      state.filteredListings = filterListingsByTab(
+        state.listings,
+        state.activeTab,
+      );
     },
 
     flagListing: (state, action: PayloadAction<string>) => {
       const listing = state.listings.find((l) => l.id === action.payload);
       if (listing) {
         listing.status = "flagged";
+        listing.hideStatus = false;
       }
-      // Update filtered listings if needed
-      if (state.activeTab !== "all") {
-        listingSlice.caseReducers.setActiveTab(state, {
-          payload: state.activeTab,
-          type: "listing/setActiveTab",
-        });
-      }
+      // Refresh filtered listings
+      state.filteredListings = filterListingsByTab(
+        state.listings,
+        state.activeTab,
+      );
     },
 
     hideListing: (state, action: PayloadAction<string>) => {
       const listing = state.listings.find((l) => l.id === action.payload);
       if (listing) {
-        // Hide status is handled by hideStatus field in the API
-        // We don't need to change the status here as the API handles it
+        listing.hideStatus = !listing.hideStatus;
       }
-      // Update filtered listings if needed
-      if (state.activeTab !== "all") {
-        listingSlice.caseReducers.setActiveTab(state, {
-          payload: state.activeTab,
-          type: "listing/setActiveTab",
-        });
-      }
+      // Refresh filtered listings
+      state.filteredListings = filterListingsByTab(
+        state.listings,
+        state.activeTab,
+      );
     },
   },
 });
@@ -228,5 +225,24 @@ export const selectLoading = (state: { listing: ListingState }) =>
   state.listing.loading;
 export const selectError = (state: { listing: ListingState }) =>
   state.listing.error;
+
+// ✅ NEW: Selector for tab counts
+export const selectTabCounts = (state: { listing: ListingState }) => {
+  const listings = state.listing.listings;
+  return {
+    all: listings.length,
+    approved: listings.filter(
+      (l) =>
+        (l.status === "active" || l.status === "approved") && !l.hideStatus,
+    ).length,
+    pending: listings.filter((l) => l.status === "pending" && !l.hideStatus)
+      .length,
+    flagged: listings.filter((l) => l.status === "flagged" && !l.hideStatus)
+      .length,
+    rejected: listings.filter((l) => l.status === "rejected" && !l.hideStatus)
+      .length,
+    hidden: listings.filter((l) => l.hideStatus === true).length,
+  };
+};
 
 export default listingSlice.reducer;

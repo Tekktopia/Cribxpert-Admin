@@ -11,8 +11,13 @@ import { useRealtimeRefetch } from "@/hooks/useRealtimeRefetch";
 
 export default function ListingMgmt() {
   const dispatch = useAppDispatch();
-  const { data: listingsData, isLoading, error, refetch } = useGetListingsQuery();
-  useRealtimeRefetch(['listings'], refetch);
+  const {
+    data: listingsData,
+    isLoading,
+    error,
+    refetch,
+  } = useGetListingsQuery();
+  useRealtimeRefetch(["listings"], refetch);
 
   // Transform API data to match ListingRecord type
   const transformedListings = useMemo(() => {
@@ -31,9 +36,10 @@ export default function ListingMgmt() {
       if (apiListing.city) locationParts.push(apiListing.city);
       if (apiListing.state) locationParts.push(apiListing.state);
       if (apiListing.country) locationParts.push(apiListing.country);
-      const location = locationParts.length > 0
-        ? locationParts.join(", ")
-        : "Location not specified";
+      const location =
+        locationParts.length > 0
+          ? locationParts.join(", ")
+          : "Location not specified";
 
       // Format price using basePrice
       const basePrice = apiListing.basePrice || 0;
@@ -102,8 +108,8 @@ export default function ListingMgmt() {
   if (isLoading) {
     return (
       <PageWrapper
-        title='Listings Management'
-        subtitle='Review and moderate property listings submitted by hosts'
+        title="Listings Management"
+        subtitle="Review and moderate property listings submitted by hosts"
         isPopulated={false}
         showDefaultHeader={false}
         headerComponent={<ListingManagementHeader />}
@@ -121,15 +127,16 @@ export default function ListingMgmt() {
   if (error) {
     return (
       <PageWrapper
-        title='Listings Management'
-        subtitle='Review and moderate property listings submitted by hosts'
+        title="Listings Management"
+        subtitle="Review and moderate property listings submitted by hosts"
         isPopulated={false}
         showDefaultHeader={false}
         headerComponent={<ListingManagementHeader />}
         emptyState={{
           iconUrl: "/svg/listings.svg",
           title: "Error loading listings",
-          subtitle: "There was an error loading listings. Please try again later.",
+          subtitle:
+            "There was an error loading listings. Please try again later.",
         }}
       />
     );
@@ -137,8 +144,8 @@ export default function ListingMgmt() {
 
   return (
     <PageWrapper
-      title='Listings Management'
-      subtitle='Review and moderate property listings submitted by hosts'
+      title="Listings Management"
+      subtitle="Review and moderate property listings submitted by hosts"
       isPopulated={isPopulated}
       showDefaultHeader={false}
       headerComponent={<ListingManagementHeader />}
