@@ -70,7 +70,7 @@ const filterListingsByTab = (
 
     case "all":
     default:
-      return listings;
+      return listings.filter((l) => !l.hideStatus); // Show all non-hidden listings by default
   }
 };
 
