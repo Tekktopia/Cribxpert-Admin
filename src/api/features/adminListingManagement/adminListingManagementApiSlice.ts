@@ -197,9 +197,12 @@ export const adminListingManagementApiSlice = apiSlice.injectEndpoints({
     getListingStats: builder.query<ListingStats, void>({
       queryFn: async () => {
         try {
-          const { data: listings, error } = await supabase
+          const { data: listings, error } = (await supabase
             .from('listings')
-            .select('status, hide_status');
+            .select('status, hide_status')) as {
+              data: Array<{ status: string | null; hide_status: boolean | null }> | null;
+              error: { message: string } | null;
+            };
 
           if (error) throw error;
 
@@ -237,19 +240,19 @@ export const adminListingManagementApiSlice = apiSlice.injectEndpoints({
     // Approve listing
     approveListing: builder.mutation<ApproveListingResponse, string>({
       queryFn: async (listingId) => {
-        const { data, error } = await supabase
-          .from('listings')
+        const { data, error } = await (supabase
+          .from('listings') as any)
           .update({ status: 'approved', approved_at: new Date().toISOString() })
           .eq('id', listingId)
           .select(LISTING_SELECT)
           .single();
-          
+
         if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
-        
+
         const listing = mapRow(data as Record<string, unknown>);
-        
+
         // Send notification to host
-        await supabase.from('notifications').insert({
+        await (supabase.from('notifications') as any).insert({
           user_id: listing.userId._id,
           title: 'Listing Approved',
           description: `Your listing "${listing.name}" has been approved and is now live.`,
@@ -271,19 +274,19 @@ export const adminListingManagementApiSlice = apiSlice.injectEndpoints({
     // Reject listing
     rejectListing: builder.mutation<RejectListingResponse, { listingId: string; rejectionReason?: string }>({
       queryFn: async ({ listingId, rejectionReason }) => {
-        const { data, error } = await supabase
-          .from('listings')
+        const { data, error } = await (supabase
+          .from('listings') as any)
           .update({ status: 'rejected' })
           .eq('id', listingId)
           .select(LISTING_SELECT)
           .single();
-          
+
         if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
-        
+
         const listing = mapRow(data as Record<string, unknown>);
-        
+
         // Send notification to host
-        await supabase.from('notifications').insert({
+        await (supabase.from('notifications') as any).insert({
           user_id: listing.userId._id,
           title: 'Listing Rejected',
           description: rejectionReason
@@ -308,19 +311,19 @@ export const adminListingManagementApiSlice = apiSlice.injectEndpoints({
     // Flag listing
     flagListing: builder.mutation<FlagListingResponse, { listingId: string; flagReason?: string }>({
       queryFn: async ({ listingId, flagReason }) => {
-        const { data, error } = await supabase
-          .from('listings')
+        const { data, error } = await (supabase
+          .from('listings') as any)
           .update({ status: 'flagged' })
           .eq('id', listingId)
           .select(LISTING_SELECT)
           .single();
-          
+
         if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
-        
+
         const listing = mapRow(data as Record<string, unknown>);
-        
+
         // Send notification to host
-        await supabase.from('notifications').insert({
+        await (supabase.from('notifications') as any).insert({
           user_id: listing.userId._id,
           title: 'Listing Flagged',
           description: flagReason
@@ -345,16 +348,16 @@ export const adminListingManagementApiSlice = apiSlice.injectEndpoints({
     // Hide/Unhide listing
     hideListing: builder.mutation<HideListingResponse, string>({
       queryFn: async (listingId) => {
-        const { data: current } = await supabase
+        const { data: current } = (await supabase
           .from('listings')
           .select('hide_status')
           .eq('id', listingId)
-          .single();
-          
+          .single()) as { data: { hide_status: boolean | null } | null };
+
         const newStatus = !(current?.hide_status ?? false);
-        
-        const { data, error } = await supabase
-          .from('listings')
+
+        const { data, error } = await (supabase
+          .from('listings') as any)
           .update({ hide_status: newStatus })
           .eq('id', listingId)
           .select(LISTING_SELECT)
@@ -404,7 +407,21 @@ export const adminListingManagementApiSlice = apiSlice.injectEndpoints({
             query = query.or(`name.ilike.%${searchTerm}%,profiles.full_name.ilike.%${searchTerm}%`);
           }
 
-          const { data: listings, error } = await query;
+          const { data: listings, error } = (await query) as {
+            data: Array<{
+              id: string;
+              name: string | null;
+              city: string | null;
+              state: string | null;
+              country: string | null;
+              base_price: number | null;
+              status: string | null;
+              hide_status: boolean | null;
+              created_at: string;
+              profiles?: { full_name: string | null; email: string | null } | null;
+            }> | null;
+            error: { message: string } | null;
+          };
           if (error) throw error;
 
           const headers = ['Listing ID', 'Name', 'Host Name', 'Email', 'Location', 'Price/Night', 'Status', 'Created Date'];
