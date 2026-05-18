@@ -2,7 +2,7 @@ import React from 'react';
 import CustomDropdown from './CustomDropdown';
 import { GoogleSignUp } from './GoogleSignUp';
 import { supabase } from '@/lib/supabase';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 
 const isValidEmail = (email: string): boolean => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);

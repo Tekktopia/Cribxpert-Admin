@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { EyeOff, Eye, CheckCircle, XCircle } from 'lucide-react';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 
 const StepThree: React.FC = () => {
   const [formData, setFormData] = useState({
