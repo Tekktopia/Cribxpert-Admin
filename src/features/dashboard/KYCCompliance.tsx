@@ -1,7 +1,4 @@
-// =====================================================
-// File: src/features/kyc/KYCCompliance.tsx
-// Fix key warning (use stable fallback key)
-// =====================================================
+// src/features/dashboard/KYCCompliance.tsx
 import {
   Card,
   CardContent,
@@ -18,7 +15,7 @@ import { getStatusVariant, getStatusLabel } from "@/utils/statusBadges";
 import { getInitials, normalizeAvatarSrc, safeText } from "@/utils/userDisplay";
 
 interface User {
-  id?: string; // ✅ allow missing to avoid runtime issues
+  id?: string;
   name?: string;
   email?: string;
   avatar?: string;
@@ -32,52 +29,63 @@ interface KYCComplianceProps {
 }
 
 export function KYCCompliance({ users }: KYCComplianceProps) {
-  const getStatusBadge = (status: string) => (
-    <Badge variant={getStatusVariant(status, "kyc")}>
-      {getStatusLabel(status, "kyc")}
-    </Badge>
-  );
-
   return (
-    <Card className="p-4">
-      <CardHeader className="p-0 ">
-        <CardTitle className="text-base pb-4 font-semibold">
+    <Card className="p-5">
+      <CardHeader className="p-0 pb-4">
+        <CardTitle className="text-base font-semibold">
           KYC &amp; Compliance
         </CardTitle>
+        <p className="text-xs text-gray-400 mt-0.5">Users awaiting review</p>
       </CardHeader>
 
-      <CardContent className="space-y-4 pt-2 p-0">
-        {users.map((user, idx) => {
-          const displayName = safeText(user.name ?? user.email, "Unknown User");
-          const initials = getInitials(user.name ?? user.email, "U");
-          const avatarSrc = normalizeAvatarSrc(user.avatar);
+      <CardContent className="p-0">
+        {users.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-8">
+            No pending users
+          </p>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {users.map((user, idx) => {
+              const displayName = safeText(
+                user.name ?? user.email,
+                "Unknown User"
+              );
+              const initials = getInitials(user.name ?? user.email, "U");
+              const avatarSrc = normalizeAvatarSrc(user.avatar);
 
-          return (
-            <div
-              key={`${user.id ?? user.email ?? "user"}-${idx}`} // ✅ always unique
-              className="flex items-center justify-between rounded-lg border border-gray-100 p-4"
-            >
-              <div className="flex items-center space-x-3">
-                <Avatar className="w-10 h-10 border-0">
-                  <AvatarImage src={avatarSrc} alt={displayName} />
-                  <AvatarFallback>{initials}</AvatarFallback>
-                </Avatar>
+              return (
+                <div
+                  key={`${user.id ?? user.email ?? "user"}-${idx}`}
+                  className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
+                >
+                  <div className="flex items-center gap-3">
+                    <Avatar className="w-9 h-9 flex-shrink-0">
+                      <AvatarImage src={avatarSrc} alt={displayName} />
+                      <AvatarFallback className="text-xs">
+                        {initials}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {displayName}
+                      </p>
+                      {user.timestamp && (
+                        <p className="text-xs text-gray-400">{user.timestamp}</p>
+                      )}
+                    </div>
+                  </div>
 
-                <div>
-                  <p className="font-medium text-gray-900">{displayName}</p>
-                  <p className="text-sm text-gray-500">ID Verification</p>
+                  <Badge
+                    variant={getStatusVariant(user.status, "kyc")}
+                    className="flex-shrink-0 ml-2"
+                  >
+                    {getStatusLabel(user.status, "kyc")}
+                  </Badge>
                 </div>
-              </div>
-
-              <div className="flex flex-col items-end">
-                {getStatusBadge(user.status)}
-                <span className="text-xs text-gray-500 mt-1">
-                  {safeText(user.timestamp, "")}
-                </span>
-              </div>
-            </div>
-          );
-        })}
+              );
+            })}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

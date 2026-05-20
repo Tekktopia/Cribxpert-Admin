@@ -11,6 +11,7 @@ import {
   useGetRecentActivityQuery,
   useGetListingSummaryQuery,
   useGetTotalRevenueQuery,
+  useGetBookingStatusBreakdownQuery,
 } from "@/api/features/adminDashboard/adminDashboardApiSlice";
 import { dashboardData } from "../data/dashboardData";
 import type {
@@ -42,12 +43,14 @@ export function DashboardPage() {
   const { data: activityData, isLoading: activityLoading, refetch: refetchActivity } = useGetRecentActivityQuery({ limit: 20 });
   const { data: listingSummaryData, isLoading: listingSummaryLoading, refetch: refetchListings } = useGetListingSummaryQuery();
   const { data: revenueData, refetch: refetchRevenue } = useGetTotalRevenueQuery();
+  const { data: bookingBreakdownData, refetch: refetchBreakdown } = useGetBookingStatusBreakdownQuery();
 
   useRealtimeRefetch(['listings'], refetchListings, 'listings');
   useRealtimeRefetch(['profiles'], refetchUsers, 'users');
   useRealtimeRefetch(['bookings', 'listings', 'profiles'], refetchCards, 'cards');
   useRealtimeRefetch(['bookings', 'listings', 'profiles'], refetchActivity, 'activity');
   useRealtimeRefetch(['bookings'], refetchRevenue, 'revenue');
+  useRealtimeRefetch(['bookings'], refetchBreakdown, 'breakdown');
 
   const uiMetrics: DashboardUIMetrics = useMemo(() => {
     if (!cardsData) {
@@ -61,6 +64,8 @@ export function DashboardPage() {
           m.totalUsers.changeText,
           m.totalUsers.details,
         ),
+        adminTeam: toUIMetric(0, ""),
+        kycPending: toUIMetric(0, ""),
         activeListings: toUIMetric(
           parse(m.activeListings),
           m.activeListings.changeText,
@@ -80,7 +85,17 @@ export function DashboardPage() {
       totalUsers: toUIMetric(
         cardsData.totalUsers,
         "this week",
-        "All registered users",
+        "All registered accounts",
+      ),
+      adminTeam: toUIMetric(
+        cardsData.adminTeam,
+        "",
+        "Admins & staff",
+      ),
+      kycPending: toUIMetric(
+        cardsData.kycPending,
+        "",
+        "Awaiting verification",
       ),
       activeListings: toUIMetric(cardsData.activeListings, "this week"),
       weeklyBookings: toUIMetric(cardsData.weeklyBookings, "vs last week"),
@@ -89,7 +104,7 @@ export function DashboardPage() {
         dashboardData.metrics.totalRevenue.changeText,
       ),
     };
-  }, [cardsData]);
+  }, [cardsData, revenueData]);
 
   const combinedData: DashboardData = useMemo(() => {
     // Start from the existing sample dashboard data
@@ -161,9 +176,9 @@ export function DashboardPage() {
         } else if (activity.type === "booking") {
           type = "payout_processed";
           title = "New booking";
-          description = `${activity.user?.fullName || "User"} - $${
+          description = `${activity.user?.fullName || "User"} - ₦${(
             activity.booking?.totalPrice ?? 0
-          }`;
+          ).toLocaleString()}`;
           status =
             activity.booking?.status === "confirmed" ? "completed" : "pending";
         }
@@ -283,7 +298,7 @@ export function DashboardPage() {
           "Once users start signing up, listings are added, and bookings roll in, you'll see your key platform metrics here — all in one place.",
       }}
     >
-      <DashboardGrid data={combinedData} />
+      <DashboardGrid data={combinedData} bookingBreakdown={bookingBreakdownData} />
     </PageWrapper>
   );
 }

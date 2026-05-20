@@ -125,7 +125,7 @@ export const dashboardData: DashboardData = {
       value: "30",
       change: 12,
       changeText: "this week",
-      details: "15 Guests • 14 Hosts",
+      details: "All registered accounts",
     },
     activeListings: {
       value: "30",
@@ -138,7 +138,7 @@ export const dashboardData: DashboardData = {
       changeText: "vs last week",
     },
     totalRevenue: {
-      value: "$3,000",
+      value: "₦3,000",
       change: 12,
       changeText: "vs last week",
     },
@@ -168,7 +168,7 @@ export const dashboardData: DashboardData = {
     },
     avgBookingValue: {
       label: "Avg. Booking Value",
-      value: "$120",
+      value: "₦120",
       percentChange: 12.2,
     },
     bookingsByDay: [
@@ -183,12 +183,12 @@ export const dashboardData: DashboardData = {
     payouts: [
       {
         label: "Completed Payouts",
-        value: "$2,500",
+        value: "₦2,500",
         status: "completed" as const,
       },
       {
         label: "Pending Payouts",
-        value: "$600",
+        value: "₦600",
         status: "pending" as const,
       },
       {
@@ -273,7 +273,7 @@ export const dashboardData: DashboardData = {
       id: "3",
       type: "payout_processed" as const,
       title: "Payout Processed",
-      description: "Sarah Wilson - $450",
+      description: "Sarah Wilson - ₦450",
       timestamp: "4mins ago",
       status: "completed" as const,
     },

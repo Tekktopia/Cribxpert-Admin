@@ -2,9 +2,19 @@ import { apiSlice } from "@/api/apiSlice";
 import { supabase } from "@/lib/supabase";
 
 export interface DashboardCardsResponse {
-  totalUsers: number;
+  totalUsers: number;      // ALL profiles (no role filter)
+  adminTeam: number;       // profiles with an admin-level role
+  kycPending: number;      // profiles where kyc_status != 'verified'
   activeListings: number;
   weeklyBookings: number;
+}
+
+export interface BookingStatusBreakdownResponse {
+  total: number;
+  pending: number;
+  confirmed: number;
+  completed: number;
+  cancelled: number;
 }
 
 export interface UserManagementResponse {
@@ -44,12 +54,33 @@ export const adminDashboardApiSlice = apiSlice.injectEndpoints({
     getDashboardCards: builder.query<DashboardCardsResponse, void>({
       queryFn: async () => {
         const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-        const [{ count: totalUsers }, { count: activeListings }, { count: weeklyBookings }] = await Promise.all([
-          supabase.from('profiles').select('*', { count: 'exact', head: true }).not('role', 'in', '(admin,superadmin,finance_admin,csr_admin)'),
+        const ADMIN_ROLES = ['admin', 'superadmin', 'finance_admin', 'csr_admin'];
+        const [
+          { count: totalUsers },
+          { count: adminTeam },
+          { data: kycRows },
+          { count: activeListings },
+          { count: weeklyBookings },
+        ] = await Promise.all([
+          // ALL profiles — every registered account
+          supabase.from('profiles').select('*', { count: 'exact', head: true }),
+          // Admin-role accounts only
+          supabase.from('profiles').select('*', { count: 'exact', head: true }).in('role', ADMIN_ROLES),
+          // For KYC pending: fetch kyc_status column (no head so we get rows to filter)
+          supabase.from('profiles').select('kyc_status').not('role', 'in', `(${ADMIN_ROLES.join(',')})`) as unknown as Promise<{ data: { kyc_status: string }[] | null }>,
           supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'approved').eq('hide_status', false),
           supabase.from('bookings').select('*', { count: 'exact', head: true }).gte('created_at', sevenDaysAgo),
         ]);
-        return { data: { totalUsers: totalUsers ?? 0, activeListings: activeListings ?? 0, weeklyBookings: weeklyBookings ?? 0 } };
+        const kycPending = (kycRows ?? []).filter((r) => r.kyc_status !== 'verified').length;
+        return {
+          data: {
+            totalUsers: totalUsers ?? 0,
+            adminTeam: adminTeam ?? 0,
+            kycPending,
+            activeListings: activeListings ?? 0,
+            weeklyBookings: weeklyBookings ?? 0,
+          },
+        };
       },
     }),
 
@@ -116,6 +147,22 @@ export const adminDashboardApiSlice = apiSlice.injectEndpoints({
       },
     }),
 
+    getBookingStatusBreakdown: builder.query<BookingStatusBreakdownResponse, void>({
+      queryFn: async () => {
+        const { data } = await supabase.from('bookings').select('status') as { data: { status: string }[] | null };
+        const rows = data ?? [];
+        return {
+          data: {
+            total: rows.length,
+            pending:   rows.filter((b) => b.status === 'pending').length,
+            confirmed: rows.filter((b) => b.status === 'confirmed').length,
+            completed: rows.filter((b) => b.status === 'completed').length,
+            cancelled: rows.filter((b) => b.status === 'cancelled').length,
+          },
+        };
+      },
+    }),
+
     getTotalRevenue: builder.query<TotalRevenueResponse, void>({
       queryFn: async () => {
         const { data } = await supabase
@@ -143,5 +190,6 @@ export const {
   useGetUserManagementQuery,
   useGetRecentActivityQuery,
   useGetListingSummaryQuery,
+  useGetBookingStatusBreakdownQuery,
   useGetTotalRevenueQuery,
 } = adminDashboardApiSlice;

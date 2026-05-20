@@ -10,14 +10,6 @@ interface BarChartProps {
   data: ChartData[];
 }
 
-// Helper function to adjust color brightness
-function adjustBrightness(color: string, percent: number): string {
-  const num = parseInt(color.replace("#", ""), 16);
-  const r = Math.min(255, Math.max(0, (num >> 16) + percent));
-  const g = Math.min(255, Math.max(0, ((num >> 8) & 0x00ff) + percent));
-  const b = Math.min(255, Math.max(0, (num & 0x0000ff) + percent));
-  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
-}
 
 export function BarChart({ data }: BarChartProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -126,11 +118,7 @@ export function BarChart({ data }: BarChartProps) {
         ctx.quadraticCurveTo(x, y, x + radius, y);
         ctx.closePath();
         
-        // Add subtle gradient for depth
-        const gradient = ctx.createLinearGradient(x, y, x, y + barHeight);
-        gradient.addColorStop(0, item.color);
-        gradient.addColorStop(1, adjustBrightness(item.color, -15));
-        ctx.fillStyle = gradient;
+        ctx.fillStyle = item.color;
         ctx.fill();
       }
     });

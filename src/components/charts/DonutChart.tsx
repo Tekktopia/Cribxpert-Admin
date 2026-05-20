@@ -32,12 +32,6 @@ export function DonutChart({ data }: DonutChartProps) {
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
 
-    // Draw shadow for depth
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 2;
-    ctx.shadowBlur = 6;
-    ctx.shadowColor = "rgba(0, 0, 0, 0.1)";
-
     data.forEach((item) => {
       const sliceAngle = (item.value / total) * 2 * Math.PI;
 
@@ -51,9 +45,6 @@ export function DonutChart({ data }: DonutChartProps) {
 
       startAngle += sliceAngle;
     });
-
-    // Reset shadow for the hole
-    ctx.shadowColor = "rgba(0, 0, 0, 0)";
 
     // Create the donut hole
     ctx.beginPath();

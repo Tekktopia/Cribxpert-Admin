@@ -1,61 +1,56 @@
+// src/features/dashboard/DashboardGrid.tsx
 import { UserManagement } from "./UserManagement";
 import { ListingSummary } from "./ListingSummary";
-import { BookingFinancialMetrics } from "./BookingFinancialMetrics";
+import { BookingOverview } from "./BookingOverview";
 import { KYCCompliance } from "./KYCCompliance";
-import { MessageOversight } from "./MessageOversight";
 import { RecentActivity } from "./RecentActivity";
-import { NotificationCenter } from "./NotificationCenter";
-import { PlatformHealth } from "./PlatformHealth";
 import type { DashboardData } from "../../data/dashboardData";
+import type { BookingStatusBreakdownResponse } from "@/api/features/adminDashboard/adminDashboardApiSlice";
 
 interface DashboardGridProps {
   data: DashboardData;
+  bookingBreakdown?: BookingStatusBreakdownResponse;
 }
 
-export function DashboardGrid({ data }: DashboardGridProps) {
+const EMPTY_BREAKDOWN: BookingStatusBreakdownResponse = {
+  total: 0,
+  pending: 0,
+  confirmed: 0,
+  completed: 0,
+  cancelled: 0,
+};
+
+export function DashboardGrid({ data, bookingBreakdown }: DashboardGridProps) {
+  const booking = bookingBreakdown ?? EMPTY_BREAKDOWN;
+
   return (
-    <div className='grid grid-cols-1 lg:grid-cols-12 gap-4'>
-      {/* User Management */}
-      <div className='lg:col-span-4'>
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      {/* ── Row 1: User stats · Listing stats · Booking stats ── */}
+      <div className="lg:col-span-4">
         <UserManagement userData={data.userManagement} />
       </div>
 
-      {/* Listing Summary */}
-      <div className='lg:col-span-4'>
+      <div className="lg:col-span-4">
         <ListingSummary listingData={data.listingSummary} />
       </div>
 
-      {/* Booking & Financial Metrics */}
-      <div className='lg:col-span-4'>
-        <BookingFinancialMetrics data={data.bookingMetrics} />
+      <div className="lg:col-span-4">
+        <BookingOverview
+          total={booking.total}
+          pending={booking.pending}
+          confirmed={booking.confirmed}
+          completed={booking.completed}
+          cancelled={booking.cancelled}
+        />
       </div>
 
-      {/* KYC Compliance */}
-      <div className='lg:col-span-4'>
-        <KYCCompliance users={data.kycCompliance} />
-      </div>
-
-      {/* Message Oversight */}
-      <div className='lg:col-span-4'>
-        <MessageOversight messages={data.messageOversight} />
-      </div>
-
-      {/* Recent Activity */}
-      <div className='lg:col-span-4'>
+      {/* ── Row 2: Activity feed · KYC queue ── */}
+      <div className="lg:col-span-8">
         <RecentActivity activities={data.recentActivity} />
       </div>
 
-      {/* Notification Center - Left Side */}
-      <div className='lg:col-span-6'>
-        <NotificationCenter notifications={data.notifications} />
-      </div>
-
-      {/* Platform Health & Logs - Right Side */}
-      <div className='lg:col-span-6'>
-        <PlatformHealth
-          metrics={data.platformHealth.metrics}
-          events={data.platformHealth.events}
-        />
+      <div className="lg:col-span-4">
+        <KYCCompliance users={data.kycCompliance} />
       </div>
     </div>
   );

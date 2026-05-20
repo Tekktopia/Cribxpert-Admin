@@ -1,6 +1,6 @@
 // src/features/dashboard/MetricCard.tsx
 import type { LucideIcon } from "lucide-react";
-import { ArrowUp, ArrowDown } from "lucide-react";
+import { TrendingUp, TrendingDown } from "lucide-react";
 import { Card, CardContent } from "../../components/ui/card";
 import { cn } from "../../utils/cn";
 
@@ -14,6 +14,16 @@ interface MetricCardProps {
   details?: string;
 }
 
+// Inline color map — avoids broken dynamic Tailwind class assembly
+const COLOR_MAP: Record<string, { bg: string; fg: string }> = {
+  "bg-blue-500":   { bg: "#eff6ff", fg: "#3b82f6" },
+  "bg-violet-500": { bg: "#f5f3ff", fg: "#8b5cf6" },
+  "bg-amber-500":  { bg: "#fffbeb", fg: "#f59e0b" },
+  "bg-teal-500":   { bg: "#f0fdfa", fg: "#14b8a6" },
+  "bg-orange-500": { bg: "#fff7ed", fg: "#f97316" },
+  "bg-green-500":  { bg: "#f0fdf4", fg: "#22c55e" },
+};
+
 export function MetricCard({
   title,
   value,
@@ -23,49 +33,52 @@ export function MetricCard({
   changeText,
   details,
 }: MetricCardProps) {
-  const bgColorClass = iconBgColor.replace("bg-", "bg-") + "/10";
-  const textColorClass = iconBgColor.replace("bg-", "text-");
-  
+  const colors = COLOR_MAP[iconBgColor] ?? { bg: "#f3f4f6", fg: "#6b7280" };
+
   const isPositive = change > 0;
   const isNegative = change < 0;
-  const ArrowIcon = isPositive ? ArrowUp : isNegative ? ArrowDown : ArrowUp;
-  const changeColorClass = isPositive ? "text-green-500" : isNegative ? "text-red-500" : "text-gray-500";
+  // Only render the trend row when there's something meaningful to show
+  const showTrend = changeText.trim() !== "" && (isPositive || isNegative);
 
   return (
-    <Card className='border border-[#eeeeee]'>
-      <CardContent className='p-4'>
-        <div className='flex items-start justify-between'>
-          <div className='flex-1'>
-            <p className='text-sm text-gray-500 mb-2'>{title}</p>
-            <div className='flex items-center justify-between'>
-              <p className='text-3xl font-bold text-gray-900 mb-1'>{value}</p>
-              <div
-                className={cn(
-                  "w-12 h-12 rounded-full flex items-center justify-center",
-                  bgColorClass
-                )}
-              >
-                <Icon className={cn("w-6 h-6", textColorClass)} />
-              </div>
-            </div>
-
-            {/* Details and arrow/percentage on the same line - left and right */}
-            <div className='flex items-center justify-between mt-2'>
-              {/* "All time bookings" text on the left */}
-              {details && (
-                <p className='text-xs text-gray-500'>{details}</p>
-              )}
-              
-              {/* Arrow + percentage + changeText on the right */}
-              <div className='flex items-center text-xs'>
-                <ArrowIcon className={cn("w-3.5 h-3.5 mr-1", changeColorClass)} />
-                <span className={cn("font-medium mr-1", changeColorClass)}>
-                  {Math.abs(change)}%
-                </span>
-                <span className='text-gray-600'>{changeText}</span>
-              </div>
-            </div>
+    <Card className="border border-[#eeeeee]">
+      <CardContent className="p-4">
+        {/* Title + icon */}
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-sm text-gray-500 font-medium leading-tight">{title}</p>
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: colors.bg }}
+          >
+            <Icon className="w-5 h-5" style={{ color: colors.fg }} />
           </div>
+        </div>
+
+        {/* Big number */}
+        <p className="text-2xl font-bold text-gray-900 leading-tight">{value}</p>
+
+        {/* Footer row */}
+        <div className="flex items-center justify-between mt-2 min-h-[18px]">
+          {details && (
+            <p className="text-xs text-gray-400 truncate">{details}</p>
+          )}
+
+          {showTrend && (
+            <div
+              className={cn(
+                "flex items-center gap-0.5 text-xs ml-auto flex-shrink-0",
+                isPositive ? "text-emerald-600" : "text-red-500"
+              )}
+            >
+              {isPositive ? (
+                <TrendingUp className="w-3 h-3" />
+              ) : (
+                <TrendingDown className="w-3 h-3" />
+              )}
+              <span className="font-semibold">{Math.abs(change)}%</span>
+              <span className="text-gray-400 ml-1">{changeText}</span>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
