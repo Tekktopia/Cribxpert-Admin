@@ -12,6 +12,7 @@ import "@/api/features/adminManagement/adminManagementApiSlice";
 import "@/api/features/adminSettings/adminSettingsApiSlice";
 import "@/api/features/analytics/analyticsApiSlice";
 import "@/api/features/ticket/ticketApiSlice";
+import "@/api/features/escrowPayouts/escrowPayoutsApiSlice";
 
 import { authSlice } from "./slices/authSlice";
 import { securitySlice } from "./slices/securitySlice";
