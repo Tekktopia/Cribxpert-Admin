@@ -10,15 +10,13 @@ import {
   RotateCw,
 } from "lucide-react";
 import { KYCTable } from "./KYCTable";
+import { KYCDetailsModal } from "./KYCDetailsModal";
 import { SearchAndFilters } from "../../components/ui/SearchAndFilters";
+import { useNotification } from "../../hooks/useNotification";
 import {
   useGetKycSubmissionsQuery,
   type KycSubmissionView,
 } from "../../api/features/kyc/kycManagementApiSlice";
-
-interface KYCVerificationGridProps {
-  onViewDetails: (record: KycSubmissionView) => void;
-}
 
 function StatCard({
   icon,
@@ -44,10 +42,12 @@ function StatCard({
   );
 }
 
-export function KYCVerificationGrid({ onViewDetails }: KYCVerificationGridProps) {
+export function KYCVerificationGrid() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [selected, setSelected] = useState<KycSubmissionView | null>(null);
 
+  const { showNotification } = useNotification();
   const { data, isLoading, isError, refetch, isFetching } =
     useGetKycSubmissionsQuery();
 
@@ -76,6 +76,19 @@ export function KYCVerificationGrid({ onViewDetails }: KYCVerificationGridProps)
     }
     return rows;
   }, [records, searchTerm, statusFilter]);
+
+  const handleReviewed = (status: "approved" | "rejected", name: string) => {
+    setSelected(null);
+    showNotification({
+      type: status === "approved" ? "success" : "info",
+      title: status === "approved" ? "KYC Approved" : "KYC Rejected",
+      message:
+        status === "approved"
+          ? `${name} has been verified and notified.`
+          : `${name} has been notified to resubmit.`,
+      duration: 4000,
+    });
+  };
 
   return (
     <div className="space-y-5">
@@ -108,26 +121,29 @@ export function KYCVerificationGrid({ onViewDetails }: KYCVerificationGridProps)
       </div>
 
       <SearchAndFilters
-        searchTerm={searchTerm}
+        searchValue={searchTerm}
         onSearchChange={setSearchTerm}
-        statusFilter={statusFilter}
-        onStatusFilterChange={setStatusFilter}
         searchPlaceholder="Search by name or email..."
-        statusOptions={[
-          { value: "all", label: "All statuses" },
-          { value: "pending", label: "Pending" },
-          { value: "approved", label: "Approved" },
-          { value: "rejected", label: "Rejected" },
+        filters={[
+          {
+            key: "status",
+            label: "All statuses",
+            value: statusFilter,
+            onChange: setStatusFilter,
+            options: [
+              { value: "pending", label: "Pending" },
+              { value: "approved", label: "Approved" },
+              { value: "rejected", label: "Rejected" },
+            ],
+          },
         ]}
-        extraFilters={
-          <button
-            onClick={() => refetch()}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
-          >
-            <RotateCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
-            Refresh
-          </button>
-        }
+        actionButtons={[
+          {
+            label: "Refresh",
+            onClick: () => refetch(),
+            icon: <RotateCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />,
+          },
+        ]}
       />
 
       {/* States */}
@@ -157,7 +173,15 @@ export function KYCVerificationGrid({ onViewDetails }: KYCVerificationGridProps)
           </p>
         </div>
       ) : (
-        <KYCTable records={filtered} onViewDetails={onViewDetails} />
+        <KYCTable records={filtered} onViewDetails={setSelected} />
+      )}
+
+      {selected && (
+        <KYCDetailsModal
+          record={selected}
+          onClose={() => setSelected(null)}
+          onReviewed={handleReviewed}
+        />
       )}
     </div>
   );

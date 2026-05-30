@@ -3,7 +3,8 @@ import {
   kycDocumentLabel,
   type KycSubmissionView,
 } from "../../api/features/kyc/kycManagementApiSlice";
-import { getStatusBadgeClasses } from "../../utils/statusBadges";
+import { Badge } from "../../components/ui/badge";
+import { getStatusVariant } from "../../utils/statusBadges";
 
 interface KYCTableProps {
   records: KycSubmissionView[];
@@ -62,13 +63,9 @@ export function KYCTable({ records, onViewDetails }: KYCTableProps) {
                 </td>
                 <td className="px-5 py-3.5 text-gray-600">{fmtDate(r.createdAt)}</td>
                 <td className="px-5 py-3.5">
-                  <span
-                    className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${getStatusBadgeClasses(
-                      r.status
-                    )}`}
-                  >
+                  <Badge variant={getStatusVariant(r.status, "kyc")} className="capitalize">
                     {r.status}
-                  </span>
+                  </Badge>
                 </td>
                 <td className="px-5 py-3.5 text-right">
                   <button

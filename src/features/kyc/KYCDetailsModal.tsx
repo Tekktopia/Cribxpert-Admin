@@ -17,7 +17,8 @@ import {
   kycDocumentLabel,
   type KycSubmissionView,
 } from "../../api/features/kyc/kycManagementApiSlice";
-import { getStatusBadgeClasses } from "../../utils/statusBadges";
+import { Badge } from "../../components/ui/badge";
+import { getStatusVariant } from "../../utils/statusBadges";
 
 interface KYCDetailsModalProps {
   record: KycSubmissionView;
@@ -148,13 +149,9 @@ export function KYCDetailsModal({ record, onClose, onReviewed }: KYCDetailsModal
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <span
-              className={`rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${getStatusBadgeClasses(
-                record.status
-              )}`}
-            >
+            <Badge variant={getStatusVariant(record.status, "kyc")} className="capitalize">
               {record.status}
-            </span>
+            </Badge>
             <button
               onClick={onClose}
               className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"

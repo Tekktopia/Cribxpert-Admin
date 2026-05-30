@@ -77,7 +77,7 @@ export const kycManagementApiSlice = apiSlice.injectEndpoints({
         if (error) return { error: error.message };
         return { data: (data ?? []).map(mapRow) };
       },
-      providesTags: ["KYC"],
+      providesTags: ["KYCSubmissions"],
     }),
 
     // Batch-signs the document/selfie object paths for a single submission.
@@ -116,7 +116,8 @@ export const kycManagementApiSlice = apiSlice.injectEndpoints({
       queryFn: async ({ id, status, rejectionReason }) => {
         const { data: auth } = await supabase.auth.getUser();
 
-        const { error } = await supabase
+        // kyc_submissions isn't in the generated DB types yet — cast past it.
+        const { error } = await (supabase as any)
           .from("kyc_submissions")
           .update({
             status,
@@ -130,7 +131,7 @@ export const kycManagementApiSlice = apiSlice.injectEndpoints({
         if (error) return { error: error.message };
         return { data: undefined };
       },
-      invalidatesTags: ["KYC"],
+      invalidatesTags: ["KYCSubmissions"],
     }),
   }),
 });
