@@ -1,55 +1,43 @@
-// src/pages/admin/KYCVerification.tsx
-import { PageWrapper } from "@/components/layout/PageWrapper";
-import { KYCVerificationGrid } from "@/features/kyc/KYCVerificationGrid";
-import { useGetKYCSubmissionsQuery } from "@/api/features/kyc/kycManagementApiSlice";
-import { Loader2 } from "lucide-react";
+import { useState } from "react";
+import { PageWrapper } from "../components/layout/PageWrapper";
+import { PageTitle } from "../components/layout/PageTitle";
+import { KYCVerificationGrid } from "../features/kyc/KYCVerificationGrid";
+import { KYCDetailsModal } from "../features/kyc/KYCDetailsModal";
+import { useNotifications } from "../contexts/NotificationContext";
+import type { KycSubmissionView } from "../api/features/kyc/kycManagementApiSlice";
 
 export default function KYCVerification() {
-  const { data, isLoading, error } = useGetKYCSubmissionsQuery({ limit: 100 });
-  
-  if (isLoading) {
-    return (
-      <PageWrapper
-        title='KYC Verification'
-        subtitle='Approve or reject user ID submissions and ensure compliance'
-        isPopulated={false}
-      >
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
-          <span className="ml-2">Loading KYC data...</span>
-        </div>
-      </PageWrapper>
-    );
-  }
+  const [selected, setSelected] = useState<KycSubmissionView | null>(null);
+  const { showToast } = useNotifications();
 
-  if (error) {
-    return (
-      <PageWrapper
-        title='KYC Verification'
-        subtitle='Approve or reject user ID submissions and ensure compliance'
-        isPopulated={false}
-      >
-        <div className="text-red-500 text-center p-8">
-          Error loading KYC data. Please refresh the page.
-        </div>
-      </PageWrapper>
-    );
-  }
-
-  const isPopulated = data && data.submissions.length > 0;
+  const handleReviewed = (status: "approved" | "rejected", name: string) => {
+    setSelected(null);
+    showToast({
+      type: status === "approved" ? "success" : "info",
+      title: status === "approved" ? "KYC approved" : "KYC rejected",
+      message:
+        status === "approved"
+          ? `${name} has been verified and notified.`
+          : `${name} has been notified to resubmit.`,
+    });
+  };
 
   return (
-    <PageWrapper
-      title='KYC Verification'
-      subtitle='Approve or reject user ID submissions and ensure compliance'
-      isPopulated={isPopulated}
-      emptyState={{
-        iconUrl: "/svg/kyc.svg",
-        title: "No KYC submissions yet",
-        subtitle: "User ID documents will appear here once someone starts the verification process.",
-      }}
-    >
-      <KYCVerificationGrid />
+    <PageWrapper>
+      <PageTitle
+        title="KYC Verification"
+        subtitle="Review identity submissions and approve or reject verification requests."
+      />
+
+      <KYCVerificationGrid onViewDetails={setSelected} />
+
+      {selected && (
+        <KYCDetailsModal
+          record={selected}
+          onClose={() => setSelected(null)}
+          onReviewed={handleReviewed}
+        />
+      )}
     </PageWrapper>
   );
 }

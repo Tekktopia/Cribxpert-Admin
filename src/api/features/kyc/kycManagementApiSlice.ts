@@ -1,334 +1,142 @@
-// src/api/features/kyc/kycManagementApiSlice.ts
-import { apiSlice } from "@/api/apiSlice";
-import { supabase } from "@/lib/supabase";
+import { apiSlice } from "../../apiSlice";
+import { supabase } from "../../../lib/supabase";
 
-export interface KYCSubmission {
+const KYC_BUCKET = "kyc";
+
+export type KycStatus = "pending" | "approved" | "rejected";
+
+export interface KycSubmissionView {
   id: string;
   userId: string;
-  name: string;
-  email: string;
+  userName: string;
+  userEmail: string;
   documentType: string;
-  documentUrl?: string;
-  status: "not_started" | "pending" | "verified" | "failed";
-  role: string;
-  submissionDate: string;
-  reviewedAt?: string;
-  rejectionReason?: string;
+  documentNumber: string | null;
+  documentFrontPath: string;
+  documentBackPath: string | null;
+  selfiePath: string;
+  status: KycStatus;
+  rejectionReason: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
   createdAt: string;
+  updatedAt: string;
 }
 
-export interface KYCResponse {
-  submissions: KYCSubmission[];
-  totalCount: number;
-  currentPage: number;
-  totalPages: number;
+export interface KycSignedUrls {
+  front: string | null;
+  back: string | null;
+  selfie: string | null;
 }
 
-export interface KYCStats {
-  not_started: number;
-  pending: number;
-  verified: number;
-  failed: number;
-  total: number;
+interface ReviewArgs {
+  id: string;
+  status: Extract<KycStatus, "approved" | "rejected">;
+  rejectionReason?: string;
 }
 
-export interface KYCVerificationParams {
-  search?: string;
-  status?: string;
-  page?: number;
-  limit?: number;
+const DOC_LABELS: Record<string, string> = {
+  nin: "National ID (NIN)",
+  passport: "International Passport",
+  bvn: "Bank Verification Number (BVN)",
+  drivers_license: "Driver's License",
+};
+
+export const kycDocumentLabel = (type: string): string =>
+  DOC_LABELS[type] ?? type;
+
+function mapRow(r: Record<string, unknown>): KycSubmissionView {
+  return {
+    id: r.id as string,
+    userId: r.user_id as string,
+    userName: (r.user_full_name as string) ?? "—",
+    userEmail: (r.user_email as string) ?? "—",
+    documentType: (r.document_type as string) ?? "",
+    documentNumber: (r.document_number as string) ?? null,
+    documentFrontPath: (r.document_front_path as string) ?? "",
+    documentBackPath: (r.document_back_path as string) ?? null,
+    selfiePath: (r.selfie_path as string) ?? "",
+    status: ((r.status as string) ?? "pending") as KycStatus,
+    rejectionReason: (r.rejection_reason as string) ?? null,
+    reviewedBy: (r.reviewed_by as string) ?? null,
+    reviewedAt: (r.reviewed_at as string) ?? null,
+    createdAt: r.created_at as string,
+    updatedAt: r.updated_at as string,
+  };
 }
 
 export const kycManagementApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    // Get all KYC submissions
-    getKYCSubmissions: builder.query<KYCResponse, KYCVerificationParams | void>(
-      {
-        queryFn: async (params) => {
-          try {
-            const page = params?.page || 1;
-            const limit = params?.limit || 10;
-            const offset = (page - 1) * limit;
-
-            // Start building the query
-            let query = supabase
-              .from("profiles")
-              .select(
-                "id, full_name, email, role, kyc_status, created_at, updated_at",
-                { count: "exact" },
-              );
-
-            // Apply search filter
-            if (params?.search && params.search.trim() !== "") {
-              const searchTerm = params.search.trim();
-              query = query.or(
-                `full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`,
-              );
-            }
-
-            // Apply status filter
-            if (params?.status && params.status !== "All Status") {
-              query = query.eq("kyc_status", params.status.toLowerCase());
-            }
-
-            // Get total count
-            const { count: totalCount, error: countError } = await query;
-            if (countError) throw countError;
-
-            // Apply pagination and ordering
-            const { data: profiles, error: dataError } = await query
-              .order("created_at", { ascending: false })
-              .range(offset, offset + limit - 1);
-
-            if (dataError) throw dataError;
-
-            // Transform data to KYC submission format
-            const submissions: KYCSubmission[] =
-              (profiles as any[])?.map((profile: any) => ({
-                id: profile.id,
-                userId: profile.id,
-                name: profile.full_name || "Unknown",
-                email: profile.email || "",
-                documentType: "ID Document",
-                documentUrl: "",
-                status: profile.kyc_status as
-                  | "not_started"
-                  | "pending"
-                  | "verified"
-                  | "failed",
-                role:
-                  profile.role === "host"
-                    ? "Host"
-                    : profile.role === "guest"
-                      ? "Guest"
-                      : profile.role || "User",
-                submissionDate: profile.created_at,
-                createdAt: profile.created_at,
-                reviewedAt: profile.updated_at,
-              })) || [];
-
-            return {
-              data: {
-                submissions,
-                totalCount: totalCount || 0,
-                currentPage: page,
-                totalPages: Math.ceil((totalCount || 0) / limit),
-              },
-            };
-          } catch (error) {
-            console.error("Error fetching KYC submissions:", error);
-            return { error: { status: "FETCH_ERROR", error: String(error) } };
-          }
-        },
-        providesTags: ["KYCSubmissions"],
-      },
-    ),
-
-    // Get KYC statistics for dashboard
-    getKYCStats: builder.query<KYCStats, void>({
+    getKycSubmissions: builder.query<KycSubmissionView[], void>({
       queryFn: async () => {
-        try {
-          const { data: profiles, error } = await (supabase as any)
-            .from("profiles")
-            .select("kyc_status");
+        const { data, error } = await supabase
+          .from("kyc_submissions")
+          .select("*")
+          .order("created_at", { ascending: false });
 
-          if (error) throw error;
-
-          const typedProfiles = profiles as { kyc_status: string }[] | null;
-          const stats: KYCStats = {
-            not_started: 0,
-            pending: 0,
-            verified: 0,
-            failed: 0,
-            total: typedProfiles?.length || 0,
-          };
-
-          typedProfiles?.forEach((profile) => {
-            switch (profile.kyc_status) {
-              case "not_started":
-                stats.not_started++;
-                break;
-              case "pending":
-                stats.pending++;
-                break;
-              case "verified":
-                stats.verified++;
-                break;
-              case "failed":
-                stats.failed++;
-                break;
-            }
-          });
-
-          return { data: stats };
-        } catch (error) {
-          console.error("Error fetching KYC stats:", error);
-          return { error: { status: "FETCH_ERROR", error: String(error) } };
-        }
+        if (error) return { error: error.message };
+        return { data: (data ?? []).map(mapRow) };
       },
-      providesTags: ["KYCStats"],
+      providesTags: ["KYC"],
     }),
 
-    // Approve KYC submission (set to verified)
-    approveKYC: builder.mutation<
-      { success: boolean },
-      { userId: string; remarks?: string }
+    // Batch-signs the document/selfie object paths for a single submission.
+    // Admin read is permitted by the kyc_storage_read_admin RLS policy.
+    getKycSignedUrls: builder.query<
+      KycSignedUrls,
+      { front: string; back: string | null; selfie: string }
     >({
-      queryFn: async ({ userId, remarks: _remarks }) => {
-        try {
-          const { error } = await (supabase as any)
-            .from("profiles")
-            .update({
-              kyc_status: "verified",
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", userId);
+      queryFn: async ({ front, back, selfie }) => {
+        const paths = [front, selfie, ...(back ? [back] : [])].filter(Boolean);
+        if (paths.length === 0)
+          return { data: { front: null, back: null, selfie: null } };
 
-          if (error) throw error;
+        const { data, error } = await supabase.storage
+          .from(KYC_BUCKET)
+          .createSignedUrls(paths, 60 * 10);
 
-          return { data: { success: true } };
-        } catch (error) {
-          console.error("Error approving KYC:", error);
-          return { error: { status: "FETCH_ERROR", error: String(error) } };
-        }
+        if (error) return { error: error.message };
+
+        const byPath: Record<string, string> = {};
+        (data ?? []).forEach((d) => {
+          if (d.path && d.signedUrl) byPath[d.path] = d.signedUrl;
+        });
+
+        return {
+          data: {
+            front: byPath[front] ?? null,
+            back: back ? byPath[back] ?? null : null,
+            selfie: byPath[selfie] ?? null,
+          },
+        };
       },
-      invalidatesTags: ["KYCSubmissions", "KYCStats"],
     }),
 
-    // Reject KYC submission (set to failed)
-    rejectKYC: builder.mutation<
-      { success: boolean },
-      { userId: string; reason: string }
-    >({
-      queryFn: async ({ userId, reason: _reason }) => {
-        try {
-          const { error } = await (supabase as any)
-            .from("profiles")
-            .update({
-              kyc_status: "failed",
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", userId);
+    reviewKycSubmission: builder.mutation<void, ReviewArgs>({
+      queryFn: async ({ id, status, rejectionReason }) => {
+        const { data: auth } = await supabase.auth.getUser();
 
-          if (error) throw error;
+        const { error } = await supabase
+          .from("kyc_submissions")
+          .update({
+            status,
+            rejection_reason:
+              status === "rejected" ? rejectionReason ?? null : null,
+            reviewed_by: auth.user?.id ?? null,
+            reviewed_at: new Date().toISOString(),
+          })
+          .eq("id", id);
 
-          return { data: { success: true } };
-        } catch (error) {
-          console.error("Error rejecting KYC:", error);
-          return { error: { status: "FETCH_ERROR", error: String(error) } };
-        }
+        if (error) return { error: error.message };
+        return { data: undefined };
       },
-      invalidatesTags: ["KYCSubmissions", "KYCStats"],
-    }),
-
-    // Reset KYC to pending (for resubmission)
-    resetKYC: builder.mutation<{ success: boolean }, { userId: string }>({
-      queryFn: async ({ userId }) => {
-        try {
-          const { error } = await (supabase as any)
-            .from("profiles")
-            .update({
-              kyc_status: "pending",
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", userId);
-
-          if (error) throw error;
-
-          return { data: { success: true } };
-        } catch (error) {
-          console.error("Error resetting KYC:", error);
-          return { error: { status: "FETCH_ERROR", error: String(error) } };
-        }
-      },
-      invalidatesTags: ["KYCSubmissions", "KYCStats"],
-    }),
-
-    // Export KYC submissions to CSV
-    exportKYCSubmissions: builder.query<string, KYCVerificationParams | void>({
-      queryFn: async (params) => {
-        try {
-          let query = supabase
-            .from("profiles")
-            .select(
-              "id, full_name, email, role, kyc_status, created_at, updated_at",
-            );
-
-          if (params?.search && params.search.trim() !== "") {
-            const searchTerm = params.search.trim();
-            query = query.or(
-              `full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`,
-            );
-          }
-
-          if (params?.status && params.status !== "All Status") {
-            query = query.eq("kyc_status", params.status.toLowerCase());
-          }
-
-          const { data: profiles, error } = await query.order("created_at", {
-            ascending: false,
-          });
-
-          if (error) throw error;
-
-          const headers = [
-            "ID",
-            "Name",
-            "Email",
-            "Role",
-            "KYC Status",
-            "Submission Date",
-            "Last Updated",
-          ];
-
-          const getStatusLabel = (status: string) => {
-            switch (status) {
-              case "not_started":
-                return "Not Started";
-              case "pending":
-                return "Pending";
-              case "verified":
-                return "Verified";
-              case "failed":
-                return "Failed";
-              default:
-                return status;
-            }
-          };
-
-          const rows =
-            (profiles as any[])?.map((profile: any) => [
-              profile.id.slice(0, 8),
-              profile.full_name || "Unknown",
-              profile.email || "",
-              profile.role || "User",
-              getStatusLabel(profile.kyc_status),
-              new Date(profile.created_at).toLocaleDateString(),
-              new Date(profile.updated_at).toLocaleDateString(),
-            ]) || [];
-
-          const csvContent = [
-            headers.join(","),
-            ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
-          ].join("\n");
-
-          return { data: csvContent };
-        } catch (error) {
-          console.error("Error exporting KYC:", error);
-          return { error: { status: "FETCH_ERROR", error: String(error) } };
-        }
-      },
+      invalidatesTags: ["KYC"],
     }),
   }),
-  overrideExisting: true,
 });
 
-// Export hooks
 export const {
-  useGetKYCSubmissionsQuery,
-  useGetKYCStatsQuery,
-  useApproveKYCMutation,
-  useRejectKYCMutation,
-  useResetKYCMutation,
-  useExportKYCSubmissionsQuery,
+  useGetKycSubmissionsQuery,
+  useGetKycSignedUrlsQuery,
+  useReviewKycSubmissionMutation,
 } = kycManagementApiSlice;

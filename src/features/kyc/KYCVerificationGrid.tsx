@@ -1,364 +1,164 @@
-import { useState } from "react";
-import type { KYCData, KYCSubmission } from "@/data/kycData";
-import { ManagementGrid } from "@/components/layout/ManagementGrid";
-import { useNotification } from "@/hooks/useNotification";
+import { useMemo, useState } from "react";
 import {
-  commonActions,
-  commonFilters,
-  commonSearchConfigs,
-} from "@/utils/managementActions";
+  Clock,
+  ShieldCheck,
+  ShieldX,
+  Users,
+  Loader2,
+  AlertCircle,
+  Inbox,
+  RotateCw,
+} from "lucide-react";
 import { KYCTable } from "./KYCTable";
-import { safeText } from "@/utils/userDisplay";
+import { SearchAndFilters } from "../../components/ui/SearchAndFilters";
 import {
-  useGetKYCSubmissionsQuery,
-  useApproveKYCMutation,
-  useRejectKYCMutation,
-  useResetKYCMutation,
-  type KYCSubmission as APIKYCSubmission,
-} from "@/api/features/kyc/kycManagementApiSlice";
+  useGetKycSubmissionsQuery,
+  type KycSubmissionView,
+} from "../../api/features/kyc/kycManagementApiSlice";
 
 interface KYCVerificationGridProps {
-  data?: KYCData; // Make optional since we'll fetch from API
+  onViewDetails: (record: KycSubmissionView) => void;
 }
 
-export function KYCVerificationGrid({
-  data: _propData,
-}: KYCVerificationGridProps) {
-  const { showNotification } = useNotification();
+function StatCard({
+  icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  tone: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white p-4">
+      <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${tone}`}>
+        {icon}
+      </div>
+      <div>
+        <p className="text-xs font-medium text-gray-500">{label}</p>
+        <p className="text-xl font-bold text-gray-900">{value}</p>
+      </div>
+    </div>
+  );
+}
 
-  // State for filters
-  const [searchTerm, _setSearchTerm] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState<string>("all");
-  const [selectedDocumentType, setSelectedDocumentType] =
-    useState<string>("all");
+export function KYCVerificationGrid({ onViewDetails }: KYCVerificationGridProps) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
-  // Fetch real data from API
-  const {
-    data: apiData,
-    isLoading,
-    error,
-    refetch,
-  } = useGetKYCSubmissionsQuery({
-    search: searchTerm || undefined,
-    status: selectedStatus !== "all" ? selectedStatus : undefined,
-    limit: 100,
-  });
+  const { data, isLoading, isError, refetch, isFetching } =
+    useGetKycSubmissionsQuery();
 
-  const mapDocumentType = (
-    type?: string,
-  ): "Driver License" | "Passport" | "National ID" => {
-    if (
-      type === "Driver License" ||
-      type === "Passport" ||
-      type === "National ID"
-    ) {
-      return type;
-    }
-    return "National ID"; // default
-  };
+  const records = useMemo(() => data ?? [], [data]);
 
-  const mapRole = (role?: string): "Host" | "Guest" => {
-    if (role === "Host" || role === "Guest") {
-      return role;
-    }
-    return "Guest"; // default
-  };
-  // Mutations
-  const [approveKYC] = useApproveKYCMutation();
-  const [rejectKYC] = useRejectKYCMutation();
-  const [resetKYC] = useResetKYCMutation();
-
-  // Transform API data to match component format
-  // src/features/kyc/KYCVerificationGrid.tsx
-  // Update the transformToKYCSubmission function
-
-  const transformToKYCSubmission = (
-    apiSubmission: APIKYCSubmission,
-  ): KYCSubmission => {
-    // Map status to display format
-    let displayStatus: "Pending" | "Under Review" | "Approved" | "Rejected";
-    if (apiSubmission.status === "verified") {
-      displayStatus = "Approved";
-    } else if (apiSubmission.status === "pending") {
-      displayStatus = "Pending";
-    } else if (apiSubmission.status === "failed") {
-      displayStatus = "Rejected";
-    } else {
-      displayStatus = "Under Review";
-    }
-
-    // Generate a ticket ID from the user ID (first 6 characters)
-    // Use originalId if available, otherwise use id
-    const userId = apiSubmission.id || apiSubmission.userId;
-    const ticketId = userId ? userId.slice(0, 6).toUpperCase() : "N/A";
-
-    // Debug: log to see what we're getting
-    console.log("Transforming submission:", {
-      original: apiSubmission,
-      userId,
-      ticketId,
-      name: apiSubmission.name,
-    });
-
-    return {
-      id: ticketId,
-      ticketId: ticketId,
-      name: apiSubmission.name || "Unknown",
-      email: apiSubmission.email || "",
-      documentType: mapDocumentType(apiSubmission.documentType),
-      role: mapRole(apiSubmission.role),
-      status: displayStatus,
-      submissionDate: apiSubmission.submissionDate
-        ? new Date(apiSubmission.submissionDate).toLocaleDateString("en-CA")
-        : new Date().toLocaleDateString("en-CA"),
-    };
-  };
-
-  const submissions = apiData?.submissions.map(transformToKYCSubmission) || [];
-
-  // Handle approval with real API
-  const handleApprove = async (id: string, name: string) => {
-    // Find the actual user ID from the original data
-    const originalSubmission = apiData?.submissions.find(
-      (s) => s.id.slice(0, 6) === id,
-    );
-    if (!originalSubmission) return;
-
-    try {
-      await approveKYC({ userId: originalSubmission.userId }).unwrap();
-      showNotification({
-        type: "success",
-        title: "KYC Approved",
-        message: `${name}'s KYC has been approved.`,
-        duration: 4000,
-      });
-      refetch();
-    } catch (err) {
-      showNotification({
-        type: "error",
-        title: "Action Failed",
-        message: `Failed to approve ${name}'s KYC.`,
-        duration: 5000,
-      });
-    }
-  };
-
-  // Handle rejection with real API
-  const handleReject = async (id: string, name: string) => {
-    const originalSubmission = apiData?.submissions.find(
-      (s) => s.id.slice(0, 6) === id,
-    );
-    if (!originalSubmission) return;
-
-    try {
-      await rejectKYC({
-        userId: originalSubmission.userId,
-        reason: "Document verification failed",
-      }).unwrap();
-      showNotification({
-        type: "success",
-        title: "KYC Rejected",
-        message: `${name}'s submission has been rejected.`,
-        duration: 4000,
-      });
-      refetch();
-    } catch (err) {
-      showNotification({
-        type: "error",
-        title: "Action Failed",
-        message: `Failed to reject ${name}'s KYC.`,
-        duration: 5000,
-      });
-    }
-  };
-
-  // Handle flag (set to pending for review)
-  const handleFlag = async (id: string, name: string) => {
-    const originalSubmission = apiData?.submissions.find(
-      (s) => s.id.slice(0, 6) === id,
-    );
-    if (!originalSubmission) return;
-
-    try {
-      await resetKYC({ userId: originalSubmission.userId }).unwrap();
-      showNotification({
-        type: "success",
-        title: "KYC Flagged",
-        message: `${name} has been flagged for review.`,
-        duration: 4000,
-      });
-      refetch();
-    } catch (err) {
-      showNotification({
-        type: "error",
-        title: "Action Failed",
-        message: `Failed to flag ${name}'s KYC.`,
-        duration: 5000,
-      });
-    }
-  };
-  console.log("API Data:", apiData);
-  console.log("Submissions:", apiData?.submissions);
-
-  const handleSendNotification = (_id: string, name: string) => {
-    showNotification({
-      type: "info",
-      title: "Notification Sent",
-      message: `A message has been sent to ${name}.`,
-      duration: 3000,
-    });
-  };
-
-  // Filter configurations with proper onChange handlers
-  const filters = [
-    {
-      ...commonFilters.status([
-        { value: "Approved", label: "Approved" },
-        { value: "Pending", label: "Pending" },
-        { value: "Failed", label: "Failed" },
-        { value: "Not Started", label: "Not Started" },
-      ]),
-      value: selectedStatus,
-      onChange: (value: string) => setSelectedStatus(value),
-    },
-    {
-      key: "documentType",
-      label: "All Documents",
-      value: selectedDocumentType,
-      onChange: (value: string) => setSelectedDocumentType(value),
-      options: [
-        { value: "all", label: "All Documents" },
-        { value: "Driver License", label: "Driver License" },
-        { value: "Passport", label: "Passport" },
-        { value: "National ID", label: "National ID" },
-      ],
-    },
-  ];
-
-  const actions = [
-    commonActions.view(() => {}),
-    commonActions.activate(handleApprove, "KYC"),
-    commonActions.deactivate(handleReject, "KYC"),
-    commonActions.hold(handleFlag),
-    commonActions.sendNotification(handleSendNotification),
-  ];
-
-  // Apply local filtering for document type
-  const getFilteredData = () => {
-    let filtered = submissions;
-
-    if (selectedDocumentType !== "all") {
-      filtered = filtered.filter(
-        (sub) => sub.documentType === selectedDocumentType,
-      );
-    }
-
-    return filtered;
-  };
-
-  const renderTable = (
-    filteredData: KYCSubmission[],
-    onAction: (entityId: string, action: string) => void,
-  ) => (
-    <KYCTable
-      submissions={filteredData}
-      onAction={onAction}
-      onUpdateStatus={(id, newStatus) => {
-        // This is now handled by the API mutations
-        refetch();
-        showNotification({
-          type: newStatus === "Approved" ? "success" : "error",
-          title: `KYC ${newStatus}`,
-          message: `Submission ${id} marked as ${newStatus}.`,
-          duration: 3000,
-        });
-      }}
-    />
+  const stats = useMemo(
+    () => ({
+      pending: records.filter((r) => r.status === "pending").length,
+      approved: records.filter((r) => r.status === "approved").length,
+      rejected: records.filter((r) => r.status === "rejected").length,
+      total: records.length,
+    }),
+    [records]
   );
 
-  const getEntityName = (row: KYCSubmission) =>
-    safeText(row.name, "Unknown User");
-
-  const handleExport = () => {
-    // Create CSV from current filtered data
-    const filteredData = getFilteredData();
-    const headers = [
-      "ID",
-      "Name",
-      "Email",
-      "Document Type",
-      "Role",
-      "Status",
-      "Submission Date",
-    ];
-    const rows = filteredData.map((sub) => [
-      sub.id,
-      sub.name,
-      sub.email,
-      sub.documentType,
-      sub.role,
-      sub.status,
-      sub.submissionDate,
-    ]);
-
-    const csvContent = [
-      headers.join(","),
-      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
-    ].join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `kyc-export-${new Date().toISOString().split("T")[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-
-    showNotification({
-      type: "success",
-      title: "Export Complete",
-      message: `${filteredData.length} KYC records exported successfully.`,
-      duration: 3000,
-    });
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-        <span className="ml-2">Loading KYC data...</span>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-red-500 text-center p-8">
-        Error loading KYC data. Please refresh the page.
-      </div>
-    );
-  }
-
-  const filteredData = getFilteredData();
-  const isPopulated = filteredData.length > 0;
-
-  if (!isPopulated) {
-    return null; // Let PageWrapper handle empty state
-  }
+  const filtered = useMemo(() => {
+    let rows = records;
+    if (statusFilter !== "all") rows = rows.filter((r) => r.status === statusFilter);
+    if (searchTerm.trim()) {
+      const q = searchTerm.toLowerCase();
+      rows = rows.filter(
+        (r) =>
+          r.userName.toLowerCase().includes(q) ||
+          r.userEmail.toLowerCase().includes(q)
+      );
+    }
+    return rows;
+  }, [records, searchTerm, statusFilter]);
 
   return (
-    <ManagementGrid
-      data={filteredData}
-      entityName="users"
-      searchPlaceholder="Search Users..."
-      searchConfig={{
-        ...commonSearchConfigs.user,
-      }}
-      filters={filters}
-      actions={actions}
-      renderTable={renderTable}
-      onExport={handleExport}
-      getEntityName={getEntityName}
-    />
+    <div className="space-y-5">
+      {/* Summary */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard
+          icon={<Clock className="h-5 w-5 text-amber-600" />}
+          tone="bg-amber-100"
+          label="Pending review"
+          value={stats.pending}
+        />
+        <StatCard
+          icon={<ShieldCheck className="h-5 w-5 text-green-600" />}
+          tone="bg-green-100"
+          label="Approved"
+          value={stats.approved}
+        />
+        <StatCard
+          icon={<ShieldX className="h-5 w-5 text-red-600" />}
+          tone="bg-red-100"
+          label="Rejected"
+          value={stats.rejected}
+        />
+        <StatCard
+          icon={<Users className="h-5 w-5 text-[#013e4a]" />}
+          tone="bg-[#013e4a]/10"
+          label="Total submissions"
+          value={stats.total}
+        />
+      </div>
+
+      <SearchAndFilters
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        searchPlaceholder="Search by name or email..."
+        statusOptions={[
+          { value: "all", label: "All statuses" },
+          { value: "pending", label: "Pending" },
+          { value: "approved", label: "Approved" },
+          { value: "rejected", label: "Rejected" },
+        ]}
+        extraFilters={
+          <button
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
+          >
+            <RotateCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
+        }
+      />
+
+      {/* States */}
+      {isLoading ? (
+        <div className="flex h-64 items-center justify-center rounded-xl border border-gray-100 bg-white">
+          <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+        </div>
+      ) : isError ? (
+        <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-xl border border-gray-100 bg-white text-center">
+          <AlertCircle className="h-8 w-8 text-red-400" />
+          <p className="text-sm text-gray-600">Couldn't load KYC submissions.</p>
+          <button
+            onClick={() => refetch()}
+            className="rounded-lg bg-[#013e4a] px-4 py-2 text-sm font-semibold text-white hover:bg-[#013e4a]/90"
+          >
+            Try again
+          </button>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex h-64 flex-col items-center justify-center gap-2 rounded-xl border border-gray-100 bg-white text-center">
+          <Inbox className="h-8 w-8 text-gray-300" />
+          <p className="text-sm font-medium text-gray-600">No submissions found</p>
+          <p className="text-xs text-gray-400">
+            {records.length === 0
+              ? "Verification requests will appear here as users submit them."
+              : "Try adjusting your search or filters."}
+          </p>
+        </div>
+      ) : (
+        <KYCTable records={filtered} onViewDetails={onViewDetails} />
+      )}
+    </div>
   );
 }
