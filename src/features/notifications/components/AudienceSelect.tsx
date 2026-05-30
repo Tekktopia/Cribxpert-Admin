@@ -21,7 +21,7 @@ export function AudienceSelect({
         <option value='all'>All Users</option>
         <option value='hosts'>Hosts Only</option>
         <option value='guests'>Guests Only</option>
-        <option value='custom'>Custom Group</option>
+        <option value='custom'>Specific Users…</option>
       </select>
       {/* Optional chevron can be added via background-icon or absolute SVG */}
     </div>

@@ -6,8 +6,46 @@ import { type NotificationRecord } from "../utils/types";
 import { ScheduleDateModal } from "../modals/ScheduleDateModal";
 import { useActionNotifications } from "@/utils/notificationHelpers";
 import { supabase } from "@/lib/supabase";
+import { AdminInboxView } from "./AdminInboxView";
+import { Inbox, Send } from "lucide-react";
 
 export function NotificationPageContainer() {
+  const [view, setView] = useState<"inbox" | "broadcast">("inbox");
+
+  return (
+    <div className="space-y-6">
+      {/* Top-level tab switcher: Inbox vs Broadcast */}
+      <div className="flex gap-1 p-1 bg-gray-100 rounded-xl w-fit">
+        <button
+          onClick={() => setView("inbox")}
+          className={`inline-flex items-center gap-2 px-4 h-9 rounded-lg text-sm font-semibold transition-all ${
+            view === "inbox"
+              ? "bg-white text-[#1d5c5c] shadow-sm"
+              : "text-gray-600 hover:text-gray-900"
+          }`}
+        >
+          <Inbox className="w-4 h-4" />
+          Inbox
+        </button>
+        <button
+          onClick={() => setView("broadcast")}
+          className={`inline-flex items-center gap-2 px-4 h-9 rounded-lg text-sm font-semibold transition-all ${
+            view === "broadcast"
+              ? "bg-white text-[#1d5c5c] shadow-sm"
+              : "text-gray-600 hover:text-gray-900"
+          }`}
+        >
+          <Send className="w-4 h-4" />
+          Broadcast
+        </button>
+      </div>
+
+      {view === "inbox" ? <AdminInboxView /> : <BroadcastView />}
+    </div>
+  );
+}
+
+function BroadcastView() {
   const { showSuccess, showError } = useActionNotifications();
 
   const [form, setForm] = useState<NotificationFormValue>({
@@ -60,7 +98,8 @@ export function NotificationPageContainer() {
     message: string,
     audience: string,
     status: "sent" | "scheduled",
-    scheduledAt?: string
+    scheduledAt?: string,
+    targetUserIds?: string[],
   ): Promise<boolean> => {
     // 1. Record the broadcast in broadcast_notifications table
     const { data: broadcast, error: broadcastErr } = await (supabase
@@ -83,27 +122,34 @@ export function NotificationPageContainer() {
 
     // 2. If sending now, insert into each target user's notifications
     if (status === "sent") {
-      let query = supabase.from("profiles").select("id");
-      if (audience === "hosts") {
-        query = query.eq("is_host", true);
-      } else if (audience === "guests") {
-        query = query.eq("is_host", false).eq("role", "user");
-      }
-      // "all" sends to everyone with role 'user' or host
-      if (audience === "all") {
-        query = query.in("role", ["user"]);
+      let targetIds: string[] = [];
+
+      if (audience === "custom") {
+        // Targeted broadcast — exact list of user IDs from the combobox
+        targetIds = (targetUserIds ?? []).filter(Boolean);
+      } else {
+        let query = supabase.from("profiles").select("id");
+        if (audience === "hosts") {
+          query = query.eq("is_host", true);
+        } else if (audience === "guests") {
+          query = query.eq("is_host", false).eq("role", "user");
+        } else if (audience === "all") {
+          // "all" sends to every regular user (and hosts, who also have role='user')
+          query = query.in("role", ["user"]);
+        }
+        const { data: users } = await (query as any);
+        targetIds = (users ?? []).map((u: { id: string }) => u.id);
       }
 
-      const { data: users } = await (query as any);
-      if (users && users.length > 0) {
+      if (targetIds.length > 0) {
         await (supabase.from("notifications") as any).insert(
-          (users as any[]).map((u: any) => ({
-            user_id: u.id,
+          targetIds.map((uid) => ({
+            user_id: uid,
             title,
             description: message,
             category: "general",
             is_read: false,
-          }))
+          })),
         );
       }
     }
@@ -132,12 +178,30 @@ export function NotificationPageContainer() {
       showError("Missing fields", "Please enter title and message.");
       return;
     }
+    if (form.audience === "custom" && (form.targetUserIds ?? []).length === 0) {
+      showError("Pick recipients", "Select at least one user from the list, or change the audience.");
+      return;
+    }
     setIsSending(true);
-    const ok = await broadcastToUsers(form.title.trim(), form.message.trim(), form.audience, "sent");
+    const ok = await broadcastToUsers(
+      form.title.trim(),
+      form.message.trim(),
+      form.audience,
+      "sent",
+      undefined,
+      form.targetUserIds,
+    );
     setIsSending(false);
     if (ok) {
-      showSuccess("Notification Sent", `Sent to all ${form.audience} users.`);
-      setForm({ title: "", audience: form.audience, message: "", isScheduled: false });
+      const recipientCount =
+        form.audience === "custom" ? (form.targetUserIds ?? []).length : null;
+      showSuccess(
+        "Notification Sent",
+        form.audience === "custom"
+          ? `Delivered to ${recipientCount} selected user${recipientCount === 1 ? "" : "s"}.`
+          : `Sent to all ${form.audience} users.`,
+      );
+      setForm({ title: "", audience: form.audience, message: "", isScheduled: false, targetUserIds: [] });
     }
   };
 
@@ -154,18 +218,23 @@ export function NotificationPageContainer() {
       showError("Incomplete schedule", "Provide title, message and schedule date.");
       return;
     }
+    if (form.audience === "custom" && (form.targetUserIds ?? []).length === 0) {
+      showError("Pick recipients", "Select at least one user from the list, or change the audience.");
+      return;
+    }
     setIsSending(true);
     const ok = await broadcastToUsers(
       form.title.trim(),
       form.message.trim(),
       form.audience,
       "scheduled",
-      form.scheduledAt
+      form.scheduledAt,
+      form.targetUserIds,
     );
     setIsSending(false);
     if (ok) {
       showSuccess("Notification Scheduled", "It will be sent automatically.");
-      setForm({ title: "", audience: form.audience, message: "", isScheduled: true, scheduledAt: undefined });
+      setForm({ title: "", audience: form.audience, message: "", isScheduled: true, scheduledAt: undefined, targetUserIds: [] });
     }
   };
 

@@ -1,5 +1,6 @@
 import { ToggleSwitch } from "@/components/ui/ToggleSwitch";
 import { AudienceSelect } from "./AudienceSelect";
+import { UsersCombobox } from "./UsersCombobox";
 import { type Audience } from "../utils/types";
 
 export interface NotificationFormValue {
@@ -8,6 +9,8 @@ export interface NotificationFormValue {
   message: string;
   isScheduled: boolean;
   scheduledAt?: string;
+  /** Required when audience === "custom" — the exact users to notify. */
+  targetUserIds?: string[];
 }
 
 interface NotificationFormProps {
@@ -38,9 +41,26 @@ export function NotificationForm({ value, onChange }: NotificationFormProps) {
         </label>
         <AudienceSelect
           value={value.audience}
-          onChange={(v) => onChange({ audience: v })}
+          onChange={(v) =>
+            onChange(
+              v === "custom"
+                ? { audience: v }
+                : { audience: v, targetUserIds: [] }, // clear chips when leaving custom
+            )
+          }
         />
       </div>
+
+      {/* Specific-users combobox (only shown when audience === "custom") */}
+      {value.audience === "custom" && (
+        <div className='md:col-span-2'>
+          <UsersCombobox
+            label='Pick specific users'
+            selectedIds={value.targetUserIds ?? []}
+            onChange={(ids) => onChange({ targetUserIds: ids })}
+          />
+        </div>
+      )}
 
       {/* Message */}
       <div className='flex flex-col md:col-span-2'>
