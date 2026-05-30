@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Clock,
   ShieldCheck,
@@ -13,6 +13,7 @@ import { KYCTable } from "./KYCTable";
 import { KYCDetailsModal } from "./KYCDetailsModal";
 import { SearchAndFilters } from "../../components/ui/SearchAndFilters";
 import { useNotification } from "../../hooks/useNotification";
+import { supabase } from "../../lib/supabase";
 import {
   useGetKycSubmissionsQuery,
   type KycSubmissionView,
@@ -50,6 +51,23 @@ export function KYCVerificationGrid() {
   const { showNotification } = useNotification();
   const { data, isLoading, isError, refetch, isFetching } =
     useGetKycSubmissionsQuery();
+
+  // ── Realtime — any INSERT/UPDATE/DELETE on kyc_submissions refetches.
+  //    New user submissions, status changes, etc. land instantly without
+  //    the admin hitting "Refresh".
+  useEffect(() => {
+    const ch = supabase
+      .channel("admin-kyc-submissions")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "kyc_submissions" },
+        () => refetch(),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(ch);
+    };
+  }, [refetch]);
 
   const records = useMemo(() => data ?? [], [data]);
 
