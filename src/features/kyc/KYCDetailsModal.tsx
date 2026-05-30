@@ -10,6 +10,9 @@ import {
   Mail,
   IdCard,
   AlertTriangle,
+  SearchCheck,
+  UserCheck,
+  AlertCircle,
 } from "lucide-react";
 import {
   useGetKycSignedUrlsQuery,
@@ -17,6 +20,10 @@ import {
   kycDocumentLabel,
   type KycSubmissionView,
 } from "../../api/features/kyc/kycManagementApiSlice";
+import {
+  useVerifyIdentityMutation,
+  type IdentityResult,
+} from "../../api/features/kyc/identityVerificationApiSlice";
 import { Badge } from "../../components/ui/badge";
 import { getStatusVariant } from "../../utils/statusBadges";
 
