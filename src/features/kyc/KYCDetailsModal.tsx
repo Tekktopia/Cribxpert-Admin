@@ -195,6 +195,15 @@ export function KYCDetailsModal({ record, onClose, onReviewed }: KYCDetailsModal
             </div>
           </div>
 
+          {/* Government database check (NIN / BVN) */}
+          {(record.documentType === "nin" || record.documentType === "bvn") && (
+            <IdentityCheckPanel
+              type={record.documentType}
+              value={record.documentNumber}
+              applicantName={record.userName}
+            />
+          )}
+
           {/* Documents */}
           <div>
             <h3 className="mb-3 text-sm font-semibold text-gray-700">Uploaded documents</h3>
@@ -335,6 +344,139 @@ function Meta({
         {icon} {label}
       </span>
       <p className="mt-0.5 text-sm font-medium text-gray-800">{children}</p>
+    </div>
+  );
+}
+
+/* ── Live NIN/BVN check against the government database (via edge fn) ── */
+function IdentityCheckPanel({
+  type,
+  value,
+  applicantName,
+}: {
+  type: "nin" | "bvn";
+  value: string | null;
+  applicantName: string;
+}) {
+  const [verify, { data, isLoading, error }] = useVerifyIdentityMutation();
+  const result = data as IdentityResult | undefined;
+
+  const errMsg =
+    error && "error" in (error as Record<string, unknown>)
+      ? String((error as { error: string }).error)
+      : error
+        ? "Verification failed."
+        : null;
+
+  const providerFullName = result
+    ? [result.firstName, result.middleName, result.lastName]
+        .filter(Boolean)
+        .join(" ")
+        .trim()
+    : "";
+
+  // Soft name-match hint: do the submitted name tokens overlap the provider's?
+  const nameLooksMatched = (() => {
+    if (!providerFullName) return null;
+    const a = new Set(applicantName.toLowerCase().split(/\s+/).filter(Boolean));
+    const b = providerFullName.toLowerCase().split(/\s+/).filter(Boolean);
+    const hits = b.filter((t) => a.has(t)).length;
+    return hits >= 1;
+  })();
+
+  const upper = type.toUpperCase();
+
+  return (
+    <div className="rounded-xl border border-[#013e4a]/15 bg-[#013e4a]/[0.03] p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="flex items-center gap-1.5 text-sm font-semibold text-[#013e4a]">
+            <SearchCheck className="h-4 w-4" /> {upper} database check
+          </h3>
+          <p className="mt-0.5 text-xs text-gray-500">
+            Look up the {upper} against the national database, then compare the
+            returned identity with the uploaded document and selfie.
+          </p>
+        </div>
+        <button
+          onClick={() => value && verify({ type, value })}
+          disabled={!value || isLoading}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[#013e4a] px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-[#013e4a]/90 disabled:opacity-50"
+        >
+          {isLoading ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <SearchCheck className="h-3.5 w-3.5" />
+          )}
+          {result ? `Re-check ${upper}` : `Verify ${upper}`}
+        </button>
+      </div>
+
+      {!value && (
+        <p className="mt-3 flex items-center gap-1.5 text-xs text-amber-600">
+          <AlertTriangle className="h-3.5 w-3.5" />
+          The applicant didn't provide a {upper} number, so an automated check
+          isn't possible — verify manually from the document.
+        </p>
+      )}
+
+      {errMsg && (
+        <div className="mt-3 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+          <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span>{errMsg}</span>
+        </div>
+      )}
+
+      {result && (
+        <div className="mt-3 rounded-lg border border-gray-200 bg-white p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-700">
+              <UserCheck className="h-3.5 w-3.5 text-green-600" /> Returned by{" "}
+              {result.provider}
+            </span>
+            {nameLooksMatched !== null && (
+              <span
+                className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                  nameLooksMatched
+                    ? "bg-green-50 text-green-700"
+                    : "bg-amber-50 text-amber-700"
+                }`}
+              >
+                {nameLooksMatched ? "Name likely matches" : "Name mismatch — review"}
+              </span>
+            )}
+          </div>
+
+          <div className="flex gap-3">
+            {result.photoBase64 && (
+              <img
+                src={
+                  result.photoBase64.startsWith("data:")
+                    ? result.photoBase64
+                    : `data:image/jpeg;base64,${result.photoBase64}`
+                }
+                alt="Government photo"
+                className="h-20 w-20 shrink-0 rounded-lg object-cover"
+              />
+            )}
+            <dl className="grid flex-1 grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+              <Field label="Full name">{providerFullName || "—"}</Field>
+              <Field label="Date of birth">{result.dateOfBirth || "—"}</Field>
+              <Field label="Gender">{result.gender || "—"}</Field>
+              <Field label="Phone">{result.phoneNumber || "—"}</Field>
+            </dl>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <dt className="text-[11px] uppercase tracking-wide text-gray-400">{label}</dt>
+      <dd className="font-medium text-gray-800">{children}</dd>
     </div>
   );
 }
