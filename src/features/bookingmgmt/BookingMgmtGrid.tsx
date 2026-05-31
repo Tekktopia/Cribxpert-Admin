@@ -14,6 +14,9 @@ import {
   CalendarCheck,
   Hourglass,
   Ban,
+  Send,
+  PauseCircle,
+  PlayCircle,
 } from "lucide-react";
 import {
   AreaChart,
@@ -31,7 +34,13 @@ import { getStatusVariant } from "@/utils/statusBadges";
 interface BookingMgmtGridProps {
   bookings: Booking[];
   onStatusUpdate: (bookingId: string, status: string) => void;
+  onReleaseFunds: (booking: Booking) => void;
+  onToggleHold: (booking: Booking) => void;
+  busyId?: string | null;
 }
+
+// Escrow states where funds are held and a payout can still be released.
+const RELEASABLE = ["FUNDS_HELD", "DELIVERY_CONFIRMED"];
 
 const naira = (n: number) => `₦${n.toLocaleString()}`;
 const fmtDate = (iso: string) =>
@@ -60,7 +69,13 @@ function statusIcon(status: string) {
   }
 }
 
-export function BookingMgmtGrid({ bookings, onStatusUpdate }: BookingMgmtGridProps) {
+export function BookingMgmtGrid({
+  bookings,
+  onStatusUpdate,
+  onReleaseFunds,
+  onToggleHold,
+  busyId,
+}: BookingMgmtGridProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
@@ -206,7 +221,14 @@ export function BookingMgmtGrid({ bookings, onStatusUpdate }: BookingMgmtGridPro
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filteredBookings.map((booking) => (
-            <BookingCard key={booking.id} booking={booking} onStatusUpdate={onStatusUpdate} />
+            <BookingCard
+              key={booking.id}
+              booking={booking}
+              onStatusUpdate={onStatusUpdate}
+              onReleaseFunds={onReleaseFunds}
+              onToggleHold={onToggleHold}
+              busy={busyId === booking.id}
+            />
           ))}
         </div>
       )}
@@ -218,13 +240,20 @@ export function BookingMgmtGrid({ bookings, onStatusUpdate }: BookingMgmtGridPro
 function BookingCard({
   booking,
   onStatusUpdate,
+  onReleaseFunds,
+  onToggleHold,
+  busy,
 }: {
   booking: Booking;
   onStatusUpdate: (id: string, status: string) => void;
+  onReleaseFunds: (booking: Booking) => void;
+  onToggleHold: (booking: Booking) => void;
+  busy?: boolean;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const n = nights(booking.startDate, booking.endDate);
+  const canRelease = RELEASABLE.includes(booking.paymentStatus);
 
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
@@ -259,10 +288,35 @@ function BookingCard({
             <MoreVertical className="w-4 h-4 text-gray-500" />
           </button>
           {menuOpen && (
-            <div className="absolute right-0 top-9 z-10 w-44 bg-white rounded-lg shadow-lg border border-gray-200 py-1">
+            <div className="absolute right-0 top-9 z-10 w-52 bg-white rounded-lg shadow-lg border border-gray-200 py-1">
               <button onClick={() => { onStatusUpdate(booking.id, "Confirmed"); setMenuOpen(false); }} className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">Mark Confirmed</button>
               <button onClick={() => { onStatusUpdate(booking.id, "Completed"); setMenuOpen(false); }} className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">Mark Completed</button>
               <button onClick={() => { onStatusUpdate(booking.id, "Cancelled"); setMenuOpen(false); }} className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50">Cancel Booking</button>
+
+              {/* Escrow payout overrides */}
+              {(canRelease || booking.payoutHold) && (
+                <div className="my-1 border-t border-gray-100" />
+              )}
+              {canRelease && (
+                <button
+                  onClick={() => { onReleaseFunds(booking); setMenuOpen(false); }}
+                  className="w-full px-4 py-2 text-left text-sm text-emerald-700 hover:bg-emerald-50 flex items-center gap-2"
+                >
+                  <Send className="w-3.5 h-3.5" /> Release funds now
+                </button>
+              )}
+              {canRelease && (
+                <button
+                  onClick={() => { onToggleHold(booking); setMenuOpen(false); }}
+                  className={`w-full px-4 py-2 text-left text-sm flex items-center gap-2 ${
+                    booking.payoutHold ? "text-emerald-700 hover:bg-emerald-50" : "text-amber-700 hover:bg-amber-50"
+                  }`}
+                >
+                  {booking.payoutHold
+                    ? <><PlayCircle className="w-3.5 h-3.5" /> Remove payout hold</>
+                    : <><PauseCircle className="w-3.5 h-3.5" /> Hold payout</>}
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -307,12 +361,20 @@ function BookingCard({
             #{booking.ticketId}
           </p>
         </div>
-        <Badge variant={getStatusVariant(booking.status.toLowerCase(), "booking")}>
-          <span className="flex items-center gap-1 capitalize">
-            {statusIcon(booking.status)}
-            {booking.status}
-          </span>
-        </Badge>
+        <div className="flex flex-col items-end gap-1">
+          <Badge variant={getStatusVariant(booking.status.toLowerCase(), "booking")}>
+            <span className="flex items-center gap-1 capitalize">
+              {statusIcon(booking.status)}
+              {booking.status}
+            </span>
+          </Badge>
+          {booking.payoutHold && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+              <PauseCircle className="w-3 h-3" /> Payout held
+            </span>
+          )}
+          {busy && <span className="text-[10px] text-gray-400">Working…</span>}
+        </div>
       </div>
     </div>
   );

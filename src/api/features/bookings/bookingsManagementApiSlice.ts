@@ -2,6 +2,24 @@
 import { apiSlice } from "@/api/apiSlice";
 import { supabase } from "@/lib/supabase";
 
+const ESCROW_FN = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/escrow`;
+
+// Call an admin escrow route with the current admin's bearer token. Returns the
+// parsed JSON body and throws a readable message on a non-2xx response.
+async function callEscrow(path: string, body: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  if (!token) throw new Error("Not signed in.");
+  const res = await fetch(`${ESCROW_FN}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((json as { error?: string })?.error ?? `Request failed (${res.status})`);
+  return json as Record<string, unknown>;
+}
+
 export interface Booking {
   id: string;
   ticketId: string;
@@ -14,6 +32,7 @@ export interface Booking {
   dateRange: string;
   status: 'Pending' | 'Confirmed' | 'Cancelled' | 'Completed';
   paymentStatus: string;
+  payoutHold: boolean;
   totalPrice: number;
   commission: number;
   createdAt: string;
@@ -57,6 +76,7 @@ export const bookingsManagementApiSlice = apiSlice.injectEndpoints({
               end_date,
               status,
               escrow_status,
+              payout_hold,
               total_price,
               created_at,
               listings!bookings_listing_id_fkey (
@@ -126,6 +146,7 @@ export const bookingsManagementApiSlice = apiSlice.injectEndpoints({
               dateRange: dateRange,
               status: booking.status as 'Pending' | 'Confirmed' | 'Cancelled' | 'Completed',
               paymentStatus: booking.escrow_status || 'Unknown',
+              payoutHold: booking.payout_hold ?? false,
               totalPrice: booking.total_price || 0,
               commission: commission,
               createdAt: booking.created_at,
@@ -189,6 +210,33 @@ export const bookingsManagementApiSlice = apiSlice.injectEndpoints({
         } catch (error) {
           console.error('Error updating payment status:', error);
           return { error: { status: 'FETCH_ERROR', error: String(error) } };
+        }
+      },
+      invalidatesTags: ['Bookings'],
+    }),
+
+    // Admin override: release escrowed funds to the host NOW (early payout).
+    releaseEscrow: builder.mutation<{ message: string; hostAmount?: string }, { bookingId: string }>({
+      queryFn: async ({ bookingId }) => {
+        try {
+          const r = await callEscrow(`/admin/bookings/${bookingId}/release`, {});
+          return { data: { message: (r.message as string) ?? 'Released', hostAmount: r.hostAmount as string } };
+        } catch (e) {
+          return { error: { status: 'CUSTOM_ERROR', error: (e as Error).message } };
+        }
+      },
+      invalidatesTags: ['Bookings'],
+    }),
+
+    // Admin override: hold / un-hold a booking's payout so the auto-release
+    // cron skips it (e.g. while reviewing a complaint without a formal dispute).
+    holdEscrow: builder.mutation<{ message: string; payoutHold: boolean }, { bookingId: string; hold: boolean }>({
+      queryFn: async ({ bookingId, hold }) => {
+        try {
+          const r = await callEscrow(`/admin/bookings/${bookingId}/hold`, { hold });
+          return { data: { message: (r.message as string) ?? 'Updated', payoutHold: !!r.payoutHold } };
+        } catch (e) {
+          return { error: { status: 'CUSTOM_ERROR', error: (e as Error).message } };
         }
       },
       invalidatesTags: ['Bookings'],
@@ -370,6 +418,8 @@ export const {
   useGetBookingsQuery,
   useUpdateBookingStatusMutation,
   useUpdatePaymentStatusMutation,
+  useReleaseEscrowMutation,
+  useHoldEscrowMutation,
   useExportBookingsQuery,
   useGetBookingStatusCountsQuery,
   useGetPaymentStatusCountsQuery,
