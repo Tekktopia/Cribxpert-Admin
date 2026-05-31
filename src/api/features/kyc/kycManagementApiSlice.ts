@@ -2,6 +2,29 @@ import { apiSlice } from "../../apiSlice";
 import { supabase } from "../../../lib/supabase";
 
 const KYC_BUCKET = "kyc";
+const ESCROW_FN = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/escrow`;
+
+// After approving KYC, ask the escrow function to provision the user's SZND
+// wallet (idempotent). Best-effort: a failure here doesn't undo the approval —
+// the route can be retried and is safe to call repeatedly.
+async function provisionWallet(userId: string): Promise<void> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) return;
+    const res = await fetch(`${ESCROW_FN}/admin/provision-wallet`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ userId }),
+    });
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      console.error("[kyc] wallet provisioning failed:", j?.error ?? res.status);
+    }
+  } catch (e) {
+    console.error("[kyc] wallet provisioning error:", e);
+  }
+}
 
 export type KycStatus = "pending" | "approved" | "rejected";
 
@@ -112,8 +135,8 @@ export const kycManagementApiSlice = apiSlice.injectEndpoints({
       },
     }),
 
-    reviewKycSubmission: builder.mutation<void, ReviewArgs>({
-      queryFn: async ({ id, status, rejectionReason }) => {
+    reviewKycSubmission: builder.mutation<void, ReviewArgs & { userId?: string }>({
+      queryFn: async ({ id, status, rejectionReason, userId }) => {
         const { data: auth } = await supabase.auth.getUser();
 
         // kyc_submissions isn't in the generated DB types yet — cast past it.
@@ -129,6 +152,19 @@ export const kycManagementApiSlice = apiSlice.injectEndpoints({
           .eq("id", id);
 
         if (error) return { error: error.message };
+
+        // On approval, provision the user's SZND escrow wallet so it "activates"
+        // immediately. userId may be passed by the caller; otherwise look it up.
+        if (status === "approved") {
+          let uid = userId;
+          if (!uid) {
+            const { data: row } = await (supabase as any)
+              .from("kyc_submissions").select("user_id").eq("id", id).single();
+            uid = row?.user_id;
+          }
+          if (uid) await provisionWallet(uid);
+        }
+
         return { data: undefined };
       },
       invalidatesTags: ["KYCSubmissions"],

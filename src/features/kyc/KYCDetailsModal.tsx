@@ -121,7 +121,7 @@ export function KYCDetailsModal({ record, onClose, onReviewed }: KYCDetailsModal
 
   const handleApprove = async () => {
     try {
-      await review({ id: record.id, status: "approved" }).unwrap();
+      await review({ id: record.id, status: "approved", userId: record.userId }).unwrap();
       onReviewed("approved", record.userName);
     } catch {
       /* surfaced by parent toast on rejection below */
