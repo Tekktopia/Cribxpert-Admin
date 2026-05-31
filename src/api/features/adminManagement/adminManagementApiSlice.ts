@@ -104,9 +104,22 @@ export const adminManagementApiSlice = apiSlice.injectEndpoints({
         const { data, error } = await supabase.functions.invoke('create-admin', {
           body,
         });
-        if (error) return { error: { status: 'CUSTOM_ERROR', error: error.message } };
+        if (error) {
+          // supabase-js wraps non-2xx as FunctionsHttpError whose .message is the
+          // useless "Edge Function returned a non-2xx status code". The function's
+          // real { error } body lives on error.context (the raw Response) — read it.
+          let msg = error.message;
+          const ctx = (error as unknown as { context?: Response }).context;
+          if (ctx && typeof ctx.json === 'function') {
+            try {
+              const b = await ctx.clone().json();
+              if (b?.error) msg = b.error;
+            } catch { /* keep generic message */ }
+          }
+          return { error: { status: 'CUSTOM_ERROR', error: msg } };
+        }
         if (data?.error) return { error: { status: 'CUSTOM_ERROR', error: data.error } };
-        return { data: { message: data?.message ?? `Admin invite sent to ${email}` } };
+        return { data: { message: data?.message ?? `Admin created — they can log in now.` } };
       },
       invalidatesTags: [{ type: "User", id: "ADMIN_LIST" }],
     }),
