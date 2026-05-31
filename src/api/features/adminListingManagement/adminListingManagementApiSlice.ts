@@ -154,6 +154,9 @@ export const adminListingManagementApiSlice = apiSlice.injectEndpoints({
           let query = supabase
             .from('listings')
             .select(LISTING_SELECT, { count: 'exact' })
+            // Draft listings belong to the host only — they haven't been
+            // submitted for review, so they must never appear on the Admin side.
+            .neq('status', 'draft')
             .order('created_at', { ascending: false });
 
           // Apply status filter
@@ -199,7 +202,8 @@ export const adminListingManagementApiSlice = apiSlice.injectEndpoints({
         try {
           const { data: listings, error } = (await supabase
             .from('listings')
-            .select('status, hide_status')) as {
+            .select('status, hide_status')
+            .neq('status', 'draft')) as {
               data: Array<{ status: string | null; hide_status: boolean | null }> | null;
               error: { message: string } | null;
             };
@@ -392,7 +396,8 @@ export const adminListingManagementApiSlice = apiSlice.injectEndpoints({
               hide_status,
               created_at,
               profiles!user_id(full_name, email)
-            `);
+            `)
+            .neq('status', 'draft');
 
           if (params?.status) {
             if (params.status === 'hidden') {
