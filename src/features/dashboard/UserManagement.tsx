@@ -21,7 +21,7 @@ export function UserManagement({ userData }: UserManagementProps) {
   const total = userData.reduce((sum, d) => sum + d.value, 0);
 
   return (
-    <Card className="p-5 h-full">
+    <Card className="p-5 h-full rounded-2xl">
       <CardHeader className="p-0 pb-4">
         <div className="flex items-start justify-between">
           <CardTitle className="text-base font-semibold">

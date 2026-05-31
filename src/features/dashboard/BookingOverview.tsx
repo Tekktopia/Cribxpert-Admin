@@ -1,11 +1,20 @@
 // src/features/dashboard/BookingOverview.tsx
-import { CalendarCheck, Clock, CheckCircle2, XCircle } from "lucide-react";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  Cell,
+} from "recharts";
 
 interface BookingOverviewProps {
   total: number;
@@ -15,37 +24,6 @@ interface BookingOverviewProps {
   cancelled: number;
 }
 
-const ROWS = [
-  {
-    label: "Pending",
-    key: "pending" as const,
-    icon: Clock,
-    bg: "bg-amber-50",
-    text: "text-amber-700",
-  },
-  {
-    label: "Confirmed",
-    key: "confirmed" as const,
-    icon: CalendarCheck,
-    bg: "bg-cyan-50",
-    text: "text-cyan-700",
-  },
-  {
-    label: "Completed",
-    key: "completed" as const,
-    icon: CheckCircle2,
-    bg: "bg-emerald-50",
-    text: "text-emerald-700",
-  },
-  {
-    label: "Cancelled",
-    key: "cancelled" as const,
-    icon: XCircle,
-    bg: "bg-red-50",
-    text: "text-red-700",
-  },
-];
-
 export function BookingOverview({
   total,
   pending,
@@ -53,42 +31,49 @@ export function BookingOverview({
   completed,
   cancelled,
 }: BookingOverviewProps) {
-  const values = { pending, confirmed, completed, cancelled };
+  const data = [
+    { label: "Pending", value: pending, color: "#f59e0b" },
+    { label: "Confirmed", value: confirmed, color: "#0e7490" },
+    { label: "Completed", value: completed, color: "#16a34a" },
+    { label: "Cancelled", value: cancelled, color: "#ef4444" },
+  ];
 
   return (
-    <Card className="p-4">
+    <Card className="p-5 h-full rounded-2xl">
       <CardHeader className="p-0 pb-4">
         <div className="flex items-start justify-between">
-          <div>
-            <CardTitle className="text-base font-semibold">
-              Booking Overview
-            </CardTitle>
-            <p className="text-xs text-gray-500 mt-0.5">All-time totals</p>
-          </div>
+          <CardTitle className="text-base font-semibold">
+            Booking Overview
+          </CardTitle>
           <div className="text-right">
-            <p className="text-2xl font-bold text-gray-900">
+            <p className="text-2xl font-bold text-gray-900 leading-tight">
               {total.toLocaleString()}
             </p>
-            <p className="text-xs text-gray-500">total</p>
+            <p className="text-xs text-gray-400">total bookings</p>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="p-0 space-y-2">
-        {ROWS.map(({ label, key, icon: Icon, bg, text }) => (
-          <div
-            key={label}
-            className={`flex items-center justify-between rounded-lg px-3 py-2.5 ${bg}`}
-          >
-            <div className="flex items-center gap-2">
-              <Icon className={`w-4 h-4 ${text}`} />
-              <span className={`text-sm font-medium ${text}`}>{label}</span>
-            </div>
-            <span className={`text-sm font-bold ${text}`}>
-              {values[key].toLocaleString()}
-            </span>
-          </div>
-        ))}
+      <CardContent className="p-0">
+        <div className="h-44 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+              <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} allowDecimals={false} />
+              <Tooltip
+                cursor={{ fill: "#f8fafc" }}
+                contentStyle={{ borderRadius: 10, border: "1px solid #e5e7eb", fontSize: 12 }}
+                formatter={(value: number) => [value.toLocaleString(), "Bookings"]}
+              />
+              <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={48}>
+                {data.map((d) => (
+                  <Cell key={d.label} fill={d.color} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </CardContent>
     </Card>
   );

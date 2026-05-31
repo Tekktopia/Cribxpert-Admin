@@ -1,4 +1,8 @@
-import { useEffect, useRef } from "react";
+// src/components/charts/DonutChart.tsx
+// Recharts-powered donut. Drop-in replacement for the old canvas version —
+// same { label, value, color }[] contract, but with smooth rendering,
+// hover tooltips, and a centered total.
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 interface ChartData {
   label: string;
@@ -8,58 +12,47 @@ interface ChartData {
 
 interface DonutChartProps {
   data: ChartData[];
+  /** Optional centered label under the total (e.g. "users"). */
+  centerLabel?: string;
 }
 
-export function DonutChart({ data }: DonutChartProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    if (!canvasRef.current) return;
-
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Calculate total value
-    const total = data.reduce((sum, item) => sum + item.value, 0);
-
-    // Draw the donut chart
-    let startAngle = -0.5 * Math.PI; // Start from the top
-    const radius = Math.min(canvas.width, canvas.height) / 2.2;
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-
-    data.forEach((item) => {
-      const sliceAngle = (item.value / total) * 2 * Math.PI;
-
-      ctx.beginPath();
-      ctx.moveTo(centerX, centerY);
-      ctx.arc(centerX, centerY, radius, startAngle, startAngle + sliceAngle);
-      ctx.closePath();
-
-      ctx.fillStyle = item.color;
-      ctx.fill();
-
-      startAngle += sliceAngle;
-    });
-
-    // Create the donut hole
-    ctx.beginPath();
-    ctx.moveTo(centerX, centerY);
-    ctx.arc(centerX, centerY, radius * 0.6, 0, 2 * Math.PI);
-    ctx.fillStyle = "white";
-    ctx.fill();
-  }, [data]);
+export function DonutChart({ data, centerLabel }: DonutChartProps) {
+  const total = data.reduce((sum, d) => sum + d.value, 0);
+  const slices = data.filter((d) => d.value > 0);
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={200}
-      height={200}
-      className='w-full h-full'
-    ></canvas>
+    <div className="relative w-full h-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={slices.length ? slices : [{ label: "None", value: 1, color: "#e5e7eb" }]}
+            dataKey="value"
+            nameKey="label"
+            innerRadius="62%"
+            outerRadius="100%"
+            paddingAngle={slices.length > 1 ? 2 : 0}
+            startAngle={90}
+            endAngle={-270}
+            stroke="none"
+          >
+            {(slices.length ? slices : [{ color: "#e5e7eb" }]).map((d, i) => (
+              <Cell key={i} fill={d.color} />
+            ))}
+          </Pie>
+          {slices.length > 0 && (
+            <Tooltip
+              contentStyle={{ borderRadius: 10, border: "1px solid #e5e7eb", fontSize: 12 }}
+              formatter={(value: number, name: string) => [value.toLocaleString(), name]}
+            />
+          )}
+        </PieChart>
+      </ResponsiveContainer>
+
+      {/* Centered total */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+        <span className="text-xl font-bold text-gray-900 leading-none">{total.toLocaleString()}</span>
+        {centerLabel && <span className="text-[10px] text-gray-400 mt-0.5">{centerLabel}</span>}
+      </div>
+    </div>
   );
 }
