@@ -20,7 +20,7 @@ interface SidebarProps {
   navigationItems?: ReadonlyArray<NavItem>;
 }
 
-const navigationItems = [ 
+const navigationItems: NavItem[] = [
   { label: "Dashboard", iconSrc: "/sidebar/dashboard-square-remove.svg", href: "/dashboard" },
   { label: "Users", iconSrc: "/sidebar/user-multiple-02.svg", href: "/users" },
   { label: "Listings", iconSrc: "/sidebar/list-setting.svg", href: "/listings" },
