@@ -1,40 +1,54 @@
 // src/pages/admin/BookingMgmt.tsx
 import { PageWrapper } from "@/components/layout/PageWrapper";
 import { BookingMgmtGrid } from "@/features/bookingmgmt/BookingMgmtGrid";
-import { 
+import {
   useGetBookingsQuery,
-  useGetBookingStatusCountsQuery,
-  useGetPaymentStatusCountsQuery 
+  useUpdateBookingStatusMutation,
 } from "@/api/features/bookings/bookingsManagementApiSlice";
+import { useRealtimeRefetch } from "@/hooks/useRealtimeRefetch";
+import { useNotification } from "@/hooks/useNotification";
 import { Loader2 } from "lucide-react";
 
 export default function BookingMgmt() {
-  // Fetch bookings directly
-  const { 
-    data: bookingsData, 
-    isLoading: bookingsLoading, 
-    error: bookingsError 
-  } = useGetBookingsQuery({ limit: 10 });
-  
-  // Fetch status counts
-  const { 
-    data: statusCounts, 
-    isLoading: statusLoading 
-  } = useGetBookingStatusCountsQuery();
-  
-  // Fetch payment status counts
-  const { 
-    data: paymentCounts, 
-    isLoading: paymentLoading 
-  } = useGetPaymentStatusCountsQuery();
+  const { showNotification } = useNotification();
 
-  const isLoading = bookingsLoading || statusLoading || paymentLoading;
+  // Pull a generous page so the cards + KPIs + 6-month trend have real data.
+  const {
+    data: bookingsData,
+    isLoading,
+    error,
+    refetch,
+  } = useGetBookingsQuery({ limit: 500 });
+
+  const [updateBookingStatus] = useUpdateBookingStatusMutation();
+
+  // Live updates — any change to bookings re-pulls the list.
+  useRealtimeRefetch(["bookings"], refetch, "admin-bookings");
+
+  const handleStatusUpdate = async (bookingId: string, status: string) => {
+    try {
+      await updateBookingStatus({ bookingId, status }).unwrap();
+      showNotification({
+        type: "success",
+        title: `Booking ${status}`,
+        message: `The booking has been marked as ${status.toLowerCase()}.`,
+        duration: 4000,
+      });
+    } catch {
+      showNotification({
+        type: "error",
+        title: "Update failed",
+        message: "Could not update the booking status. Please try again.",
+        duration: 5000,
+      });
+    }
+  };
 
   if (isLoading) {
     return (
       <PageWrapper
-        title='Bookings Management'
-        subtitle='Track all bookings, monitor statuses, and manage payment related actions'
+        title="Bookings Management"
+        subtitle="Track all bookings, monitor statuses, and manage payment related actions"
         isPopulated={false}
       >
         <div className="flex items-center justify-center h-64">
@@ -45,11 +59,11 @@ export default function BookingMgmt() {
     );
   }
 
-  if (bookingsError) {
+  if (error) {
     return (
       <PageWrapper
-        title='Bookings Management'
-        subtitle='Track all bookings, monitor statuses, and manage payment related actions'
+        title="Bookings Management"
+        subtitle="Track all bookings, monitor statuses, and manage payment related actions"
         isPopulated={false}
       >
         <div className="text-red-500 text-center p-8">
@@ -59,51 +73,24 @@ export default function BookingMgmt() {
     );
   }
 
-  // Transform bookings data to match your component's expected format
-  const transformedData = {
-    bookings: bookingsData?.bookings.map(booking => ({
-      id: booking.id,
-      ticketId: booking.ticketId,
-      guestName: booking.guestName,
-      guestEmail: booking.guestEmail,
-      hostName: booking.hostName,
-      propertyName: booking.propertyName,
-      dates: booking.dateRange,
-      status: booking.status,
-      paymentStatus: booking.paymentStatus === 'AWAITING_KYC' ? 'Awaiting KYC' 
-        : booking.paymentStatus === 'DELIVERY_CONFIRMED' ? 'Delivery Confirmed' 
-        : booking.paymentStatus,
-      totalPrice: booking.totalPrice,
-      commission: booking.commission,
-    })) || [],
-    statusCounts: {
-      all: statusCounts?.['All Status'] || 0,
-      pending: statusCounts?.['Pending'] || 0,
-      confirmed: statusCounts?.['Confirmed'] || 0,
-      cancelled: statusCounts?.['Cancelled'] || 0,
-      completed: statusCounts?.['Completed'] || 0,
-    },
-    paymentStatusCounts: {
-      all: paymentCounts?.['All'] || 0,
-      awaitingKyc: paymentCounts?.['AWAITING_KYC'] || 0,
-      deliveryConfirmed: paymentCounts?.['DELIVERY_CONFIRMED'] || 0,
-    }
-  };
-
-  const isPopulated = transformedData.bookings.length > 0;
+  const bookings = bookingsData?.bookings ?? [];
+  const isPopulated = bookings.length > 0;
 
   return (
     <PageWrapper
-      title='Bookings Management'
-      subtitle='Track all bookings, monitor statuses, and manage payment related actions'
+      title="Bookings Management"
+      subtitle="Track all bookings, monitor statuses, and manage payment related actions"
       isPopulated={isPopulated}
       emptyState={{
         iconUrl: "/svg/bookings-simple.svg",
         title: "No bookings yet",
-        subtitle: "All property bookings made by guests will show here once they start rolling in.",
+        subtitle:
+          "All property bookings made by guests will show here once they start rolling in.",
       }}
     >
-      {isPopulated && <BookingMgmtGrid data={transformedData as any} />}
+      {isPopulated && (
+        <BookingMgmtGrid bookings={bookings} onStatusUpdate={handleStatusUpdate} />
+      )}
     </PageWrapper>
   );
 }
