@@ -13,11 +13,13 @@ export const csrNavigationItems = [
     label: "Live Chat",
     iconSrc: "/sidebar/ticket.svg",
     href: "/csr/live-inbox",
+    badgeKey: "liveChat" as const,
   },
   {
     label: "Tickets",
     iconSrc: "/sidebar/ticket.svg",
     href: "/csr/tickets",
+    badgeKey: "tickets" as const,
   },
   {
     label: "Disputes & Complaints",

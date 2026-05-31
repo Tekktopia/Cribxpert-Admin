@@ -4,12 +4,20 @@ import { memo, useMemo, useCallback } from "react";
 import { cn } from "../../utils/cn";
 import { SvgIcon } from "@/components/ui/SvgIcon";
 import { useAppSelector } from "@/store/hooks";
+import { useCsrUnreadCounts } from "@/hooks/useCsrUnreadCounts";
+
+interface NavItem {
+  readonly label: string;
+  readonly iconSrc: string;
+  readonly href: string;
+  readonly badgeKey?: "liveChat" | "tickets";
+}
 
 interface SidebarProps {
   className?: string;
   isOpen?: boolean;
   onClose?: () => void;
-  navigationItems?: Array<{ readonly label: string; readonly iconSrc: string; readonly href: string }>;
+  navigationItems?: ReadonlyArray<NavItem>;
 }
 
 const navigationItems = [ 
@@ -53,6 +61,14 @@ export const Sidebar = memo(function Sidebar({
     [baseItems, profileRole]
   );
 
+  // Only count (and open a realtime channel) when this sidebar actually shows
+  // badge-bearing CSR items — keeps the admin/finance sidebars side-effect-free.
+  const hasBadges = useMemo(
+    () => items.some((item) => "badgeKey" in item && item.badgeKey),
+    [items]
+  );
+  const unread = useCsrUnreadCounts(hasBadges);
+
   // Memoize the close handler to prevent unnecessary re-renders of child components
   const handleClose = useCallback(() => {
     onClose?.();
@@ -68,6 +84,7 @@ export const Sidebar = memo(function Sidebar({
           ? location.pathname === item.href
           : location.pathname.startsWith(item.href);
       const isLogout = item.label === "Logout";
+      const badgeCount = item.badgeKey ? unread[item.badgeKey] : 0;
 
       return (
         <Link
@@ -91,11 +108,22 @@ export const Sidebar = memo(function Sidebar({
             color={isLogout && !isActive ? "#dc2626" : isActive ? "#ffffff" : "#6b7280"}
             alt={`${item.label} icon`}
           />
-          {item.label}
+          <span className="flex-1">{item.label}</span>
+          {badgeCount > 0 && (
+            <span
+              className={cn(
+                "ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold leading-none",
+                isActive ? "bg-white text-primary-600" : "bg-red-500 text-white"
+              )}
+              aria-label={`${badgeCount} unread`}
+            >
+              {badgeCount > 99 ? "99+" : badgeCount}
+            </span>
+          )}
         </Link>
       );
     });
-  }, [items, location.pathname, handleClose]); // csr sidebar mods
+  }, [items, location.pathname, handleClose, unread]); // csr sidebar mods
 
   return (
     <div
