@@ -42,7 +42,7 @@ export function DonutChart({ data, centerLabel }: DonutChartProps) {
           {slices.length > 0 && (
             <Tooltip
               contentStyle={{ borderRadius: 10, border: "1px solid #e5e7eb", fontSize: 12 }}
-              formatter={(value: number, name: string) => [value.toLocaleString(), name]}
+              formatter={(value, name) => [Number(value).toLocaleString(), String(name)]}
             />
           )}
         </PieChart>

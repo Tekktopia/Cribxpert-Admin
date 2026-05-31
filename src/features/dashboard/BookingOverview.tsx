@@ -64,7 +64,7 @@ export function BookingOverview({
               <Tooltip
                 cursor={{ fill: "#f8fafc" }}
                 contentStyle={{ borderRadius: 10, border: "1px solid #e5e7eb", fontSize: 12 }}
-                formatter={(value: number) => [value.toLocaleString(), "Bookings"]}
+                formatter={(value) => [Number(value).toLocaleString(), "Bookings"]}
               />
               <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={48}>
                 {data.map((d) => (
