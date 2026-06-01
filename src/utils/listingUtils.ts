@@ -4,37 +4,50 @@ export interface ActionConfig {
   variant: "approve" | "reject" | "flag" | "hide";
 }
 
-export type ListingStatus = "pending" | "active" | "flagged" | "rejected";
+// The DB enum uses 'approved'; older code used 'active' as a synonym.
+// The listing API also coerces hidden rows to status='hidden' so the UI can
+// filter on it. Keep all three accepted here so admin actions surface for
+// whichever shape we get.
+export type ListingStatus =
+  | "pending"
+  | "active"
+  | "approved"
+  | "flagged"
+  | "rejected"
+  | "hidden"
+  | "draft";
 
 /**
- * Get the available actions for a listing based on its status and hideStatus
- * @param status - The current status of the listing
- * @param hideStatus - Whether the listing is currently hidden
- * @returns Array of action configurations
+ * Get the available actions for a listing based on its status and hideStatus.
+ *   - approved / active → Flag + Hide
+ *   - hidden            → Unhide (single primary action; admin only)
+ *   - pending / flagged → Approve + Reject
+ *   - rejected / draft  → no admin actions
  */
 export function getListingActions(status: ListingStatus, hideStatus?: boolean): ActionConfig[] {
-  switch (status) {
+  // A row may carry status='approved' AND hide_status=true (some queries do
+  // NOT coerce). Treat that as the hidden case so the Unhide button shows.
+  const effective = hideStatus === true && status !== "hidden" ? "hidden" : status;
+
+  switch (effective) {
     case "pending":
+    case "flagged":
       return [
-        { label: "Reject", action: "reject", variant: "reject" },
+        { label: "Reject",  action: "reject",  variant: "reject"  },
         { label: "Approve", action: "approve", variant: "approve" },
       ];
     case "active":
+    case "approved":
       return [
         { label: "Flag", action: "flag", variant: "flag" },
-        { 
-          label: hideStatus ? "Unhide" : "Hide", 
-          action: "hide", 
-          variant: "hide" 
-        },
+        { label: "Hide", action: "hide", variant: "hide" },
       ];
-    case "flagged":
+    case "hidden":
       return [
-        { label: "Reject", action: "reject", variant: "reject" },
-        { label: "Approve", action: "approve", variant: "approve" },
+        { label: "Unhide", action: "hide", variant: "hide" },
       ];
     case "rejected":
-      return []; // No actions available for rejected listings
+    case "draft":
     default:
       return [];
   }
