@@ -2,8 +2,9 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { clearUser } from '@/features/auth/authSlice';
+import { supabase } from '@/lib/supabase';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { ChevronDown, User, Settings, LogOut } from 'lucide-react';
+import { ChevronDown, Settings, LogOut } from 'lucide-react';
 
 interface User {
   _id?: string;
@@ -30,10 +31,14 @@ const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({
 }) => {
   const dispatch = useDispatch();
 
-  const handleLogout = () => {
-    dispatch(clearUser());
+  const handleLogout = async () => {
     onCloseMenu();
-    window.location.href = '/login';
+    // Must sign out from Supabase first. Without this, the authListener's
+    // onAuthStateChange fires immediately on the /login page, sees the still-
+    // active session, and redirects straight back to the dashboard.
+    await supabase.auth.signOut();
+    dispatch(clearUser());
+    window.location.replace('/login');
   };
 
   // Get user initials for avatar fallback

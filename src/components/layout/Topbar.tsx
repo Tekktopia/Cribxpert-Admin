@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Button } from "../ui/button";
 import { useAppSelector } from "@/store/hooks";
 import { clearUser } from "@/features/auth/authSlice";
+import { supabase } from "@/lib/supabase";
 
 interface TopbarProps {
   onMenuClick?: () => void;
@@ -64,10 +65,13 @@ export const Topbar = memo(function Topbar({ onMenuClick }: TopbarProps) {
     setShowProfileMenu(false);
   }, []);
 
-  const handleLogout = useCallback(() => {
-    dispatch(clearUser());
+  const handleLogout = useCallback(async () => {
     closeProfileMenu();
-    window.location.href = '/login';
+    // Sign out from Supabase before clearing Redux. Without this, authListener
+    // sees the still-active session on /login and bounces straight back.
+    await supabase.auth.signOut();
+    dispatch(clearUser());
+    window.location.replace('/login');
   }, [dispatch, closeProfileMenu]);
 
   const userDisplay = useMemo(() => {
