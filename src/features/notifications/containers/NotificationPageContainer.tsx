@@ -128,16 +128,18 @@ function BroadcastView() {
         // Targeted broadcast — exact list of user IDs from the combobox
         targetIds = (targetUserIds ?? []).filter(Boolean);
       } else {
-        let query = supabase.from("profiles").select("id");
-        if (audience === "hosts") {
-          query = query.eq("is_host", true);
-        } else if (audience === "guests") {
-          query = query.eq("is_host", false).eq("role", "user");
-        } else if (audience === "all") {
-          // "all" sends to every regular user (and hosts, who also have role='user')
-          query = query.in("role", ["user"]);
+        // Exclude admin/staff — only target real end users (hosts + guests)
+        // profiles.role values in use: 'host', 'guest', plus admin variants below
+        let query = (supabase.from('profiles') as any)
+          .select('id, role')
+          .not('role', 'in', '(admin,superadmin,csr_admin,csr_agent,finance_admin,finance_agent,group_supervisor,group_agent)');
+        if (audience === 'hosts') {
+          query = query.eq('role', 'host');
+        } else if (audience === 'guests') {
+          query = query.eq('role', 'guest');
         }
-        const { data: users } = await (query as any);
+        // audience === 'all': no extra filter → all non-admin users (hosts + guests)
+        const { data: users } = await query;
         targetIds = (users ?? []).map((u: { id: string }) => u.id);
       }
 
