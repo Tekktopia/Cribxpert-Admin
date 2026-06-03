@@ -153,16 +153,32 @@ export const kycManagementApiSlice = apiSlice.injectEndpoints({
 
         if (error) return { error: error.message };
 
-        // On approval, provision the user's SZND escrow wallet so it "activates"
-        // immediately. userId may be passed by the caller; otherwise look it up.
-        if (status === "approved") {
-          let uid = userId;
-          if (!uid) {
-            const { data: row } = await (supabase as any)
-              .from("kyc_submissions").select("user_id").eq("id", id).single();
-            uid = row?.user_id;
-          }
-          if (uid) await provisionWallet(uid);
+        // Resolve user_id for wallet provisioning + notification
+        let uid = userId;
+        if (!uid) {
+          const { data: row } = await (supabase as any)
+            .from("kyc_submissions").select("user_id").eq("id", id).single();
+          uid = row?.user_id;
+        }
+
+        // On approval, provision the user's SZND escrow wallet so it "activates" immediately.
+        if (status === "approved" && uid) {
+          await provisionWallet(uid);
+        }
+
+        // Notify the user of the KYC outcome (triggers push via DB webhook too)
+        if (uid) {
+          await (supabase as any).from("notifications").insert({
+            user_id: uid,
+            title: status === "approved" ? "KYC Approved ✅" : "KYC Rejected ❌",
+            description:
+              status === "approved"
+                ? "Your identity verification has been approved. You can now access all platform features including payouts."
+                : `Your identity verification was not approved.${rejectionReason ? ` Reason: ${rejectionReason}` : ""} Please re-submit with the correct documents.`,
+            category: "kyc",
+            is_read: false,
+            status: "unread",
+          });
         }
 
         return { data: undefined };
