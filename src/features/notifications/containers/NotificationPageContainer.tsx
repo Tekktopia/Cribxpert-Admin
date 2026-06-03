@@ -128,17 +128,14 @@ function BroadcastView() {
         // Targeted broadcast — exact list of user IDs from the combobox
         targetIds = (targetUserIds ?? []).filter(Boolean);
       } else {
-        // Exclude admin/staff — only target real end users (hosts + guests)
-        // profiles.role values in use: 'host', 'guest', plus admin variants below
-        let query = (supabase.from('profiles') as any)
-          .select('id, role')
-          .not('role', 'in', '(admin,superadmin,csr_admin,csr_agent,finance_admin,finance_agent,group_supervisor,group_agent)');
+        // All roles included — 'all' means everyone on the platform
+        let query = (supabase.from('profiles') as any).select('id, role');
         if (audience === 'hosts') {
           query = query.eq('role', 'host');
         } else if (audience === 'guests') {
           query = query.eq('role', 'guest');
         }
-        // audience === 'all': no extra filter → all non-admin users (hosts + guests)
+        // audience === 'all': no filter — every single user including admins
         const { data: users } = await query;
         targetIds = (users ?? []).map((u: { id: string }) => u.id);
       }
