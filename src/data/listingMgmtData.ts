@@ -49,6 +49,7 @@ export interface ListingRecord {
   avaliableFrom?: string;
   avaliableUntil?: string;
   hideStatus?: boolean;
+  editSnapshot?: Record<string, unknown> | null;
 }
 
 export const listingMgmtData: ListingRecord[] = [

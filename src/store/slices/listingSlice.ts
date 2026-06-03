@@ -53,24 +53,26 @@ const filterListingsByTab = (
       );
 
     case "pending":
-      // Pending = status is 'pending' AND not hidden
-      return listings.filter((l) => l.status === "pending" && !l.hideStatus);
+      // Pending = status is 'pending'. Includes edited listings (which have
+      // hide_status=true while awaiting re-approval) — admins must see those
+      // here too. Excludes purely-hidden approved/rejected listings.
+      return listings.filter((l) => l.status === "pending");
 
     case "flagged":
-      // Flagged = status is 'flagged' AND not hidden
       return listings.filter((l) => l.status === "flagged" && !l.hideStatus);
 
     case "rejected":
-      // Rejected = status is 'rejected' AND not hidden
       return listings.filter((l) => l.status === "rejected" && !l.hideStatus);
 
     case "hidden":
-      // ✅ FIX: Hidden = hideStatus is true (regardless of status)
-      return listings.filter((l) => l.hideStatus === true);
+      // Hidden = hide_status is true but NOT an edited-pending listing
+      // (those belong in Pending/Edited, not Hidden).
+      return listings.filter((l) => l.hideStatus === true && l.status !== "pending");
 
     case "all":
     default:
-      return listings.filter((l) => !l.hideStatus); // Show all non-hidden listings by default
+      // All = everything except purely-hidden non-pending listings
+      return listings.filter((l) => !l.hideStatus || l.status === "pending");
   }
 };
 

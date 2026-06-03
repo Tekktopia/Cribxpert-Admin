@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { MapPin, Star, Users, BedDouble, Bath, User as UserIcon, CalendarDays } from "lucide-react";
+import { MapPin, Star, Users, BedDouble, Bath, User as UserIcon, CalendarDays, PencilLine } from "lucide-react";
 import { ListingActionButtons } from "@/features/listingmgmt/components/ListingActionButtons";
 import type { ListingRecord } from "@/data/listingMgmtData";
 
@@ -67,14 +67,24 @@ export const ListingCard = React.memo<ListingCardProps>(
           />
           {!imgLoaded && <div className="absolute inset-0 bg-gray-200 animate-pulse" />}
 
-          {/* Status pill */}
-          <span
-            className={`absolute top-3 left-3 px-2.5 py-1 rounded-full text-[11px] font-semibold ${
-              STATUS_PILL[listing.status] ?? "bg-gray-100 text-gray-600"
-            }`}
-          >
-            {STATUS_LABEL[listing.status] ?? listing.status}
-          </span>
+          {/* Status pill — if the listing has an editSnapshot it's a host-edited
+              pending listing; show a secondary "Edited" badge so admins can
+              distinguish it from a fresh submission on the same Pending tab. */}
+          <div className="absolute top-3 left-3 flex items-center gap-1.5 flex-wrap">
+            <span
+              className={`px-2.5 py-1 rounded-full text-[11px] font-semibold ${
+                STATUS_PILL[listing.status] ?? "bg-gray-100 text-gray-600"
+              }`}
+            >
+              {STATUS_LABEL[listing.status] ?? listing.status}
+            </span>
+            {listing.editSnapshot && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-700">
+                <PencilLine className="w-3 h-3" />
+                Edited
+              </span>
+            )}
+          </div>
 
           {/* Rating chip */}
           {listing.averageRating != null && listing.averageRating > 0 && (

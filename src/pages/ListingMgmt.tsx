@@ -94,6 +94,7 @@ export default function ListingMgmt() {
         avaliableFrom: apiListing.avaliableFrom,
         avaliableUntil: apiListing.avaliableUntil,
         hideStatus: apiListing.hideStatus ?? false,
+        editSnapshot: apiListing.editSnapshot ?? null,
       };
     });
   }, [listingsData]);

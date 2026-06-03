@@ -124,7 +124,10 @@ function mapRow(r: Record<string, unknown>): ApiListing {
     basePrice: r.base_price as number ?? 0,
     cleaningFee: r.cleaning_fee as number | undefined,
     securityDeposit: r.security_deposit as number | undefined,
-    status: (r.hide_status === true ? 'hidden' : r.status) as ApiListing['status'],
+    // Keep the real DB status (pending/approved/etc.) — hideStatus is tracked
+    // separately. Overwriting status with 'hidden' breaks the Pending tab for
+    // edited listings (which have hide_status=true while awaiting re-approval).
+    status: r.status as ApiListing['status'],
     createdAt: r.created_at as string,
     latitude: r.latitude as number | undefined,
     longitude: r.longitude as number | undefined,
