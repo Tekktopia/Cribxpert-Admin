@@ -128,16 +128,26 @@ function BroadcastView() {
         // Targeted broadcast — exact list of user IDs from the combobox
         targetIds = (targetUserIds ?? []).filter(Boolean);
       } else {
-        // All roles included — 'all' means everyone on the platform
-        let query = (supabase.from('profiles') as any).select('id, role');
+        // NOTE: every user on the platform has role='user' regardless of whether
+        // they're a host or guest. We distinguish hosts (have a listing) vs
+        // guests (have a booking) by checking those tables instead.
         if (audience === 'hosts') {
-          query = query.eq('role', 'host');
+          // Hosts = users who have created at least one listing
+          const { data: listings } = await (supabase.from('listings') as any)
+            .select('user_id');
+          const uniqueIds = [...new Set((listings ?? []).map((l: { user_id: string }) => l.user_id))];
+          targetIds = uniqueIds as string[];
         } else if (audience === 'guests') {
-          query = query.eq('role', 'guest');
+          // Guests = users who have made at least one booking
+          const { data: bookings } = await (supabase.from('bookings') as any)
+            .select('user_id');
+          const uniqueIds = [...new Set((bookings ?? []).map((b: { user_id: string }) => b.user_id))];
+          targetIds = uniqueIds as string[];
+        } else {
+          // 'all' — every profile, no filter
+          const { data: users } = await (supabase.from('profiles') as any).select('id');
+          targetIds = (users ?? []).map((u: { id: string }) => u.id);
         }
-        // audience === 'all': no filter — every single user including admins
-        const { data: users } = await query;
-        targetIds = (users ?? []).map((u: { id: string }) => u.id);
       }
 
       if (targetIds.length > 0) {
