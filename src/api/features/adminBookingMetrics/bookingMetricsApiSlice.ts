@@ -150,14 +150,17 @@ export const adminBookingMetricsApiSlice = apiSlice.injectEndpoints({
           const { data: pendingPayoutsData, error: payoutError } = await supabase
             .from('bookings')
             .select('total_price, created_at')
-            .eq('escrow_status', 'AWAITING_KYC')
+            .in('escrow_status', ['FUNDS_HELD', 'DELIVERY_CONFIRMED'])
             .not('total_price', 'is', null) as { data: any[] | null; error: any };
 
           if (payoutError) throw payoutError;
 
           let pendingPayoutsTotal = 0;
           if (pendingPayoutsData && pendingPayoutsData.length > 0) {
-            pendingPayoutsTotal = pendingPayoutsData.reduce((sum: number, b: any) => sum + (b.total_price || 0), 0);
+            pendingPayoutsTotal = pendingPayoutsData.reduce((sum: number, b: any) => {
+              const net = (b.total_price || 0) - (b.security_deposit_amount || 0);
+              return sum + Math.round(net * 0.90);
+            }, 0);
           }
 
           // Calculate pending payouts change
@@ -345,12 +348,12 @@ export const adminBookingMetricsApiSlice = apiSlice.injectEndpoints({
                 details: 'All time bookings',
               },
               averageValue: {
-                value: `₹${Math.round(averageValue).toLocaleString()}`,
+                value: `₦${Math.round(averageValue).toLocaleString()}`,
                 change: Number(averageValueChange.toFixed(1)),
                 changeText: 'this week',
               },
               pendingPayouts: {
-                value: `₹${Math.round(pendingPayoutsTotal).toLocaleString()}`,
+                value: `₦${Math.round(pendingPayoutsTotal).toLocaleString()}`,
                 change: Number(pendingPayoutsChange.toFixed(1)),
                 changeText: 'this week',
               },
