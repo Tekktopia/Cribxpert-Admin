@@ -4,7 +4,56 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/CribXpert.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Cribxpert Admin</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <title>CribXpert Admin</title>
+
+    <!-- Preconnect to Google Fonts CDN so the font request starts immediately -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    />
+
+    <!--
+      Critical CSS — applied before the Tailwind bundle arrives.
+      Prevents FOUC: correct background + font stack from byte 1.
+    -->
+    <style>
+      *, *::before, *::after { box-sizing: border-box; }
+
+      html {
+        background-color: #f9fafb;
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+      }
+
+      body {
+        margin: 0;
+        background-color: #f9fafb;
+        /* Inter → system-ui fallback so text never flashes to Times New Roman */
+        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont,
+                     'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        line-height: 1.5;
+        color: #111827;
+      }
+
+      #root {
+        min-height: 100dvh;
+        background-color: #f9fafb;
+        isolation: isolate;
+      }
+
+      /* Prevent a bare grey flash while the React tree mounts */
+      #root:empty::before {
+        content: '';
+        display: block;
+        min-height: 100dvh;
+        background-color: #f9fafb;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
