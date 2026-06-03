@@ -45,6 +45,7 @@ export interface ApiListing {
   reviewCount?: number;
   approvedBy?: string | null;
   approvedAt?: string | null;
+  editSnapshot?: Record<string, unknown> | null;
   listingImg?: Array<{
     fileUrl: string;
     fileType: string;
@@ -65,8 +66,8 @@ export interface GetListingsResponse {
   totalPages: number;
 }
 
-export interface GetListingsParams { 
-  status?: "pending" | "approved" | "rejected" | "flagged" | "hidden";
+export interface GetListingsParams {
+  status?: "pending" | "approved" | "rejected" | "flagged" | "hidden" | (string & {});
   search?: string;
   page?: number;
   limit?: number;
@@ -138,6 +139,7 @@ function mapRow(r: Record<string, unknown>): ApiListing {
     avaliableFrom: r.available_from as string | undefined,
     avaliableUntil: r.available_until as string | undefined,
     hideStatus: r.hide_status as boolean | undefined,
+    editSnapshot: r.edit_snapshot as Record<string, unknown> | null ?? null,
   };
 }
 
@@ -163,6 +165,14 @@ export const adminListingManagementApiSlice = apiSlice.injectEndpoints({
           if (params?.status) {
             if (params.status === 'hidden') {
               query = query.eq('hide_status', true);
+            } else if (params.status === 'edited') {
+              // "Edited" = host modified an already-approved listing and it's
+              // awaiting re-approval. Identified by: status=pending + edit_snapshot set
+              // + previously had an approval (approved_at IS NOT NULL).
+              query = query
+                .eq('status', 'pending')
+                .not('edit_snapshot', 'is', null)
+                .not('approved_at', 'is', null);
             } else {
               query = query.eq('status', params.status);
             }
@@ -246,7 +256,7 @@ export const adminListingManagementApiSlice = apiSlice.injectEndpoints({
       queryFn: async (listingId) => {
         const { data, error } = await (supabase
           .from('listings') as any)
-          .update({ status: 'approved', approved_at: new Date().toISOString() })
+          .update({ status: 'approved', approved_at: new Date().toISOString(), hide_status: false, edit_snapshot: null })
           .eq('id', listingId)
           .select(LISTING_SELECT)
           .single();

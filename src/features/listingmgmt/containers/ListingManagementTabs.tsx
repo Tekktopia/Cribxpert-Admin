@@ -6,12 +6,13 @@ interface ListingManagementTabsProps {
 }
 
 const tabs = [
-  { id: "all", label: "All Listing", count: null },
-  { id: "approved", label: "Approved", count: null },
-  { id: "pending", label: "Pending", count: null },
-  { id: "flagged", label: "Flagged", count: null },
-  { id: "rejected", label: "Rejected", count: null },
-  { id: "hidden", label: "Hidden", count: null },
+  { id: "all",      label: "All Listings", count: null },
+  { id: "approved", label: "Approved",     count: null },
+  { id: "edited",   label: "Edited",       count: null },
+  { id: "pending",  label: "Pending",      count: null },
+  { id: "flagged",  label: "Flagged",      count: null },
+  { id: "rejected", label: "Rejected",     count: null },
+  { id: "hidden",   label: "Hidden",       count: null },
 ];
 
 export function ListingManagementTabs({
