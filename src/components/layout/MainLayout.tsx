@@ -18,7 +18,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="flex min-h-screen bg-[FEFEFF]">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div
@@ -27,17 +27,21 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
         />
       )}
 
-      {/* Sidebar — all nav arrays already conform to { label, iconSrc, href } */}
+      {/* Sidebar — fixed on all screen sizes so it never scrolls */}
       <Sidebar
         navigationItems={getSidebarItems()}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
-        className="fixed inset-y-0 left-0 z-50 lg:static lg:z-auto"
+        className="fixed inset-y-0 left-0 z-50 lg:z-auto"
       />
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0 lg:ml-0 h-screen">
-        <Topbar onMenuClick={() => setSidebarOpen(true)} />
+      {/* Main content — offset by sidebar width on desktop */}
+      <div className="flex flex-col flex-1 min-w-0 lg:pl-64 h-screen overflow-hidden">
+        {/* Topbar — sticky at the top, never scrolls away */}
+        <div className="sticky top-0 z-30 flex-shrink-0">
+          <Topbar onMenuClick={() => setSidebarOpen(true)} />
+        </div>
+        {/* Scrollable content area — ONLY this scrolls */}
         <main className="flex-1 overflow-y-auto">
           <div className="w-full max-w-[1440px] mx-auto px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
             {children}
