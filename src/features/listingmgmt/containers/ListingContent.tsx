@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Search, Building2, CheckCircle2, Clock, Flag, Loader2, AlertTriangle } from "lucide-react";
+import { Search, Building2, CheckCircle2, Clock, Flag, Loader2, PencilLine, MapPin, User, ArrowRight } from "lucide-react";
 import { useAppSelector } from "@/store/hooks";
 import { ListingManagementTabs } from "./ListingManagementTabs";
 import { ListingGrid } from "../components/ListingGrid";
@@ -93,47 +93,92 @@ export function ListingContent({ onViewDetails, onAction }: ListingContentProps)
       {/* Tabs */}
       <ListingManagementTabs activeTab={activeTab} onTabChange={handleTabChange} />
 
-      {/* ── Edited tab — shows host-edited listings awaiting re-approval ── */}
+      {/* ── Edited tab — host-edited listings awaiting re-approval ── */}
       {isEditedTab ? (
         editedLoading ? (
-          <div className="flex items-center justify-center h-48 text-gray-400">
-            <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading edited listings…
+          <div className="flex flex-col items-center justify-center h-64 gap-3 text-gray-400">
+            <Loader2 className="w-7 h-7 animate-spin" />
+            <p className="text-sm">Loading edited listings…</p>
           </div>
         ) : editedListings.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 text-center text-gray-500">
-            <CheckCircle2 className="w-10 h-10 text-gray-300 mb-3" />
-            <p className="font-medium">No edited listings pending review</p>
-            <p className="text-sm text-gray-400 mt-1">When hosts edit their approved listings, they'll appear here.</p>
+          <div className="flex flex-col items-center justify-center h-64 text-center gap-3">
+            <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center">
+              <CheckCircle2 className="w-7 h-7 text-gray-300" />
+            </div>
+            <div>
+              <p className="font-semibold text-gray-700">All clear</p>
+              <p className="text-sm text-gray-400 mt-0.5 max-w-xs">
+                When hosts edit their approved listings, they'll show up here for review.
+              </p>
+            </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3">
-            {editedListings.map((listing: ApiListing) => (
-              <button
-                key={listing._id}
-                onClick={() => setDiffListing(listing)}
-                className="w-full text-left bg-white rounded-2xl border border-amber-200 hover:border-amber-400 hover:shadow-sm transition-all p-4 flex items-start gap-4"
-              >
-                {/* Amber badge */}
-                <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <AlertTriangle className="w-5 h-5 text-amber-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-gray-900 truncate">{listing.name}</span>
-                    <span className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full flex-shrink-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {editedListings.map((listing: ApiListing) => {
+              const cover = listing.listingImg?.[0]?.fileUrl;
+              const location = [listing.city, listing.state].filter(Boolean).join(", ");
+              const snapKeys = Object.keys(listing.editSnapshot ?? {});
+              const changedCount = snapKeys.length;
+
+              return (
+                <button
+                  key={listing._id}
+                  onClick={() => setDiffListing(listing)}
+                  className="group w-full text-left bg-white rounded-2xl border border-gray-200 hover:border-amber-300 hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col"
+                >
+                  {/* Cover image or gradient */}
+                  <div className="relative h-32 bg-gradient-to-br from-amber-400 to-orange-500 overflow-hidden flex-shrink-0">
+                    {cover && (
+                      <img
+                        src={cover}
+                        alt={listing.name}
+                        className="w-full h-full object-cover opacity-70 group-hover:scale-105 transition-transform duration-300"
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                    {/* Badge */}
+                    <div className="absolute top-3 left-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500 text-white text-[11px] font-bold uppercase tracking-wide shadow-sm">
+                      <PencilLine className="w-3 h-3" />
                       Edited
-                    </span>
+                    </div>
+                    {changedCount > 0 && (
+                      <div className="absolute top-3 right-3 px-2 py-1 rounded-full bg-black/30 backdrop-blur-sm text-white text-[11px] font-semibold">
+                        {changedCount} change{changedCount !== 1 ? "s" : ""}
+                      </div>
+                    )}
+                    {/* Title on image */}
+                    <p className="absolute bottom-3 left-3 right-3 text-white font-bold text-sm leading-tight drop-shadow truncate">
+                      {listing.name}
+                    </p>
                   </div>
-                  <p className="text-sm text-gray-500 mt-0.5">
-                    Host: {listing.userId.fullName} · {[listing.city, listing.state].filter(Boolean).join(", ")}
-                  </p>
-                  <p className="text-xs text-amber-600 mt-1 font-medium">
-                    Click to review what changed before approving or rejecting
-                  </p>
-                </div>
-                <span className="text-xs text-gray-400 flex-shrink-0 mt-1">View diff →</span>
-              </button>
-            ))}
+
+                  {/* Card body */}
+                  <div className="p-4 flex flex-col gap-3 flex-1">
+                    <div className="flex flex-col gap-1.5">
+                      {listing.userId.fullName && (
+                        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                          <User className="w-3.5 h-3.5 flex-shrink-0" />
+                          <span className="truncate">{listing.userId.fullName}</span>
+                        </div>
+                      )}
+                      {location && (
+                        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                          <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                          <span className="truncate">{location}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mt-auto pt-3 border-t border-gray-100 flex items-center justify-between">
+                      <p className="text-xs text-amber-600 font-medium">Review changes</p>
+                      <div className="w-7 h-7 rounded-lg bg-amber-50 group-hover:bg-amber-100 flex items-center justify-center transition-colors">
+                        <ArrowRight className="w-3.5 h-3.5 text-amber-600" />
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         )
       ) : (
