@@ -149,6 +149,7 @@ function BroadcastView() {
             description: message,
             category: "general",
             is_read: false,
+            status: "unread",
           })),
         );
       }
