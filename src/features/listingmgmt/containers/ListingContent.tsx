@@ -12,6 +12,7 @@ import {
   type ApiListing,
 } from "@/api/features/adminListingManagement/adminListingManagementApiSlice";
 import type { ListingRecord } from "@/data/listingMgmtData";
+import { useRealtimeRefetch } from "@/hooks/useRealtimeRefetch";
 
 interface ListingContentProps {
   onViewDetails: (listing: ListingRecord) => void;
@@ -29,6 +30,9 @@ export function ListingContent({ onViewDetails, onAction }: ListingContentProps)
   const { data: editedData, isLoading: editedLoading, refetch: refetchEdited } =
     useGetListingsQuery({ status: "edited" as any, limit: 100 }, { skip: !isEditedTab });
   const editedListings = editedData?.listings ?? [];
+
+  // Keep the Edited tab live — refetch whenever any listing row changes
+  useRealtimeRefetch(["listings"], refetchEdited, "edited-tab");
 
   const [approveListing, { isLoading: approving }] = useApproveListingMutation();
   const [rejectListing,  { isLoading: rejecting }]  = useRejectListingMutation();
