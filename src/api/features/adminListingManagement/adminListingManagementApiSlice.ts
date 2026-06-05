@@ -169,13 +169,13 @@ export const adminListingManagementApiSlice = apiSlice.injectEndpoints({
             if (params.status === 'hidden') {
               query = query.eq('hide_status', true);
             } else if (params.status === 'edited') {
-              // "Edited" = host modified an already-approved listing and it's
-              // awaiting re-approval. Identified by: status=pending + edit_snapshot set
-              // + previously had an approval (approved_at IS NOT NULL).
+              // "Edited" = host modified an already-approved listing awaiting re-approval.
+              // edit_snapshot IS NOT NULL is sufficient — it's only set when a host edits
+              // an approved listing. Removed approved_at check because some listings were
+              // approved before that field was reliably populated.
               query = query
                 .eq('status', 'pending')
-                .not('edit_snapshot', 'is', null)
-                .not('approved_at', 'is', null);
+                .not('edit_snapshot', 'is', null);
             } else {
               query = query.eq('status', params.status);
             }
