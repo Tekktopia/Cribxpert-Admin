@@ -1,11 +1,11 @@
 // useCsrUnreadCounts — live counts for the CSR sidebar badges.
-//   • liveChat: active (agent-mode, unresolved) sessions whose most-recent
-//               message came from the USER — i.e. awaiting a CSR reply.
-//   • tickets:  open tickets (pending / in-progress) still needing attention.
+//   • liveChat:      active (agent-mode, unresolved) sessions awaiting a CSR reply.
+//   • tickets:       open tickets (pending / in-progress).
+//   • notifications: unread admin-inbox rows for the current user.
 //
 // Agents are scoped to their own assignments; supervisors/admins see all.
-// Re-counts in realtime off tickets / sessions / messages so badges stay live.
-import { useCallback, useEffect, useState } from "react";
+// Re-counts in realtime off relevant tables so badges stay live.
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAppSelector } from "@/store/hooks";
 import { isAgent } from "@/utils/roles";
@@ -21,11 +21,12 @@ export function useCsrUnreadCounts(enabled = true): CsrUnreadCounts {
   const role = (useAppSelector((s) => s.auth.profile?.role) ?? "").toLowerCase();
   const viewerIsAgent = isAgent(role);
 
-  const [counts, setCounts] = useState<CsrUnreadCounts>({ liveChat: 0, tickets: 0 });
+  const [counts, setCounts] = useState<CsrUnreadCounts>({ liveChat: 0, tickets: 0, notifications: 0 });
 
   const recount = useCallback(async () => {
     if (!enabled) return;
-    // ── Tickets: open (pending / in-progress). Agents see only theirs. ──
+
+    // ── Tickets ──────────────────────────────────────────────────────────
     let ticketQ = supabase
       .from("tickets")
       .select("id", { count: "exact", head: true })
@@ -33,7 +34,7 @@ export function useCsrUnreadCounts(enabled = true): CsrUnreadCounts {
     if (viewerIsAgent && profileId) ticketQ = ticketQ.eq("assigned_to", profileId);
     const { count: ticketCount } = await ticketQ;
 
-    // ── Unread notifications for this admin user ──────────────────────────
+    // ── Unread notifications ──────────────────────────────────────────────
     let notifCount = 0;
     if (profileId) {
       const { count } = await (supabase
@@ -44,7 +45,7 @@ export function useCsrUnreadCounts(enabled = true): CsrUnreadCounts {
       notifCount = count ?? 0;
     }
 
-    // ── Live chats: active agent-mode sessions awaiting a reply ──
+    // ── Live chats awaiting CSR reply ─────────────────────────────────────
     let sessQ = supabase
       .from("conversation_sessions")
       .select("session_id, assigned_agent_id")
@@ -57,9 +58,6 @@ export function useCsrUnreadCounts(enabled = true): CsrUnreadCounts {
 
     let liveChat = 0;
     if (sessionIds.length > 0) {
-      // Pull recent messages for these sessions, newest first, and keep the
-      // first (latest) message we see per session. If that message is from the
-      // user, the session is awaiting a CSR reply → counts as unread.
       const { data: msgs } = await supabase
         .from("session_messages")
         .select("session_id, role, created_at")
@@ -79,20 +77,30 @@ export function useCsrUnreadCounts(enabled = true): CsrUnreadCounts {
     setCounts({ liveChat, tickets: ticketCount ?? 0, notifications: notifCount });
   }, [viewerIsAgent, profileId, enabled]);
 
+  // Keep a stable ref so the realtime channel callbacks always call the latest
+  // recount without needing to be rebuilt whenever recount changes identity.
+  const recountRef = useRef(recount);
+  useEffect(() => { recountRef.current = recount; }, [recount]);
+
   useEffect(() => {
     if (!enabled) return;
-    recount();
+
+    // Initial fetch
+    recountRef.current();
+
+    // Realtime subscription — built once per mount (not rebuilt on recount changes)
     const ch = supabase
-      .channel("csr-unread-counts")
-      .on("postgres_changes", { event: "*", schema: "public", table: "tickets" }, () => recount())
-      .on("postgres_changes", { event: "*", schema: "public", table: "conversation_sessions" }, () => recount())
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "session_messages" }, () => recount())
-      .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, () => recount())
+      .channel(`csr-unread-counts-${profileId || "anon"}`)
+      .on("postgres_changes", { event: "*",      schema: "public", table: "tickets" },               () => recountRef.current())
+      .on("postgres_changes", { event: "*",      schema: "public", table: "conversation_sessions" }, () => recountRef.current())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "session_messages" },      () => recountRef.current())
+      .on("postgres_changes", { event: "*",      schema: "public", table: "notifications" },         () => recountRef.current())
       .subscribe();
-    return () => {
-      supabase.removeChannel(ch);
-    };
-  }, [recount, enabled]);
+
+    return () => { supabase.removeChannel(ch); };
+  // Only re-subscribe when the user or enabled flag changes — NOT when recount changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, profileId]);
 
   return counts;
 }
