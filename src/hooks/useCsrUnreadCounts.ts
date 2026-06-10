@@ -13,6 +13,7 @@ import { isAgent } from "@/utils/roles";
 export interface CsrUnreadCounts {
   liveChat: number;
   tickets: number;
+  notifications: number;
 }
 
 export function useCsrUnreadCounts(enabled = true): CsrUnreadCounts {
@@ -31,6 +32,17 @@ export function useCsrUnreadCounts(enabled = true): CsrUnreadCounts {
       .in("status", ["pending", "in-progress"]);
     if (viewerIsAgent && profileId) ticketQ = ticketQ.eq("assigned_to", profileId);
     const { count: ticketCount } = await ticketQ;
+
+    // ── Unread notifications for this admin user ──────────────────────────
+    let notifCount = 0;
+    if (profileId) {
+      const { count } = await (supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", profileId)
+        .eq("is_read", false) as any);
+      notifCount = count ?? 0;
+    }
 
     // ── Live chats: active agent-mode sessions awaiting a reply ──
     let sessQ = supabase
@@ -64,7 +76,7 @@ export function useCsrUnreadCounts(enabled = true): CsrUnreadCounts {
       liveChat = sessionIds.filter((id) => latestRoleBySession.get(id) === "user").length;
     }
 
-    setCounts({ liveChat, tickets: ticketCount ?? 0 });
+    setCounts({ liveChat, tickets: ticketCount ?? 0, notifications: notifCount });
   }, [viewerIsAgent, profileId, enabled]);
 
   useEffect(() => {
@@ -75,6 +87,7 @@ export function useCsrUnreadCounts(enabled = true): CsrUnreadCounts {
       .on("postgres_changes", { event: "*", schema: "public", table: "tickets" }, () => recount())
       .on("postgres_changes", { event: "*", schema: "public", table: "conversation_sessions" }, () => recount())
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "session_messages" }, () => recount())
+      .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, () => recount())
       .subscribe();
     return () => {
       supabase.removeChannel(ch);

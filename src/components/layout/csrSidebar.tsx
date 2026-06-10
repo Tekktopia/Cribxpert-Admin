@@ -39,7 +39,8 @@ export const csrNavigationItems = [
   {
     label: "Notification",
     iconSrc: "/sidebar/notification-block-03.svg",
-    href: "/csr/notifications", // Changed from "/support/notifications"
+    href: "/csr/notifications",
+    badgeKey: "notifications" as const,
   },
   {
     label: "Settings",

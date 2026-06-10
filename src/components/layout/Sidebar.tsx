@@ -10,7 +10,7 @@ interface NavItem {
   readonly label: string;
   readonly iconSrc: string;
   readonly href: string;
-  readonly badgeKey?: "liveChat" | "tickets";
+  readonly badgeKey?: "liveChat" | "tickets" | "notifications";
 }
 
 interface SidebarProps {
@@ -30,7 +30,7 @@ const navigationItems: NavItem[] = [
   { label: "Booking Metrics", iconSrc: "/sidebar/pixel_analytics.svg", href: "/booking-metrics" },
   { label: "Analytics", iconSrc: "/sidebar/material-symbols_analytics-outline.svg", href: "/analytics" },
   { label: "Financials", iconSrc: "/sidebar/fluent-mdl2_financial.svg", href: "/financials" },
-  { label: "Notification", iconSrc: "/sidebar/notification-block-03.svg", href: "/notifications" },
+  { label: "Notification", iconSrc: "/sidebar/notification-block-03.svg", href: "/notifications", badgeKey: "notifications" as const },
   { label: "Settings", iconSrc: "/sidebar/setting-2.svg", href: "/settings" },
   { label: "Admin Roles", iconSrc: "/sidebar/carbon_user-role.svg", href: "/admin-management" },
   { label: "CSR Tickets", iconSrc: "/sidebar/ticket.svg", href: "/csr/dashboard" },
@@ -92,7 +92,7 @@ export const Sidebar = memo(function Sidebar({
           to={item.href}
           onClick={handleClose}
           className={cn(
-            "flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors",
+            "flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors",
             isLogout && !isActive
               ? "text-red-600 hover:bg-red-50 hover:text-red-700"
               : isActive
@@ -174,7 +174,7 @@ export const Sidebar = memo(function Sidebar({
 
       <div className='scrollbar-track-transparent hover:scrollbar-thumb-gray-400'></div>
       {/* Navigation - Scrollable */}
-      <nav className='flex-1 px-4 py-1 space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 '>
+      <nav className='flex-1 px-4 py-1 space-y-1 overflow-y-hidden'>
         {navigationLinks}
       </nav>
     </div>
