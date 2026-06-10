@@ -22,7 +22,7 @@ export interface AdminManagementAdmin {
 }
 
 export interface GetAdminsResponse { admins: AdminManagementAdmin[] }
-export type CreateAdminRole = "Admin" | "FinanceAdmin" | "CSRAdmin" | "CSRAgent" | "FinanceAgent";
+export type CreateAdminRole = "Admin" | "SuperAdmin" | "FinanceAdmin" | "CSRAdmin" | "CSRAgent" | "FinanceAgent";
 export interface CreateAdminRequest {
   email: string;
   fullName: string;
@@ -34,6 +34,12 @@ export interface CreateAdminRequest {
   groupKey?: string;
   tier?: "supervisor" | "agent";
 }
+export interface UpdateAdminRoleRequest {
+  targetUserId: string;
+  role: string;
+  agentGroup?: string | null;
+}
+export interface UpdateAdminRoleResponse { message: string }
 export interface CreateAdminResponse { message: string }
 export interface DisableAdminResponse { message: string }
 export interface DeleteAdminResponse { message: string }
@@ -153,6 +159,29 @@ export const adminManagementApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: [{ type: "User", id: "ADMIN_LIST" }],
     }),
 
+    // SuperAdmin-only: change the role (and group) of an existing admin.
+    updateAdminRole: builder.mutation<UpdateAdminRoleResponse, UpdateAdminRoleRequest>({
+      queryFn: async ({ targetUserId, role, agentGroup }) => {
+        const { data, error } = await supabase.functions.invoke('update-admin-role', {
+          body: { targetUserId, role, agentGroup: agentGroup ?? null },
+        });
+        if (error) {
+          let msg = error.message;
+          const ctx = (error as unknown as { context?: Response }).context;
+          if (ctx && typeof ctx.json === 'function') {
+            try { const b = await ctx.clone().json(); if (b?.error) msg = b.error; } catch { /* keep */ }
+          }
+          return { error: { status: 'CUSTOM_ERROR', error: msg } };
+        }
+        if (data?.error) return { error: { status: 'CUSTOM_ERROR', error: data.error } };
+        return { data: { message: data?.message ?? 'Role updated' } };
+      },
+      invalidatesTags: (_r, _e, { targetUserId }) => [
+        { type: "User", id: targetUserId },
+        { type: "User", id: "ADMIN_LIST" },
+      ],
+    }),
+
     // SuperAdmin-only: set a new password for ANY user. The edge function
     // re-verifies the caller is a superadmin server-side before applying.
     resetUserPassword: builder.mutation<ResetPasswordResponse, { userId: string; password: string }>({
@@ -174,5 +203,6 @@ export const {
   useCreateAdminMutation,
   useDisableAdminMutation,
   useDeleteAdminMutation,
+  useUpdateAdminRoleMutation,
   useResetUserPasswordMutation,
 } = adminManagementApiSlice;
