@@ -88,9 +88,12 @@ export function useCsrUnreadCounts(enabled = true): CsrUnreadCounts {
     // Initial fetch
     recountRef.current();
 
-    // Realtime subscription — built once per mount (not rebuilt on recount changes)
+    // Use a unique channel name each mount so Supabase never reuses a cached
+    // instance that is still in SUBSCRIBING/SUBSCRIBED state (which throws when
+    // .on() is called on it). React StrictMode and profileId changes both cause
+    // the effect to re-run before the previous removeChannel fully completes.
     const ch = supabase
-      .channel(`csr-unread-counts-${profileId || "anon"}`)
+      .channel(`csr-unread-counts-${Date.now()}`)
       .on("postgres_changes", { event: "*",      schema: "public", table: "tickets" },               () => recountRef.current())
       .on("postgres_changes", { event: "*",      schema: "public", table: "conversation_sessions" }, () => recountRef.current())
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "session_messages" },      () => recountRef.current())
@@ -98,7 +101,6 @@ export function useCsrUnreadCounts(enabled = true): CsrUnreadCounts {
       .subscribe();
 
     return () => { supabase.removeChannel(ch); };
-  // Only re-subscribe when the user or enabled flag changes — NOT when recount changes
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, profileId]);
 
