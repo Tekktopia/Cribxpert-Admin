@@ -212,10 +212,10 @@ const SupportDashboard = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Sidebar navigationItems={sidebarItems} />
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <Sidebar navigationItems={sidebarItems} className="fixed inset-y-0 left-0 z-50 lg:z-auto" />
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
         <Topbar />
 
         <main className="flex-1 overflow-y-auto">

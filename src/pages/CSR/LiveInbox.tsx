@@ -490,9 +490,9 @@ const LiveInbox = () => {
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
-      <Sidebar navigationItems={liveSidebar} />
+      <Sidebar navigationItems={liveSidebar} className="fixed inset-y-0 left-0 z-50 lg:z-auto" />
 
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden lg:pl-64">
         <Topbar />
 
         {/* Page header */}
