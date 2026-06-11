@@ -5,12 +5,13 @@ import { cn } from "../../utils/cn";
 import { SvgIcon } from "@/components/ui/SvgIcon";
 import { useAppSelector } from "@/store/hooks";
 import { useCsrUnreadCounts } from "@/hooks/useCsrUnreadCounts";
+import { useAdminBadgeCounts } from "@/hooks/useAdminBadgeCounts";
 
 interface NavItem {
   readonly label: string;
   readonly iconSrc: string;
   readonly href: string;
-  readonly badgeKey?: "liveChat" | "tickets" | "notifications";
+  readonly badgeKey?: "liveChat" | "tickets" | "notifications" | "kyc" | "messaging" | "financials";
 }
 
 interface SidebarProps {
@@ -25,11 +26,11 @@ const navigationItems: NavItem[] = [
   { label: "Users", iconSrc: "/sidebar/user-multiple-02.svg", href: "/users" },
   { label: "Listings", iconSrc: "/sidebar/list-setting.svg", href: "/listings" },
   { label: "Bookings", iconSrc: "/sidebar/calendar-edit.svg", href: "/bookings" },
-  { label: "KYC", iconSrc: "/sidebar/card-tick.svg", href: "/kyc" },
-  { label: "Messaging", iconSrc: "/sidebar/mail-01.svg", href: "/messaging" },
+  { label: "KYC", iconSrc: "/sidebar/card-tick.svg", href: "/kyc", badgeKey: "kyc" as const },
+  { label: "Messaging", iconSrc: "/sidebar/mail-01.svg", href: "/messaging", badgeKey: "messaging" as const },
   { label: "Booking Metrics", iconSrc: "/sidebar/pixel_analytics.svg", href: "/booking-metrics" },
   { label: "Analytics", iconSrc: "/sidebar/material-symbols_analytics-outline.svg", href: "/analytics" },
-  { label: "Financials", iconSrc: "/sidebar/fluent-mdl2_financial.svg", href: "/financials" },
+  { label: "Financials", iconSrc: "/sidebar/fluent-mdl2_financial.svg", href: "/financials", badgeKey: "financials" as const },
   { label: "Notification", iconSrc: "/sidebar/notification-block-03.svg", href: "/notifications", badgeKey: "notifications" as const },
   { label: "Settings", iconSrc: "/sidebar/setting-2.svg", href: "/settings" },
   { label: "Admin Roles", iconSrc: "/sidebar/carbon_user-role.svg", href: "/admin-management" },
@@ -61,13 +62,20 @@ export const Sidebar = memo(function Sidebar({
     [baseItems, profileRole]
   );
 
-  // Only count (and open a realtime channel) when this sidebar actually shows
-  // badge-bearing CSR items — keeps the admin/finance sidebars side-effect-free.
+  // Only open realtime channels when this sidebar actually carries badge items.
   const hasBadges = useMemo(
     () => items.some((item) => "badgeKey" in item && item.badgeKey),
     [items]
   );
-  const unread = useCsrUnreadCounts(hasBadges);
+  const CSR_KEYS = new Set(["liveChat", "tickets", "notifications"]);
+  const ADMIN_KEYS = new Set(["kyc", "messaging", "financials"]);
+  const hasCsrBadges   = useMemo(() => items.some((i) => i.badgeKey && CSR_KEYS.has(i.badgeKey)),   [items]);
+  const hasAdminBadges = useMemo(() => items.some((i) => i.badgeKey && ADMIN_KEYS.has(i.badgeKey)), [items]);
+
+  const csrCounts   = useCsrUnreadCounts(hasBadges && hasCsrBadges);
+  const adminCounts = useAdminBadgeCounts(hasBadges && hasAdminBadges);
+
+  const unread = useMemo(() => ({ ...csrCounts, ...adminCounts }), [csrCounts, adminCounts]);
 
   // Memoize the close handler to prevent unnecessary re-renders of child components
   const handleClose = useCallback(() => {
