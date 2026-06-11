@@ -142,7 +142,11 @@ function mapRow(r: Record<string, unknown>): ApiListing {
     avaliableFrom: r.available_from as string | undefined,
     avaliableUntil: r.available_until as string | undefined,
     hideStatus: r.hide_status as boolean | undefined,
-    editSnapshot: r.edit_snapshot as Record<string, unknown> | null ?? null,
+    editSnapshot: r.edit_snapshot
+      ? (typeof r.edit_snapshot === 'string'
+          ? (() => { try { return JSON.parse(r.edit_snapshot as string); } catch { return null; } })()
+          : r.edit_snapshot) as Record<string, unknown>
+      : null,
   };
 }
 
