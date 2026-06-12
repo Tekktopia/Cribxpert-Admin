@@ -19,7 +19,8 @@ export interface BookingStatusBreakdownResponse {
 
 export interface UserManagementResponse {
   verifiedUsers: number;
-  pendingUsers: number;
+  awaitingReview: number;  // submitted KYC, sitting in the review queue
+  notSubmitted: number;    // never submitted KYC documents
   blockedUsers: number;
 }
 
@@ -85,15 +86,27 @@ export const adminDashboardApiSlice = apiSlice.injectEndpoints({
 
     getUserManagement: builder.query<UserManagementResponse, void>({
       queryFn: async () => {
-        const { data } = await supabase
-          .from('profiles')
-          .select('kyc_status, account_disabled')
-          .not('role', 'in', '(admin,superadmin,finance_admin,csr_admin)') as { data: any[] | null };
+        const [{ data }, { data: pendingKyc }] = await Promise.all([
+          supabase
+            .from('profiles')
+            .select('id, kyc_status, account_disabled')
+            .not('role', 'in', '(admin,superadmin,finance_admin,csr_admin)') as unknown as Promise<{ data: any[] | null }>,
+          // Users with a KYC submission sitting in the review queue
+          supabase
+            .from('kyc_verifications')
+            .select('user_id')
+            .eq('status', 'pending') as unknown as Promise<{ data: any[] | null }>,
+        ]);
         const rows = data ?? [];
+        const inReviewQueue = new Set((pendingKyc ?? []).map((r: any) => r.user_id));
+
+        const active = rows.filter((r: any) => !r.account_disabled);
+        const unverified = active.filter((r: any) => r.kyc_status !== 'verified');
         return {
           data: {
-            verifiedUsers: rows.filter((r: any) => r.kyc_status === 'verified' && !r.account_disabled).length,
-            pendingUsers: rows.filter((r: any) => r.kyc_status !== 'verified' && !r.account_disabled).length,
+            verifiedUsers: active.filter((r: any) => r.kyc_status === 'verified').length,
+            awaitingReview: unverified.filter((r: any) => inReviewQueue.has(r.id)).length,
+            notSubmitted: unverified.filter((r: any) => !inReviewQueue.has(r.id)).length,
             blockedUsers: rows.filter((r: any) => r.account_disabled).length,
           },
         };

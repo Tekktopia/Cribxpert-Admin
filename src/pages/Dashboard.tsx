@@ -139,9 +139,14 @@ export function DashboardPage() {
             color: "#0e7490",
           },
           {
-            label: "Pending",
-            value: userMgmtData.pendingUsers,
+            label: "Awaiting review",
+            value: userMgmtData.awaitingReview,
             color: "#f59e0b",
+          },
+          {
+            label: "Not submitted",
+            value: userMgmtData.notSubmitted,
+            color: "#94a3b8",
           },
           {
             label: "Blocked",
