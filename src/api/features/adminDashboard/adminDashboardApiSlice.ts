@@ -3,8 +3,8 @@ import { supabase } from "@/lib/supabase";
 
 export interface DashboardCardsResponse {
   totalUsers: number;      // ALL profiles (no role filter)
-  adminTeam: number;       // profiles with an admin-level role
-  kycPending: number;      // profiles where kyc_status != 'verified'
+  adminTeam: number;       // admins + superadmins only
+  kycPending: number;      // kyc_verifications submissions awaiting review
   activeListings: number;
   weeklyBookings: number;
 }
@@ -54,29 +54,28 @@ export const adminDashboardApiSlice = apiSlice.injectEndpoints({
     getDashboardCards: builder.query<DashboardCardsResponse, void>({
       queryFn: async () => {
         const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-        const ADMIN_ROLES = ['admin', 'superadmin', 'finance_admin', 'csr_admin'];
         const [
           { count: totalUsers },
           { count: adminTeam },
-          { data: kycRows },
+          { count: kycPending },
           { count: activeListings },
           { count: weeklyBookings },
         ] = await Promise.all([
-          // ALL profiles — every registered account
+          // ALL profiles — every registered account in the DB
           supabase.from('profiles').select('*', { count: 'exact', head: true }),
-          // Admin-role accounts only
-          supabase.from('profiles').select('*', { count: 'exact', head: true }).in('role', ADMIN_ROLES),
-          // For KYC pending: fetch kyc_status column (no head so we get rows to filter)
-          supabase.from('profiles').select('kyc_status').not('role', 'in', `(${ADMIN_ROLES.join(',')})`) as unknown as Promise<{ data: { kyc_status: string }[] | null }>,
+          // Admin Team = admins + superadmins only (not CSR/finance staff)
+          supabase.from('profiles').select('*', { count: 'exact', head: true }).in('role', ['admin', 'superadmin']),
+          // KYC Pending = actual submissions sitting in the review queue —
+          // NOT every profile that never submitted documents.
+          supabase.from('kyc_verifications').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
           supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'approved').eq('hide_status', false),
           supabase.from('bookings').select('*', { count: 'exact', head: true }).gte('created_at', sevenDaysAgo),
         ]);
-        const kycPending = (kycRows ?? []).filter((r) => r.kyc_status !== 'verified').length;
         return {
           data: {
             totalUsers: totalUsers ?? 0,
             adminTeam: adminTeam ?? 0,
-            kycPending,
+            kycPending: kycPending ?? 0,
             activeListings: activeListings ?? 0,
             weeklyBookings: weeklyBookings ?? 0,
           },
