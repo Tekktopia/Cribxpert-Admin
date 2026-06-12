@@ -7,7 +7,28 @@ import type {
   TransactionType,
 } from "@/data/financialsData";
 
-const PLATFORM_FEE = 0.10;
+// Canonical host-earnings model — MUST stay in sync with calcHostEarnings in
+// the frontend repo's escrow edge function, which is what actually pays hosts.
+// Host receives accommodation + cleaning in full; CribXpert keeps the guest
+// service fee (5%) + VAT (7.5%); the security deposit returns to the guest.
+function calcHostEarnings(totalAmount: number, secDeposit: number, storedHostEarnings?: number | null): number {
+  const stored = Number(storedHostEarnings ?? 0);
+  if (stored > 0) return stored;
+  const nonDeposit = totalAmount - secDeposit;
+  const vatOnDeposit = secDeposit * 0.075;
+  return Math.max(0, (nonDeposit - vatOnDeposit) / 1.12875);
+}
+
+// CribXpert revenue on a booking = service_fee + vat when stored; otherwise
+// everything that isn't host earnings or the deposit.
+function calcPlatformRevenue(b: { total_price?: number; security_deposit_amount?: number; host_earnings?: number | null; service_fee?: number | null; vat_amount?: number | null }): number {
+  const fee = Number(b.service_fee ?? 0);
+  const vat = Number(b.vat_amount ?? 0);
+  if (fee > 0 || vat > 0) return fee + vat;
+  const total  = Number(b.total_price ?? 0);
+  const secDep = Number(b.security_deposit_amount ?? 0);
+  return Math.max(0, total - secDep - calcHostEarnings(total, secDep, b.host_earnings));
+}
 
 function escrowToType(status: string): TransactionType {
   if (status === "DISBURSED") return "Payout";
@@ -21,9 +42,8 @@ function escrowToStatus(status: string): TransactionStatus {
   return "Pending";
 }
 
-function txAmount(status: string, totalPrice: number, secDep: number): number {
-  const disbursable = totalPrice - secDep;
-  if (status === "DISBURSED") return Math.round(disbursable * (1 - PLATFORM_FEE));
+function txAmount(status: string, totalPrice: number, secDep: number, hostEarnings?: number | null): number {
+  if (status === "DISBURSED") return Math.round(calcHostEarnings(totalPrice, secDep, hostEarnings));
   if (status === "REFUNDED")  return totalPrice;
   return totalPrice;
 }
@@ -36,7 +56,7 @@ export const adminFinancialsApiSlice = apiSlice.injectEndpoints({
           // ── 1. Fetch all bookings ──────────────────────────────────────
           const { data: bookings, error: bookErr } = await supabase
             .from("bookings")
-            .select("id, created_at, total_price, security_deposit_amount, escrow_status, start_date, end_date, user_id, listing_id")
+            .select("id, created_at, total_price, security_deposit_amount, host_earnings, service_fee, vat_amount, escrow_status, start_date, end_date, user_id, listing_id")
             .order("created_at", { ascending: false })
             .limit(1000) as { data: any[] | null; error: any };
 
@@ -84,7 +104,7 @@ export const adminFinancialsApiSlice = apiSlice.injectEndpoints({
                 date:          (b.created_at ?? "").slice(0, 10),
                 type:          escrowToType(b.escrow_status),
                 status:        escrowToStatus(b.escrow_status),
-                amount:        txAmount(b.escrow_status, total, secDep),
+                amount:        txAmount(b.escrow_status, total, secDep, b.host_earnings),
                 guestName:     profileMap[b.user_id] || undefined,
                 hostName:      hostId ? (profileMap[hostId] || undefined) : undefined,
                 propertyName:  listing?.name || undefined,
@@ -100,15 +120,14 @@ export const adminFinancialsApiSlice = apiSlice.injectEndpoints({
           rows.forEach((b) => {
             const total  = Number(b.total_price ?? 0);
             const secDep = Number(b.security_deposit_amount ?? 0);
-            const disbursable = total - secDep;
             const s = b.escrow_status;
 
             if (s === "DISBURSED") {
-              commission += Math.round(disbursable * PLATFORM_FEE);
-              hostEarned += Math.round(disbursable * (1 - PLATFORM_FEE));
+              commission += Math.round(calcPlatformRevenue(b));
+              hostEarned += Math.round(calcHostEarnings(total, secDep, b.host_earnings));
             }
             if (s === "FUNDS_HELD" || s === "DELIVERY_CONFIRMED") {
-              escrowHeld += disbursable;
+              escrowHeld += total - secDep;
             }
             if (s === "REFUNDED") {
               refunded += total;
@@ -121,7 +140,7 @@ export const adminFinancialsApiSlice = apiSlice.injectEndpoints({
                 id:          "commission",
                 title:       "Total Commission Earned",
                 value:       commission,
-                changeLabel: "all time (10% fee)",
+                changeLabel: "all time (service fee + VAT)",
                 icon:        "/sidebar/card-tick.svg",
               },
               {
